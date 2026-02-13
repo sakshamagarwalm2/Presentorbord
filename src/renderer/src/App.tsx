@@ -1,6 +1,6 @@
 import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType, TLComponents } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
-import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
+
 import { useSubjectMode } from './store/useSubjectMode'
 import { useEffect, useRef, useState } from 'react'
 import { loadPdf, renderPageToDataURL } from './utils/pdfUtils'
@@ -9,7 +9,10 @@ import { Sidebar } from './components/Sidebar'
 import { ToolsSidebar } from './components/ToolsSidebar'
 import { DrawingToolbar } from './components/DrawingToolbar'
 
-const customShapeUtils = [ProtractorShapeUtil]
+import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
+import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
+
+const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil]
 
 function AppContent() {
     const editor = useEditor()
@@ -31,8 +34,42 @@ function AppContent() {
         })
     }
 
+    const projectInputRef = useRef<HTMLInputElement>(null)
+
     const handleImportClick = () => {
         fileInputRef.current?.click()
+    }
+
+    const handleSaveProject = async () => {
+        const snapshot = editor.store.getSnapshot()
+        const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = 'project.tldr'
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    const handleOpenProject = () => {
+        projectInputRef.current?.click()
+    }
+
+    const handleProjectFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        const text = await file.text()
+        try {
+            const snapshot = JSON.parse(text)
+            editor.loadSnapshot(snapshot)
+        } catch (e) {
+            console.error('Failed to load project', e)
+            alert('Failed to load project file')
+        }
+        
+        // Reset input
+        if (projectInputRef.current) projectInputRef.current.value = ''
     }
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +184,11 @@ function AppContent() {
     return (
         <>
             <Sidebar />
-            <ToolsSidebar />
+            <ToolsSidebar 
+                onImportClick={handleImportClick} 
+                onOpenProject={handleOpenProject}
+                onSaveProject={handleSaveProject}
+            />
             <DrawingToolbar />
             <input 
                 type="file" 
@@ -155,6 +196,13 @@ function AppContent() {
                 className="hidden" 
                 accept=".pdf,.ppt,.pptx"
                 onChange={handleFileChange}
+            />
+            <input 
+                type="file" 
+                ref={projectInputRef} 
+                className="hidden" 
+                accept=".tldr,.json"
+                onChange={handleProjectFileChange}
             />
             {isImporting && (
                 <div className="absolute inset-0 bg-black/50 z-[100000] flex items-center justify-center">
