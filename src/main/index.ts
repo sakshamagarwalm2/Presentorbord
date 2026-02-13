@@ -8,6 +8,10 @@ function createWindow(): void {
     height: 670,
     show: false,
     autoHideMenuBar: true,
+    frame: false,
+    transparent: true,
+    fullscreen: true,
+    hasShadow: false,
     ...(process.platform === 'linux' ? { icon: path.join(__dirname, '../../build/icon.png') } : {}),
     webPreferences: {
       preload:  path.join(__dirname, '../preload/index.js'),

@@ -181,13 +181,35 @@ function AppContent() {
 
 
 
+    const [isDesktopMode, setIsDesktopMode] = useState(false)
+
+    const toggleDesktopMode = () => {
+        setIsDesktopMode(!isDesktopMode)
+        // We also need to tell Tldraw to be transparent
+        // By default Tldraw has a white background. 
+        // We can override it via CSS or props if supported.
+        // Tldraw class .tl-background set background color.
+    }
+
     return (
         <>
+            {/* Transparent background override style */}
+            {isDesktopMode && (
+                <style>{`
+                    .tldraw__editor { background: transparent !important; }
+                    .tl-background { background: transparent !important; }
+                    .tl-canvas { background: transparent !important; }
+                    html, body { background: transparent !important; }
+                    #root { background: transparent !important; }
+                `}</style>
+            )}
+
             <Sidebar />
             <ToolsSidebar 
                 onImportClick={handleImportClick} 
                 onOpenProject={handleOpenProject}
                 onSaveProject={handleSaveProject}
+                onDesktopModeToggle={toggleDesktopMode}
             />
             <DrawingToolbar />
             <input 

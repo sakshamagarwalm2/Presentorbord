@@ -1,4 +1,4 @@
-import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow } from 'lucide-react'
+import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow, Monitor } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useEditor, createShapeId } from '@tldraw/tldraw'
 import { getEmbedDef } from '../utils/embedUtils'
@@ -7,6 +7,7 @@ interface ToolsSidebarProps {
   onImportClick: () => void
   onOpenProject: () => void
   onSaveProject: () => void
+  onDesktopModeToggle: () => void
 }
 
 interface Bookmark {
@@ -14,7 +15,7 @@ interface Bookmark {
   url: string
 }
 
-export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject }: ToolsSidebarProps) {
+export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle }: ToolsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showMathTools, setShowMathTools] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -154,6 +155,7 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject }: To
             <div className="flex flex-col gap-3 w-full px-2">
                  
                 <ToolButton icon={FileUp} label="Import" onClick={onImportClick} />
+                <ToolButton icon={Monitor} label="Desktop" onClick={onDesktopModeToggle} />
                 
                 {/* Math Group */}
                 <div className="relative">
