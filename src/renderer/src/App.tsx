@@ -1,4 +1,4 @@
-import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType } from '@tldraw/tldraw'
+import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType, TLComponents } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { useSubjectMode } from './store/useSubjectMode'
@@ -175,10 +175,14 @@ function AppContent() {
     )
 }
 
+const components: TLComponents = {
+	DebugPanel: null
+}
+
 function App(): JSX.Element {
   return (
     <div className="tldraw__editor" style={{ position: 'fixed', inset: 0 }}>
-      <Tldraw persistenceKey="tldraw-persistence" shapeUtils={customShapeUtils}>
+      <Tldraw persistenceKey="tldraw-persistence" shapeUtils={customShapeUtils} components={components}>
           <AppContent />
       </Tldraw>
     </div>
