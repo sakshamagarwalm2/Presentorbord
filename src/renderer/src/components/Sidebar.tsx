@@ -8,7 +8,7 @@ export function Sidebar() {
     const editor = useEditor()
     const pages = useValue('pages', () => editor.getPages(), [editor])
     const currentPageId = useValue('currentPageId', () => editor.getCurrentPageId(), [editor])
-    const [isOpen, setIsOpen] = useState(true)
+    const [isOpen, setIsOpen] = useState(false)
 
     const sortedPages = pages.sort((a, b) => (a.index > b.index ? 1 : -1))
 

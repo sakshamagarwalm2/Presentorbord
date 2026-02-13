@@ -82,6 +82,27 @@ ipcMain.handle('convert-ppt-to-pdf', async (_, pptPath: string) => {
   })
 })
 
+ipcMain.handle('open-system-calculator', () => {
+  const platform = process.platform
+  let command = ''
+
+  if (platform === 'win32') {
+    command = 'calc'
+  } else if (platform === 'darwin') {
+    command = 'open -a Calculator'
+  } else if (platform === 'linux') {
+    command = 'gnome-calculator'
+  }
+
+  if (command) {
+    exec(command, (error) => {
+      if (error) {
+        console.error('Failed to open calculator:', error)
+      }
+    })
+  }
+})
+
 ipcMain.handle('read-pdf-file', async (_, filePath: string) => {
   return fs.readFileSync(filePath)
 })

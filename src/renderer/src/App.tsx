@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { loadPdf, renderPageToDataURL } from './utils/pdfUtils'
 import { convertPptToPdf } from './utils/pptUtils'
 import { Sidebar } from './components/Sidebar'
+import { ToolsSidebar } from './components/ToolsSidebar'
 import { DrawingToolbar } from './components/DrawingToolbar'
 
 const customShapeUtils = [ProtractorShapeUtil]
@@ -146,6 +147,7 @@ function AppContent() {
     return (
         <>
             <Sidebar />
+            <ToolsSidebar />
             <DrawingToolbar />
             <input 
                 type="file" 
