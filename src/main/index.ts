@@ -46,3 +46,42 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+import { ipcMain } from 'electron'
+import { exec } from 'child_process'
+import fs from 'fs'
+import os from 'os'
+
+ipcMain.handle('convert-ppt-to-pdf', async (_, pptPath: string) => {
+  const pdfPath = path.join(os.tmpdir(), `${path.basename(pptPath, path.extname(pptPath))}-${Date.now()}.pdf`)
+  
+  const psScript = `
+    $pptPath = "${pptPath}"
+    $pdfPath = "${pdfPath}"
+    $ppt = New-Object -ComObject PowerPoint.Application
+    $presentation = $ppt.Presentations.Open($pptPath)
+    $presentation.SaveAs($pdfPath, 32)
+    $presentation.Close()
+    $ppt.Quit()
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ppt) | Out-Null
+  `
+  
+  // Save script to a temp file to avoid quoting issues
+  const scriptPath = path.join(os.tmpdir(), `convert-${Date.now()}.ps1`)
+  fs.writeFileSync(scriptPath, psScript)
+  
+  return new Promise((resolve, reject) => {
+    exec(`powershell -ExecutionPolicy Bypass -File "${scriptPath}"`, (error) => {
+      fs.unlinkSync(scriptPath) // Clean up script
+      if (error) {
+        reject(error)
+      } else {
+        resolve(pdfPath)
+      }
+    })
+  })
+})
+
+ipcMain.handle('read-pdf-file', async (_, filePath: string) => {
+  return fs.readFileSync(filePath)
+})
