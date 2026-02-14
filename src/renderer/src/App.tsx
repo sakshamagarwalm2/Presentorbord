@@ -228,13 +228,13 @@ function AppContent() {
             />
             {isImporting && (
                 <div className="absolute inset-0 bg-black/50 z-[100000] flex items-center justify-center">
-                    <div className="bg-white p-4 rounded-xl shadow-lg">
-                        <p className="font-bold text-lg animate-pulse">Importing... Please wait</p>
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg">
+                        <p className="font-bold text-lg animate-pulse dark:text-gray-200">Importing... Please wait</p>
                     </div>
                 </div>
             )}
             {mode === 'math' && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">
                     <button 
                         onClick={addProtractor}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold"

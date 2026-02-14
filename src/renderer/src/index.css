@@ -50,6 +50,11 @@
     overflow-y: auto !important;
 }
 
+.tl-theme__dark .tlui-style-panel__wrapper {
+    background-color: rgba(17, 24, 39, 0.9) !important;
+    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
 /* Make the style panel content flow horizontally */
 .tlui-style-panel {
     width: auto !important;

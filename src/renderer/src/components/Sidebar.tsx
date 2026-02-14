@@ -100,22 +100,22 @@ export function Sidebar() {
             {!isOpen && (
                 <button 
                     onClick={() => setIsOpen(true)}
-                    className="absolute left-3 top-3 z-[99999] p-1.5 bg-white/60 backdrop-blur-md rounded-lg hover:bg-white/90 transition-all"
+                    className="absolute left-3 top-3 z-[99999] p-1.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
                     title="Expand Sidebar"
                 >
-                    <ChevronRight size={16} className="text-gray-600" />
+                    <ChevronRight size={16} className="text-gray-600 dark:text-gray-400" />
                 </button>
             )}
             
             <div className={`absolute top-3 left-3 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-64 opacity-0 pointer-events-none'}`}>
-                <div className="w-56 bg-white/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 flex flex-col max-h-[70vh]">
+                <div className="w-56 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col max-h-[70vh]">
                     {/* Header */}
-                    <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100">
-                        <h2 className="font-semibold text-sm text-gray-800">Pages</h2>
+                    <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
+                        <h2 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Pages</h2>
                         <div className="flex gap-1 items-center">
-                             <button onClick={exportAllPages} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors" title="Export"><Download size={14} /></button>
+                             <button onClick={exportAllPages} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors" title="Export"><Download size={14} /></button>
                              <button onClick={addPage} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="Add Page"><Plus size={14} /></button>
-                             <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors" title="Collapse">
+                             <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors" title="Collapse">
                                 <ChevronLeft size={14} />
                              </button>
                         </div>
@@ -127,7 +127,7 @@ export function Sidebar() {
                             <div 
                                 key={page.id}
                                 onClick={() => selectPage(page.id)}
-                                className={`group px-2.5 py-2 rounded-xl flex justify-between items-center cursor-pointer transition-all text-sm ${currentPageId === page.id ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'hover:bg-gray-100 text-gray-700'}`}
+                                className={`group px-2.5 py-2 rounded-xl flex justify-between items-center cursor-pointer transition-all text-sm ${currentPageId === page.id ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
                             >
                                 <span className="font-medium truncate">{page.name}</span>
                                 

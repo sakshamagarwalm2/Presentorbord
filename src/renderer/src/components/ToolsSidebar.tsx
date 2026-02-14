@@ -135,19 +135,19 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
       {!isOpen && (
         <button 
             onClick={() => setIsOpen(true)}
-            className="absolute right-3 top-2 z-[99999] p-2 bg-white/60 backdrop-blur-md rounded-lg hover:bg-white/90 transition-all shadow-sm border border-gray-200/50"
+            className="absolute right-3 top-2 z-[99999] p-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all shadow-sm border border-gray-200/50 dark:border-gray-700/50"
             title="Expand Tools"
         >
-            <ChevronLeft size={16} className="text-gray-600" />
+            <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
         </button>
       )}
 
       {/* Main Sidebar - Right Side */}
       <div className={`absolute top-2 right-3 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-64 opacity-0 pointer-events-none'}`}>
-        <div className="w-16 bg-white/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 flex flex-col items-center py-4 gap-4">
+        <div className="w-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col items-center py-4 gap-4">
             
             {/* Header / Collapse */}
-            <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 transition-colors mb-2">
+            <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors mb-2">
                 <ChevronRight size={16} />
             </button>
 
@@ -168,10 +168,10 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                     
                     {/* Math Sub-menu */}
                     {showMathTools && (
-                        <div className="absolute right-full top-0 mr-3 bg-white/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 p-2 flex flex-col gap-2">
+                        <div className="absolute right-full top-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 flex flex-col gap-2">
                              <ToolButton icon={CalcIcon} label="Calculator" onClick={() => { openSystemCalculator(); setShowMathTools(false); }} />
                              <ToolButton icon={LineChart} label="Graph" onClick={() => { openGraph(); setShowMathTools(false); }} />
-                             <div className="h-px bg-gray-200 my-1" />
+                             <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
                              <ToolButton icon={Ruler} label="Ruler" onClick={() => { addShape('ruler'); setShowMathTools(false); }} />
                              <ToolButton icon={Circle} label="Protractor" onClick={() => { addShape('protractor'); setShowMathTools(false); }} />
                         </div>
@@ -182,7 +182,7 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
             </div>
 
             {/* Bottom Tools */}
-            <div className="mt-auto flex flex-col gap-3 w-full px-2 pb-2 border-t border-gray-200/50 pt-2">
+            <div className="mt-auto flex flex-col gap-3 w-full px-2 pb-2 border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
                 {/* Settings Group */}
                  <div className="relative">
                     <ToolButton 
@@ -194,20 +194,20 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                     
                     {/* Settings Sub-menu */}
                     {showSettings && (
-                        <div className="absolute right-full bottom-0 mr-3 bg-white/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 p-2 flex flex-col gap-2 min-w-[140px]">
+                        <div className="absolute right-full bottom-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 flex flex-col gap-2 min-w-[140px]">
                              {settingsView === 'root' ? (
                                 <>
                                     <ToolButton icon={Grid} label="Grid" onClick={toggleGrid} />
                                     <ToolButton icon={Moon} label="Dark Mode" onClick={toggleDarkMode} />
                                     <ToolButton icon={AppWindow} label="Add Embed..." onClick={() => setSettingsView('embeds')} />
-                                    <div className="h-px bg-gray-200 my-1" />
+                                    <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
                                     <ToolButton icon={Download} label="Save Project" onClick={onSaveProject} />
                                     <ToolButton icon={Upload} label="Open Project" onClick={onOpenProject} />
                                 </>
                              ) : (
                                 <>
                                     <ToolButton icon={ChevronRight} label="Back" onClick={() => setSettingsView('root')} />
-                                    <div className="h-px bg-gray-200 my-1" />
+                                    <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
                                     <ToolButton icon={Youtube} label="YouTube" onClick={() => addEmbed('youtube', 'YouTube')} />
                                     <ToolButton icon={Map} label="Google Maps" onClick={() => addEmbed('google_maps', 'Google Maps')} />
                                     <ToolButton icon={Figma} label="Figma" onClick={() => addEmbed('figma', 'Figma')} />
@@ -232,21 +232,21 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
 
                     {/* Customize Sub-menu */}
                     {showCustomize && (
-                        <div className="absolute right-full bottom-0 mr-3 bg-white/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 p-3 flex flex-col gap-2 w-64">
-                            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Bookmarks</h3>
+                        <div className="absolute right-full bottom-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 flex flex-col gap-2 w-64">
+                            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Bookmarks</h3>
                             
                             {/* List */}
                             <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto">
-                                {bookmarks.length === 0 && <p className="text-xs text-gray-400 italic text-center py-2">No bookmarks yet</p>}
+                                {bookmarks.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500 italic text-center py-2">No bookmarks yet</p>}
                                 {bookmarks.map((bm: Bookmark, i: number) => (
-                                    <div key={i} className="flex items-center gap-2 group/item p-1 hover:bg-gray-100 rounded-lg">
+                                    <div key={i} className="flex items-center gap-2 group/item p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                                         <button 
                                             onClick={() => openBookmark(bm.url)}
                                             className="flex-1 flex items-center gap-2 text-left overflow-hidden"
                                             title={bm.url}
                                         >
                                             <Globe size={14} className="text-blue-500 flex-shrink-0" />
-                                            <span className="text-sm text-gray-700 truncate">{bm.name}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{bm.name}</span>
                                         </button>
                                         <button 
                                             onClick={() => removeBookmark(i)}
@@ -259,13 +259,13 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                             </div>
 
                             {/* Add New */}
-                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                                 <input 
                                     type="text" 
                                     value={newBookmarkUrl}
                                     onChange={(e) => setNewBookmarkUrl(e.target.value)}
                                     placeholder="google.com"
-                                    className="flex-1 text-sm px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-blue-500"
+                                    className="flex-1 text-sm px-2 py-1 rounded border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:border-blue-500"
                                     onKeyDown={(e) => e.key === 'Enter' && addBookmark()}
                                 />
                                 <button 
@@ -292,7 +292,7 @@ function ToolButton({ icon: Icon, label, isActive, onClick }: { icon: any, label
     return (
         <button 
             onClick={onClick}
-            className={`group flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'hover:bg-gray-100 text-gray-600'}`}
+            className={`group flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${isActive ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
             title={label}
         >
             <Icon size={24} strokeWidth={1.5} />
