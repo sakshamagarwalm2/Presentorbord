@@ -21,9 +21,31 @@ function AppContent() {
     const [isImporting, setIsImporting] = useState(false)
 
     useEffect(() => {
-        // Here we could customize tools based on mode if needed
-        // For now, toolbar handles interaction
-    }, [mode, editor])
+        // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
+        const cleanup = editor.sideEffects.registerBeforeDeleteHandler('shape', (shape) => {
+            // If a shape is a page-level image, prevent its deletion
+            const pages = editor.getPages()
+            const isPageLevelImage = shape.type === 'image' && pages.some(p => p.id === shape.parentId)
+            if (isPageLevelImage) {
+                return false // Prevent deletion
+            }
+            return // Allow deletion
+        })
+
+        // Retroactively lock any existing unlocked page-level images
+        const pages = editor.getPages()
+        for (const page of pages) {
+            const shapeIds = editor.getSortedChildIdsForParent(page.id)
+            for (const id of shapeIds) {
+                const shape = editor.getShape(id)
+                if (shape && shape.type === 'image' && !shape.isLocked) {
+                    editor.updateShape({ id: shape.id, type: shape.type, isLocked: true })
+                }
+            }
+        }
+
+        return cleanup
+    }, [editor])
 
     const addProtractor = () => {
         editor.createShape({
@@ -162,10 +184,26 @@ function AppContent() {
                     parentId: currentPageId,
                     x: 0,
                     y: 0,
+                    isLocked: true,
                     props: {
                         assetId: assetId,
                         w: viewport.width,
                         h: viewport.height
+                    }
+                })
+            }
+
+            // Navigate to first page and zoom to fit
+            const firstPageId = editor.getPages()[0]?.id
+            if (firstPageId) {
+                editor.setCurrentPage(firstPageId)
+                // Small delay to let shapes render before fitting
+                requestAnimationFrame(() => {
+                    const bounds = editor.getCurrentPageBounds()
+                    if (bounds) {
+                        editor.zoomToBounds(bounds, { inset: 0 })
+                    } else {
+                        editor.zoomToFit()
                     }
                 })
             }

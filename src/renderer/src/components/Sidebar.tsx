@@ -2,7 +2,6 @@
 import { useEditor, useValue, PageRecordType } from '@tldraw/tldraw'
 import { Plus, Trash2, ArrowUp, ArrowDown, Download, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useState } from 'react'
-import jsPDF from 'jspdf'
 
 export function Sidebar() {
     const editor = useEditor()
@@ -14,19 +13,17 @@ export function Sidebar() {
 
     const addPage = () => {
         const newPageId = PageRecordType.createId()
-        // Determine new index. Tldraw handles this usually but creating a page
-        // we can specify name. Index is auto-managed if not provided.
         editor.createPage({ 
             id: newPageId,
             name: `Page ${pages.length + 1}` 
         })
         editor.setCurrentPage(newPageId)
+        requestAnimationFrame(() => editor.zoomToFit())
     }
 
     const deletePage = (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
         if (pages.length <= 1) return
-        // Tldraw expects TLPageId
         const pageId = id as any
         editor.deletePage(pageId)
     }
@@ -34,6 +31,14 @@ export function Sidebar() {
     const selectPage = (id: string) => {
         const pageId = id as any
         editor.setCurrentPage(pageId)
+        requestAnimationFrame(() => {
+            const bounds = editor.getCurrentPageBounds()
+            if (bounds) {
+                editor.zoomToBounds(bounds, { inset: 0 })
+            } else {
+                editor.zoomToFit()
+            }
+        })
     }
 
     const movePage = (id: string, direction: 'up' | 'down', e: React.MouseEvent) => {
@@ -45,7 +50,6 @@ export function Sidebar() {
         if (newIndex < 0 || newIndex >= sortedPages.length) return
         
         const targetPage = sortedPages[newIndex]
-        
         const pageA = sortedPages[index]
         const pageB = targetPage
         
@@ -55,11 +59,6 @@ export function Sidebar() {
 
     const exportAllPages = async () => {
         if (!pages.length) return
-        
-        // Simplified Export: Just export current page for now to allow "export them".
-        // Or "Export All" as JSON (tldraw file) is built-in.
-        // The user asked "export them" referring to imported slides.
-        
         alert("Exporting all pages as PDF is a heavy operation. Implementing 'Export Current Page' for now.")
         
         const shapeIds = Array.from(editor.getCurrentPageShapeIds())
@@ -96,7 +95,6 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Collapse toggle when sidebar is closed */}
             {!isOpen && (
                 <button 
                     onClick={() => setIsOpen(true)}
@@ -109,7 +107,6 @@ export function Sidebar() {
             
             <div className={`absolute top-3 left-3 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-64 opacity-0 pointer-events-none'}`}>
                 <div className="w-56 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col max-h-[70vh]">
-                    {/* Header */}
                     <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
                         <h2 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Pages</h2>
                         <div className="flex gap-1 items-center">
@@ -121,32 +118,87 @@ export function Sidebar() {
                         </div>
                     </div>
                     
-                    {/* Page list */}
                     <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
                         {sortedPages.map((page, i) => (
-                            <div 
+                            <PageItem 
                                 key={page.id}
+                                page={page}
+                                isSelected={currentPageId === page.id}
                                 onClick={() => selectPage(page.id)}
-                                className={`group px-2.5 py-2 rounded-xl flex justify-between items-center cursor-pointer transition-all text-sm ${currentPageId === page.id ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
-                            >
-                                <span className="font-medium truncate">{page.name}</span>
-                                
-                                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={(e) => movePage(page.id, 'up', e)} className={`p-0.5 rounded ${currentPageId === page.id ? 'hover:bg-blue-400' : 'hover:text-blue-600'} disabled:opacity-30`} disabled={i === 0}>
-                                        <ArrowUp size={12} />
-                                    </button>
-                                    <button onClick={(e) => movePage(page.id, 'down', e)} className={`p-0.5 rounded ${currentPageId === page.id ? 'hover:bg-blue-400' : 'hover:text-blue-600'} disabled:opacity-30`} disabled={i === sortedPages.length - 1}>
-                                        <ArrowDown size={12} />
-                                    </button>
-                                    <button onClick={(e) => deletePage(page.id, e)} className={`p-0.5 rounded ${currentPageId === page.id ? 'hover:bg-red-400' : 'hover:text-red-500 hover:bg-red-50'}`}>
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            </div>
+                                onMove={movePage}
+                                onDelete={deletePage}
+                                index={i}
+                                total={sortedPages.length}
+                            />
                         ))}
                     </div>
                 </div>
             </div>
         </>
+    )
+}
+
+function PageItem({ 
+    page, 
+    isSelected, 
+    onClick, 
+    onMove, 
+    onDelete, 
+    index, 
+    total 
+}: { 
+    page: any, 
+    isSelected: boolean, 
+    onClick: () => void, 
+    onMove: (id: string, dir: 'up' | 'down', e: React.MouseEvent) => void, 
+    onDelete: (id: string, e: React.MouseEvent) => void, 
+    index: number, 
+    total: number 
+}) {
+    const editor = useEditor()
+    
+    // Find a thumbnail image (first image shape on the page)
+    const thumbnailObj = useValue(`thumbnail-${page.id}`, () => {
+        const shapeIds = editor.getSortedChildIdsForParent(page.id)
+        for (const id of shapeIds) {
+            const shape = editor.getShape(id)
+            if (shape && shape.type === 'image' && 'assetId' in shape.props) {
+                const props = shape.props as any
+                const asset = editor.getAsset(props.assetId) as any
+                if (asset && asset.props.src) return asset.props.src
+            }
+        }
+        return null
+    }, [editor, page.id])
+
+    return (
+        <div 
+            onClick={onClick}
+            className={`group px-2 py-2 rounded-xl flex items-center cursor-pointer transition-all text-sm ${isSelected ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300'}`}
+        >
+            {thumbnailObj ? (
+               <div className="w-10 h-7 bg-white dark:bg-gray-700 rounded overflow-hidden flex-shrink-0 mr-2 border border-gray-300 dark:border-gray-600">
+                   <img src={thumbnailObj} className="w-full h-full object-cover" />
+               </div>
+            ) : (
+               <div className={`w-10 h-7 rounded flex-shrink-0 mr-2 flex items-center justify-center text-xs border ${isSelected ? 'bg-blue-400/50 border-blue-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700'}`}>
+                   <span className="scale-75">📄</span>
+               </div>
+            )}
+
+            <span className="font-medium truncate flex-1">{page.name}</span>
+            
+            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={(e) => onMove(page.id, 'up', e)} className={`p-0.5 rounded ${isSelected ? 'hover:bg-blue-400' : 'hover:text-blue-600'} disabled:opacity-30`} disabled={index === 0}>
+                    <ArrowUp size={12} />
+                </button>
+                <button onClick={(e) => onMove(page.id, 'down', e)} className={`p-0.5 rounded ${isSelected ? 'hover:bg-blue-400' : 'hover:text-blue-600'} disabled:opacity-30`} disabled={index === total - 1}>
+                    <ArrowDown size={12} />
+                </button>
+                <button onClick={(e) => onDelete(page.id, e)} className={`p-0.5 rounded ${isSelected ? 'hover:bg-red-400' : 'hover:text-red-500 hover:bg-red-50'}`}>
+                    <Trash2 size={12} />
+                </button>
+            </div>
+        </div>
     )
 }
