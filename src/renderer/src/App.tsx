@@ -8,6 +8,7 @@ import { convertPptToPdf } from './utils/pptUtils'
 import { Sidebar } from './components/Sidebar'
 import { ToolsSidebar } from './components/ToolsSidebar'
 import { DrawingToolbar } from './components/DrawingToolbar'
+import { LoadingOverlay } from './components/LoadingOverlay'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
@@ -19,6 +20,7 @@ function AppContent() {
     const { mode } = useSubjectMode()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isImporting, setIsImporting] = useState(false)
+    const [importProgress, setImportProgress] = useState('')
 
     useEffect(() => {
         // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
@@ -99,6 +101,7 @@ function AppContent() {
         if (!file) return
 
         setIsImporting(true)
+        setImportProgress('Reading file...')
         try {
             let pdfData: string | Uint8Array = ''
             
@@ -143,6 +146,7 @@ function AppContent() {
             let currentPageId = editor.getCurrentPageId()
             
             for (let i = 1; i <= pdf.numPages; i++) {
+                setImportProgress(`Processing slide ${i} of ${pdf.numPages}...`)
                 const dataUrl = await renderPageToDataURL(pdf, i)
                 
                 // Create Asset
@@ -213,6 +217,7 @@ function AppContent() {
             alert('Import failed: ' + error)
         } finally {
             setIsImporting(false)
+            setImportProgress('')
             if (fileInputRef.current) fileInputRef.current.value = ''
         }
     }
@@ -264,13 +269,11 @@ function AppContent() {
                 accept=".tldr,.json"
                 onChange={handleProjectFileChange}
             />
-            {isImporting && (
-                <div className="absolute inset-0 bg-black/50 z-[100000] flex items-center justify-center">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg">
-                        <p className="font-bold text-lg animate-pulse dark:text-gray-200">Importing... Please wait</p>
-                    </div>
-                </div>
-            )}
+            <LoadingOverlay 
+                isVisible={isImporting} 
+                message="Importing File" 
+                subMessage={importProgress || "Please wait..."} 
+            />
             {mode === 'math' && (
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">
                     <button 
