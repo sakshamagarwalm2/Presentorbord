@@ -82,3 +82,8 @@
 .tlui-buttons__grid {
     grid-template-columns: repeat(4, auto) !important;
 }
+
+/* Hide scrollbar in sidebar */
+.sidebar-pages::-webkit-scrollbar {
+    display: none;
+}
