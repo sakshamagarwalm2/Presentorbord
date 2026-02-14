@@ -112,6 +112,22 @@ export function NavigationPanel({ isVisible }: { isVisible: boolean }) {
                 </button>
             </div>
 
+            {/* Separator */}
+            <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
+
+            {/* Close/Exit Button */}
+            <button
+                onClick={() => {
+                    // @ts-ignore
+                    if (window.electron && window.electron.ipcRenderer) {
+                        // @ts-ignore
+                        window.electron.ipcRenderer.invoke('close-app')
+                    }
+                }}
+                className="w-3.5 h-3.5 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 flex-shrink-0 self-center"
+                title="Close App"
+            />
+
         </div>
     )
 }

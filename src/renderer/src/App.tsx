@@ -304,9 +304,12 @@ const components: TLComponents = {
 	DebugPanel: null
 }
 
+
+
 function App(): JSX.Element {
   return (
     <div className="tldraw__editor" style={{ position: 'fixed', inset: 0 }}>
+      {/* Custom Close Button Removed - Moved to NavigationPanel */}
       <Tldraw persistenceKey="tldraw-persistence" shapeUtils={customShapeUtils} components={components}>
           <AppContent />
       </Tldraw>

@@ -174,12 +174,18 @@ ipcMain.handle('save-imported-file', async (_, fileBytes: number[], fileName: st
 })
 
 // Get the imports directory path
+
 ipcMain.handle('get-imports-dir', async () => {
-  const appDataPath = app.getPath('userData')
-  const importsDir = path.join(appDataPath, 'imported-files')
-  if (!fs.existsSync(importsDir)) {
-    fs.mkdirSync(importsDir, { recursive: true })
-  }
-  return importsDir
-})
+    const appDataPath = app.getPath('userData')
+    const importsDir = path.join(appDataPath, 'imported-files')
+    if (!fs.existsSync(importsDir)) {
+      fs.mkdirSync(importsDir, { recursive: true })
+    }
+    return importsDir
+  })
+  
+  // Close the app
+  ipcMain.handle('close-app', () => {
+    app.quit()
+  })
 
