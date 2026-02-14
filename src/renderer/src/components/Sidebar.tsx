@@ -1,5 +1,5 @@
 
-import { useEditor, useValue, PageRecordType, createShapeId } from '@tldraw/tldraw'
+import { useEditor, useValue, PageRecordType } from '@tldraw/tldraw'
 import { Plus, Trash2, Download, ChevronRight, ChevronLeft, GripVertical, Copy } from 'lucide-react'
 import { useState, useRef, useCallback, useEffect } from 'react'
 
@@ -136,7 +136,6 @@ export function Sidebar() {
             const { id: _oldId, parentId: _oldParent, ...rest } = shape as any
             editor.createShape({
                 ...rest,
-                id: createShapeId(),
                 parentId: newPageId as any,
             })
         }
