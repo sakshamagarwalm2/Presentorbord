@@ -4,11 +4,12 @@ import '@tldraw/tldraw/tldraw.css'
 import { useSubjectMode } from './store/useSubjectMode'
 import { useEffect, useRef, useState } from 'react'
 import { loadPdf, renderPageToDataURL } from './utils/pdfUtils'
-import { convertPptToPdf } from './utils/pptUtils'
+
 import { Sidebar } from './components/Sidebar'
 import { ToolsSidebar } from './components/ToolsSidebar'
 import { DrawingToolbar } from './components/DrawingToolbar'
 import { LoadingOverlay } from './components/LoadingOverlay'
+import { NavigationPanel } from './components/NavigationPanel'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
@@ -105,30 +106,44 @@ function AppContent() {
         try {
             let pdfData: string | Uint8Array = ''
             
-            // Cast file to any to access Electron's 'path' property
-            const electronFile = file as any
+            setImportProgress(`Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`)
             
             if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                // Check if in Electron
+                setImportProgress('Converting file to buffer...')
+                const arrayBuffer = await file.arrayBuffer()
+                pdfData = new Uint8Array(arrayBuffer)
+                
+                // Save to library
                 // @ts-ignore
                 if (window.electron && window.electron.ipcRenderer) {
-                    // @ts-ignore
-                    pdfData = await window.electron.ipcRenderer.invoke('read-pdf-file', electronFile.path)
-                } else {
-                    // Web fallback
-                    pdfData = URL.createObjectURL(file)
+                    setImportProgress('Saving to library...')
+                    try {
+                        // @ts-ignore
+                        await window.electron.ipcRenderer.invoke('save-imported-file', pdfData, file.name)
+                    } catch (err) {
+                        console.error('Failed to save file:', err)
+                    }
                 }
+                
+                setImportProgress(`File loaded (${pdfData.length} bytes). Parsing PDF...`)
             } else if (
                 file.name.endsWith('.ppt') || 
                 file.name.endsWith('.pptx')
             ) {
                  // @ts-ignore
                  if (window.electron && window.electron.ipcRenderer) {
+                    setImportProgress('Converting PPT to PDF (this may take a moment)...')
+                    
+                    const fileArrayBuffer = await file.arrayBuffer()
+                    const fileBytes = new Uint8Array(fileArrayBuffer)
                     // @ts-ignore
-                    const pdfPath = await convertPptToPdf(electronFile.path)
-                    // Read the file content from main process to avoid local resource restrictions
+                    const pdfPath = await window.electron.ipcRenderer.invoke('convert-ppt-buffer-to-pdf', Array.from(fileBytes), file.name)
+                    
+                    setImportProgress('Reading converted PDF...')
                     // @ts-ignore
-                    pdfData = await window.electron.ipcRenderer.invoke('read-pdf-file', pdfPath)
+                    const pdfBuffer = await window.electron.ipcRenderer.invoke('read-pdf-file', pdfPath)
+                    pdfData = new Uint8Array(pdfBuffer)
+                    setImportProgress(`PDF ready (${pdfData.length} bytes). Parsing...`)
                  } else {
                      alert('PPT conversion only supported in Electron app')
                      setIsImporting(false)
@@ -140,21 +155,21 @@ function AppContent() {
                 return
             }
 
-            const pdf = await loadPdf(pdfData)
+            setImportProgress('Loading PDF engine...')
+            
+            const pdf = await loadPdf(pdfData, { verbose: true, timeout: 60000 })
+            
+            setImportProgress(`PDF parsed! Found ${pdf.numPages} pages. Rendering...`)
             
             // Current page for first slide
             let currentPageId = editor.getCurrentPageId()
             
             for (let i = 1; i <= pdf.numPages; i++) {
-                setImportProgress(`Processing slide ${i} of ${pdf.numPages}...`)
+                setImportProgress(`Rendering slide ${i} of ${pdf.numPages}...`)
                 const dataUrl = await renderPageToDataURL(pdf, i)
                 
                 // Create Asset
                 const assetId = AssetRecordType.createId()
-                // We need dimensions. 
-                // renderPageToDataURL returns base64. 
-                // We can get dimensions from standard A4 or viewport.
-                // Re-getting viewport to get dimensions
                 const page = await pdf.getPage(i)
                 const viewport = page.getViewport({ scale: 1.5 })
                 
@@ -201,7 +216,6 @@ function AppContent() {
             const firstPageId = editor.getPages()[0]?.id
             if (firstPageId) {
                 editor.setCurrentPage(firstPageId)
-                // Small delay to let shapes render before fitting
                 requestAnimationFrame(() => {
                     const bounds = editor.getCurrentPageBounds()
                     if (bounds) {
@@ -212,9 +226,9 @@ function AppContent() {
                 })
             }
 
-        } catch (error) {
-            console.error('Import failed', error)
-            alert('Import failed: ' + error)
+        } catch (error: any) {
+            console.error('[Import] Import failed:', error)
+            alert('Import failed: ' + (error?.message || error))
         } finally {
             setIsImporting(false)
             setImportProgress('')
@@ -222,16 +236,11 @@ function AppContent() {
         }
     }
 
-
-
     const [isDesktopMode, setIsDesktopMode] = useState(false)
+    const [showNavPanel, setShowNavPanel] = useState(true)
 
     const toggleDesktopMode = () => {
         setIsDesktopMode(!isDesktopMode)
-        // We also need to tell Tldraw to be transparent
-        // By default Tldraw has a white background. 
-        // We can override it via CSS or props if supported.
-        // Tldraw class .tl-background set background color.
     }
 
     return (
@@ -253,8 +262,11 @@ function AppContent() {
                 onOpenProject={handleOpenProject}
                 onSaveProject={handleSaveProject}
                 onDesktopModeToggle={toggleDesktopMode}
+                showNavPanel={showNavPanel}
+                onToggleNavPanel={() => setShowNavPanel(!showNavPanel)}
             />
             <DrawingToolbar />
+            <NavigationPanel isVisible={showNavPanel} />
             <input 
                 type="file" 
                 ref={fileInputRef} 

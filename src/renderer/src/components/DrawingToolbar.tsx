@@ -822,8 +822,8 @@ export function DrawingToolbar() {
       {/* Eraser cursor overlay for stroke eraser */}
       <EraserCursorOverlay size={eraserSize} active={isStrokeEraserActive} />
 
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto pb-2">
-        <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50">
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto">
+        <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
           {/* Select & Hand */}
           {SIMPLE_TOOLS.map((tool) => (
             <ToolButton

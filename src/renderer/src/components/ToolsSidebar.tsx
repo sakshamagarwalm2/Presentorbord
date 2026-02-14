@@ -1,4 +1,4 @@
-import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow, Monitor } from 'lucide-react'
+import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow, Monitor, Navigation2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useEditor, createShapeId } from '@tldraw/tldraw'
 import { getEmbedDef } from '../utils/embedUtils'
@@ -8,6 +8,8 @@ interface ToolsSidebarProps {
   onOpenProject: () => void
   onSaveProject: () => void
   onDesktopModeToggle: () => void
+  showNavPanel: boolean
+  onToggleNavPanel: () => void
 }
 
 interface Bookmark {
@@ -15,7 +17,7 @@ interface Bookmark {
   url: string
 }
 
-export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle }: ToolsSidebarProps) {
+export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle, showNavPanel, onToggleNavPanel }: ToolsSidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showMathTools, setShowMathTools] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -200,6 +202,12 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                                     <ToolButton icon={Grid} label="Grid" onClick={toggleGrid} />
                                     <ToolButton icon={Moon} label="Dark Mode" onClick={toggleDarkMode} />
                                     <ToolButton icon={AppWindow} label="Add Embed..." onClick={() => setSettingsView('embeds')} />
+                                    <ToolButton 
+                                        icon={Navigation2}
+                                        label={showNavPanel ? "Hide Navigation" : "Show Navigation"} 
+                                        isActive={showNavPanel}
+                                        onClick={onToggleNavPanel} 
+                                    />
                                     <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
                                     <ToolButton icon={Download} label="Save Project" onClick={onSaveProject} />
                                     <ToolButton icon={Upload} label="Open Project" onClick={onOpenProject} />
