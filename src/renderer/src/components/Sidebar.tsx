@@ -1,12 +1,12 @@
 
 import { useEditor, useValue, PageRecordType } from '@tldraw/tldraw'
-import { Plus, Trash2, Download, ChevronRight, ChevronLeft, GripVertical, Copy } from 'lucide-react'
+import { Plus, Trash2, Download, ChevronRight, ChevronLeft, GripVertical, Copy, Upload } from 'lucide-react'
 import { useState, useRef, useCallback, useEffect } from 'react'
 
 // Global thumbnail cache so it persists across re-renders
 const thumbnailCache: Record<string, string> = {}
 
-export function Sidebar() {
+export function Sidebar({ onImport }: { onImport: () => void }) {
     const editor = useEditor()
     const pages = useValue('pages', () => editor.getPages(), [editor])
     const currentPageId = useValue('currentPageId', () => editor.getCurrentPageId(), [editor])
@@ -235,6 +235,7 @@ export function Sidebar() {
                     <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
                         <h2 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Pages</h2>
                         <div className="flex gap-1 items-center">
+                             <button onClick={onImport} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors" title="Import PDF/PPT"><Upload size={14} /></button>
                              <button onClick={exportAllPages} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors" title="Export"><Download size={14} /></button>
                              <button onClick={addPage} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="Add Page"><Plus size={14} /></button>
                              <button onClick={duplicatePage} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="Duplicate Page"><Copy size={14} /></button>

@@ -242,7 +242,7 @@ function AppContent() {
                 `}</style>
             )}
 
-            <Sidebar />
+            <Sidebar onImport={handleImportClick} />
             <ToolsSidebar 
                 onImportClick={handleImportClick} 
                 onOpenProject={handleOpenProject}

@@ -1,5 +1,5 @@
-import { useEditor, useValue, GeoShapeGeoStyle } from '@tldraw/tldraw'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useEditor, useValue, GeoShapeGeoStyle, DefaultColorStyle } from '@tldraw/tldraw'
+import { useState, useRef, useEffect } from 'react'
 import {
   MousePointer2,
   Hand,
@@ -33,6 +33,33 @@ import {
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
+import { StylePanel } from './StylePanel'
+
+/* ------------------------------------------------------------------ */
+/*  Color Themes                                                       */
+/* ------------------------------------------------------------------ */
+
+interface ColorTheme {
+  bg: string
+  shadow: string
+  border?: string
+}
+
+const COLOR_THEMES: Record<string, ColorTheme> = {
+  black: { bg: 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
+  grey: { bg: 'bg-zinc-500 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
+  'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-300' },
+  violet: { bg: 'bg-violet-600 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-500' },
+  blue: { bg: 'bg-blue-500 text-white', shadow: 'shadow-blue-200 dark:shadow-blue-900/40', border: 'border-blue-400' },
+  'light-blue': { bg: 'bg-sky-400 text-white', shadow: 'shadow-sky-200 dark:shadow-sky-900/40', border: 'border-sky-300' },
+  yellow: { bg: 'bg-yellow-400 text-black', shadow: 'shadow-yellow-200 dark:shadow-yellow-900/40', border: 'border-yellow-300' },
+  orange: { bg: 'bg-orange-500 text-white', shadow: 'shadow-orange-200 dark:shadow-orange-900/40', border: 'border-orange-400' },
+  green: { bg: 'bg-green-500 text-white', shadow: 'shadow-green-200 dark:shadow-green-900/40', border: 'border-green-400' },
+  'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-900/40', border: 'border-emerald-300' },
+  red: { bg: 'bg-red-500 text-white', shadow: 'shadow-red-200 dark:shadow-red-900/40', border: 'border-red-400' },
+  'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-900/40', border: 'border-rose-300' },
+  white: { bg: 'bg-white text-black border border-gray-200', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
+}
 
 /* ------------------------------------------------------------------ */
 /*  Tool definitions                                                   */
@@ -101,12 +128,16 @@ function ToolButton({
   tool,
   isActive,
   onClick,
+  activeTheme,
 }: {
   tool: ToolDef
   isActive: boolean
   onClick: () => void
+  activeTheme?: ColorTheme
 }) {
   const Icon = tool.icon
+  const theme = activeTheme || COLOR_THEMES['blue']
+  
   return (
     <button
       onClick={onClick}
@@ -114,7 +145,7 @@ function ToolButton({
         relative flex flex-col items-center justify-center
         w-10 h-10 rounded-xl transition-all duration-150
         ${isActive
-          ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+          ? `${theme.bg} shadow-md ${theme.shadow}`
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
         }
       `}
@@ -132,13 +163,17 @@ function ToolButton({
 function PenGroupButton({
   activeTool,
   onSelect,
+  activeTheme,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
+  activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(PEN_GROUP[0])
   const flyoutRef = useRef<HTMLDivElement>(null)
+  
+  const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
   useEffect(() => {
@@ -170,7 +205,7 @@ function PenGroupButton({
             relative flex items-center justify-center
             w-10 h-10 rounded-l-xl transition-all duration-150
             ${isGroupActive
-              ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+              ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
             }
           `}
@@ -184,7 +219,7 @@ function PenGroupButton({
             flex items-center justify-center
             w-5 h-10 rounded-r-xl border-l transition-all duration-150
             ${isGroupActive
-              ? 'bg-blue-500 text-white border-blue-400'
+              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
             }
           `}
@@ -238,6 +273,7 @@ function EraserGroupButton({
   onSelectTool,
   onSelectMode,
   onSelectSize,
+  activeTheme,
 }: {
   activeTool: string
   eraserMode: 'shape' | 'stroke'
@@ -245,9 +281,12 @@ function EraserGroupButton({
   onSelectTool: () => void
   onSelectMode: (mode: 'shape' | 'stroke') => void
   onSelectSize: (size: number) => void
+  activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
+  
+  const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
   useEffect(() => {
@@ -273,7 +312,7 @@ function EraserGroupButton({
             relative flex items-center justify-center
             w-10 h-10 rounded-l-xl transition-all duration-150
             ${isActive
-              ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+              ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
             }
           `}
@@ -287,7 +326,7 @@ function EraserGroupButton({
             flex items-center justify-center
             w-5 h-10 rounded-r-xl border-l transition-all duration-150
             ${isActive
-              ? 'bg-blue-500 text-white border-blue-400'
+              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
             }
           `}
@@ -378,13 +417,17 @@ function EraserGroupButton({
 function ShapeGroupButton({
   activeTool,
   editor,
+  activeTheme,
 }: {
   activeTool: string
   editor: ReturnType<typeof useEditor>
+  activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[1]) // default: Rectangle
   const flyoutRef = useRef<HTMLDivElement>(null)
+  
+  const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
   useEffect(() => {
@@ -439,7 +482,7 @@ function ShapeGroupButton({
             relative flex items-center justify-center
             w-10 h-10 rounded-l-xl transition-all duration-150
             ${isGroupActive
-              ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+              ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
             }
           `}
@@ -453,7 +496,7 @@ function ShapeGroupButton({
             flex items-center justify-center
             w-5 h-10 rounded-r-xl border-l transition-all duration-150
             ${isGroupActive
-              ? 'bg-blue-500 text-white border-blue-400'
+              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
             }
           `}
@@ -508,13 +551,17 @@ function MoreOptionsButton({
   activeTool,
   onSelect,
   onAction,
+  activeTheme,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   onAction: (action: string) => void
+  activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
+  
+  const theme = activeTheme || COLOR_THEMES['blue']
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -536,7 +583,7 @@ function MoreOptionsButton({
           relative flex items-center justify-center
           w-10 h-10 rounded-xl transition-all duration-150
           ${isGroupActive
-            ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+            ? `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
           }
         `}
@@ -602,10 +649,13 @@ function MoreOptionsButton({
 function PaletteButton({
   isVisible,
   onToggle,
+  activeTheme,
 }: {
   isVisible: boolean
   onToggle: () => void
+  activeTheme?: ColorTheme
 }) {
+  const theme = activeTheme || COLOR_THEMES['blue']
   return (
     <button
       onClick={onToggle}
@@ -613,7 +663,7 @@ function PaletteButton({
         relative flex flex-col items-center justify-center
         w-10 h-10 rounded-xl transition-all duration-150
         ${isVisible
-          ? 'bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+          ? `${theme.bg} shadow-md ${theme.shadow}`
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
         }
       `}
@@ -686,7 +736,37 @@ function EraserCursorOverlay({ size, active }: { size: number; active: boolean }
 export function DrawingToolbar() {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
+  const currentColor = useValue('current color', () => {
+    const shared = editor.getSharedStyles().get(DefaultColorStyle)
+    if (shared && shared.type === 'shared') return shared.value
+    return editor.getStyleForNextShape(DefaultColorStyle)
+  }, [editor])
+  const activeColorTheme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']
+
   const [stylePanelVisible, setStylePanelVisible] = useState(false)
+  const stylePanelRef = useRef<HTMLDivElement>(null)
+  const paletteButtonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleGlobalPointerDown = (e: PointerEvent) => {
+        if (!stylePanelVisible) return
+
+        // Check if click is inside panel
+        if (stylePanelRef.current && stylePanelRef.current.contains(e.target as Node)) {
+            return
+        }
+        // Check if click is inside toggle button wrapper
+        if (paletteButtonRef.current && paletteButtonRef.current.contains(e.target as Node)) {
+             return
+        }
+
+        // Otherwise close
+        setStylePanelVisible(false)
+    }
+
+    window.addEventListener('pointerdown', handleGlobalPointerDown, { capture: true })
+    return () => window.removeEventListener('pointerdown', handleGlobalPointerDown, { capture: true })
+  }, [stylePanelVisible])
 
   // Eraser state
   const [eraserMode, setEraserMode] = useState<'shape' | 'stroke'>('shape')
@@ -701,33 +781,8 @@ export function DrawingToolbar() {
   // Activate palm eraser hook (always enabled)
   usePalmEraser(editor, true, eraserSize)
 
-  // Manage style panel visibility via injected CSS
-  const updateStylePanel = useCallback((visible: boolean) => {
-    let styleEl = document.getElementById('style-panel-toggle-css')
-    if (!styleEl) {
-      styleEl = document.createElement('style')
-      styleEl.id = 'style-panel-toggle-css'
-      document.head.appendChild(styleEl)
-    }
-    styleEl.textContent = `
-      .tlui-layout__top__right {
-        ${visible ? '' : 'display: none !important;'}
-        opacity: ${visible ? '1' : '0'} !important;
-        transform: translateX(50%) ${visible ? 'translateY(0)' : 'translateY(16px)'} !important;
-      }
-    `
-  }, [])
-
-  useEffect(() => {
-    updateStylePanel(stylePanelVisible)
-  }, [stylePanelVisible, updateStylePanel])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      document.getElementById('style-panel-toggle-css')?.remove()
-    }
-  }, [])
+  // Activate palm eraser hook (always enabled)
+  usePalmEraser(editor, true, eraserSize)
 
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
@@ -776,6 +831,7 @@ export function DrawingToolbar() {
               tool={tool}
               isActive={activeTool === tool.id}
               onClick={() => selectTool(tool.id)}
+              activeTheme={activeColorTheme}
             />
           ))}
 
@@ -804,16 +860,19 @@ export function DrawingToolbar() {
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* Palette toggle */}
-          <PaletteButton
-            isVisible={stylePanelVisible}
-            onToggle={() => setStylePanelVisible((v) => !v)}
-          />
+          <div ref={paletteButtonRef} className="flex">
+            <PaletteButton
+                isVisible={stylePanelVisible}
+                onToggle={() => setStylePanelVisible((v) => !v)}
+                activeTheme={activeColorTheme}
+            />
+          </div>
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* Pen group (pen / highlighter / laser) */}
-          <PenGroupButton activeTool={activeTool} onSelect={selectTool} />
+          <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} />
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
@@ -826,16 +885,22 @@ export function DrawingToolbar() {
             onSelectTool={handleEraserSelect}
             onSelectMode={handleEraserModeChange}
             onSelectSize={setEraserSize}
+            activeTheme={activeColorTheme}
           />
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
-          <ShapeGroupButton activeTool={activeTool} editor={editor} />
+          <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} />
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* More options */}
-          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} />
+          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} />
+        </div>
+
+        {/* Custom Style Panel */}
+        <div ref={stylePanelRef} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
+            <StylePanel isVisible={stylePanelVisible} />
         </div>
       </div>
     </>
