@@ -10,6 +10,8 @@ interface ToolsSidebarProps {
   onDesktopModeToggle: () => void
   showNavPanel: boolean
   onToggleNavPanel: () => void
+  isOpen: boolean
+  onToggle: (open: boolean) => void
 }
 
 interface Bookmark {
@@ -17,8 +19,7 @@ interface Bookmark {
   url: string
 }
 
-export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle, showNavPanel, onToggleNavPanel }: ToolsSidebarProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle, showNavPanel, onToggleNavPanel, isOpen, onToggle }: ToolsSidebarProps) {
   const [showMathTools, setShowMathTools] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [settingsView, setSettingsView] = useState<'root' | 'embeds'>('root')
@@ -136,7 +137,8 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
       {/* Collapse toggle when sidebar is closed - Right Side */}
       {!isOpen && (
         <button 
-            onClick={() => setIsOpen(true)}
+            data-sidebar
+            onClick={() => onToggle(true)}
             className="absolute right-3 top-2 z-[99999] p-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all shadow-sm border border-gray-200/50 dark:border-gray-700/50"
             title="Expand Tools"
         >
@@ -145,11 +147,11 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
       )}
 
       {/* Main Sidebar - Right Side */}
-      <div className={`absolute top-2 right-3 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-64 opacity-0 pointer-events-none'}`}>
+      <div data-sidebar className={`absolute top-2 right-3 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-64 opacity-0 pointer-events-none'}`}>
         <div className="w-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col items-center py-4 gap-4">
             
             {/* Header / Collapse */}
-            <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors mb-2">
+            <button onClick={() => onToggle(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors mb-2">
                 <ChevronRight size={16} />
             </button>
 

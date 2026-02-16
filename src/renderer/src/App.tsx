@@ -2,7 +2,7 @@ import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType, TLCo
 import '@tldraw/tldraw/tldraw.css'
 
 import { useSubjectMode } from './store/useSubjectMode'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadPdf, renderPageToDataURL } from './utils/pdfUtils'
 
 import { Sidebar } from './components/Sidebar'
@@ -10,6 +10,7 @@ import { ToolsSidebar } from './components/ToolsSidebar'
 import { DrawingToolbar } from './components/DrawingToolbar'
 import { LoadingOverlay } from './components/LoadingOverlay'
 import { NavigationPanel } from './components/NavigationPanel'
+import { ConfirmDialog } from './components/ConfirmDialog'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
@@ -22,6 +23,29 @@ function AppContent() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isImporting, setIsImporting] = useState(false)
     const [importProgress, setImportProgress] = useState('')
+
+    // Custom confirm dialog state
+    const [confirmDialogVisible, setConfirmDialogVisible] = useState(false)
+    const confirmResolverRef = useRef<((value: boolean) => void) | null>(null)
+
+    const showConfirmDialog = useCallback((): Promise<boolean> => {
+        return new Promise((resolve) => {
+            confirmResolverRef.current = resolve
+            setConfirmDialogVisible(true)
+        })
+    }, [])
+
+    const handleConfirm = useCallback(() => {
+        setConfirmDialogVisible(false)
+        confirmResolverRef.current?.(true)
+        confirmResolverRef.current = null
+    }, [])
+
+    const handleCancel = useCallback(() => {
+        setConfirmDialogVisible(false)
+        confirmResolverRef.current?.(false)
+        confirmResolverRef.current = null
+    }, [])
 
     useEffect(() => {
         // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
@@ -61,6 +85,16 @@ function AppContent() {
 
     const projectInputRef = useRef<HTMLInputElement>(null)
 
+    // Check if there is any existing content in the editor
+    const hasExistingContent = (): boolean => {
+        const pages = editor.getPages()
+        // If there's more than one page, there's content
+        if (pages.length > 1) return true
+        // Check if the single page has any shapes
+        const shapeIds = editor.getSortedChildIdsForParent(pages[0].id)
+        return shapeIds.length > 0
+    }
+
     const handleImportClick = () => {
         fileInputRef.current?.click()
     }
@@ -84,6 +118,15 @@ function AppContent() {
         const file = event.target.files?.[0]
         if (!file) return
 
+        // Confirm before replacing existing project
+        if (hasExistingContent()) {
+            const confirmed = await showConfirmDialog()
+            if (!confirmed) {
+                if (projectInputRef.current) projectInputRef.current.value = ''
+                return
+            }
+        }
+
         const text = await file.text()
         try {
             const snapshot = JSON.parse(text)
@@ -100,6 +143,15 @@ function AppContent() {
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
         if (!file) return
+
+        // Confirm before replacing existing project
+        if (hasExistingContent()) {
+            const confirmed = await showConfirmDialog()
+            if (!confirmed) {
+                if (fileInputRef.current) fileInputRef.current.value = ''
+                return
+            }
+        }
 
         setIsImporting(true)
         setImportProgress('Reading file...')
@@ -161,8 +213,53 @@ function AppContent() {
             
             setImportProgress(`PDF parsed! Found ${pdf.numPages} pages. Rendering...`)
             
-            // Current page for first slide
-            let currentPageId = editor.getCurrentPageId()
+            // --- Clear existing project before importing new one ---
+            setImportProgress('Clearing existing project...')
+
+            // Get all existing pages
+            const existingPages = editor.getPages()
+            const firstExistingPageId = existingPages[0]?.id
+
+            // Switch to the first page so we can safely delete others
+            if (firstExistingPageId) {
+                editor.setCurrentPage(firstExistingPageId)
+            }
+
+            // Delete all pages except the first one (tldraw requires at least one page)
+            for (const page of existingPages) {
+                if (page.id !== firstExistingPageId) {
+                    editor.deletePage(page.id)
+                }
+            }
+
+            // Clear all shapes from the first page
+            if (firstExistingPageId) {
+                const shapeIds = editor.getSortedChildIdsForParent(firstExistingPageId)
+                if (shapeIds.length > 0) {
+                    // Temporarily unlock shapes so they can be deleted
+                    for (const id of shapeIds) {
+                        const shape = editor.getShape(id)
+                        if (shape && shape.isLocked) {
+                            editor.updateShape({ id: shape.id, type: shape.type, isLocked: false })
+                        }
+                    }
+                    editor.deleteShapes(shapeIds)
+                }
+            }
+
+            // Delete all existing assets
+            const existingAssets = editor.getAssets()
+            if (existingAssets.length > 0) {
+                editor.deleteAssets(existingAssets.map(a => a.id))
+            }
+
+            // Rename first page to "Slide 1"
+            if (firstExistingPageId) {
+                editor.renamePage(firstExistingPageId, 'Slide 1')
+            }
+
+            // --- Now import the new slides ---
+            let currentPageId = firstExistingPageId || editor.getCurrentPageId()
             
             for (let i = 1; i <= pdf.numPages; i++) {
                 setImportProgress(`Rendering slide ${i} of ${pdf.numPages}...`)
@@ -213,9 +310,9 @@ function AppContent() {
             }
 
             // Navigate to first page and zoom to fit
-            const firstPageId = editor.getPages()[0]?.id
-            if (firstPageId) {
-                editor.setCurrentPage(firstPageId)
+            const newFirstPageId = editor.getPages()[0]?.id
+            if (newFirstPageId) {
+                editor.setCurrentPage(newFirstPageId)
                 requestAnimationFrame(() => {
                     const bounds = editor.getCurrentPageBounds()
                     if (bounds) {
@@ -238,10 +335,29 @@ function AppContent() {
 
     const [isDesktopMode, setIsDesktopMode] = useState(false)
     const [showNavPanel, setShowNavPanel] = useState(true)
+    const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
+    const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
 
     const toggleDesktopMode = () => {
         setIsDesktopMode(!isDesktopMode)
     }
+
+    // Collapse both sidebars when clicking outside of them (on the workspace)
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement
+            // If the click is inside a sidebar, do nothing
+            if (target.closest('[data-sidebar]')) return
+            // If the click is on any UI overlay (toolbar, nav panel, etc.), do nothing
+            if (target.closest('[data-no-collapse]')) return
+            // Otherwise, collapse both sidebars
+            setLeftSidebarOpen(false)
+            setRightSidebarOpen(false)
+        }
+        // Use capture phase so we get the event before tldraw stops propagation
+        document.addEventListener('mousedown', handleClickOutside, true)
+        return () => document.removeEventListener('mousedown', handleClickOutside, true)
+    }, [])
 
     return (
         <>
@@ -256,7 +372,7 @@ function AppContent() {
                 `}</style>
             )}
 
-            <Sidebar onImport={handleImportClick} />
+            <Sidebar onImport={handleImportClick} isOpen={leftSidebarOpen} onToggle={setLeftSidebarOpen} />
             <ToolsSidebar 
                 onImportClick={handleImportClick} 
                 onOpenProject={handleOpenProject}
@@ -264,6 +380,8 @@ function AppContent() {
                 onDesktopModeToggle={toggleDesktopMode}
                 showNavPanel={showNavPanel}
                 onToggleNavPanel={() => setShowNavPanel(!showNavPanel)}
+                isOpen={rightSidebarOpen}
+                onToggle={setRightSidebarOpen}
             />
             <DrawingToolbar />
             <NavigationPanel isVisible={showNavPanel} />
@@ -285,6 +403,11 @@ function AppContent() {
                 isVisible={isImporting} 
                 message="Importing File" 
                 subMessage={importProgress || "Please wait..."} 
+            />
+            <ConfirmDialog
+                isVisible={confirmDialogVisible}
+                onConfirm={handleConfirm}
+                onCancel={handleCancel}
             />
             {mode === 'math' && (
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">

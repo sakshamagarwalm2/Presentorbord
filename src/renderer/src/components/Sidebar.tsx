@@ -8,11 +8,10 @@ import { LoadingOverlay } from './LoadingOverlay'
 // Global thumbnail cache so it persists across re-renders
 const thumbnailCache: Record<string, string> = {}
 
-export function Sidebar({ onImport }: { onImport: () => void }) {
+export function Sidebar({ onImport, isOpen, onToggle }: { onImport: () => void, isOpen: boolean, onToggle: (open: boolean) => void }) {
     const editor = useEditor()
     const pages = useValue('pages', () => editor.getPages(), [editor])
     const currentPageId = useValue('currentPageId', () => editor.getCurrentPageId(), [editor])
-    const [isOpen, setIsOpen] = useState(false)
     const [draggedId, setDraggedId] = useState<string | null>(null)
     const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null)
     const [, forceUpdate] = useState(0)
@@ -370,7 +369,8 @@ export function Sidebar({ onImport }: { onImport: () => void }) {
         <>
             {!isOpen && (
                 <button
-                    onClick={() => setIsOpen(true)}
+                    data-sidebar
+                    onClick={() => onToggle(true)}
                     className="absolute left-3 top-3 z-[99999] p-1.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
                     title="Expand Sidebar"
                 >
@@ -378,7 +378,7 @@ export function Sidebar({ onImport }: { onImport: () => void }) {
                 </button>
             )}
 
-            <div className={`absolute top-0 left-0 bottom-0 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-96 opacity-0 pointer-events-none'}`}>
+            <div data-sidebar className={`absolute top-0 left-0 bottom-0 z-[99998] transform transition-all duration-300 ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-96 opacity-0 pointer-events-none'}`}>
                 <div className="w-96 h-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-r border-gray-200/50 dark:border-gray-700/50 flex flex-col">
                     <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
                         <h2 className="font-semibold text-sm text-gray-800 dark:text-gray-200">Pages</h2>
@@ -414,7 +414,7 @@ export function Sidebar({ onImport }: { onImport: () => void }) {
                              <button onClick={addPage} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="Add Page"><Plus size={14} /></button>
                              <button onClick={duplicatePage} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors" title="Duplicate Page"><Copy size={14} /></button>
                              <button onClick={deleteCurrentPage} disabled={pages.length <= 1} className={`p-1.5 rounded-lg transition-colors ${pages.length <= 1 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'hover:bg-red-50 text-red-500 dark:hover:bg-red-900/30'}`} title="Delete Page"><Trash2 size={14} /></button>
-                             <button onClick={() => setIsOpen(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors" title="Collapse">
+                             <button onClick={() => onToggle(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors" title="Collapse">
                                 <ChevronLeft size={14} />
                              </button>
                         </div>
