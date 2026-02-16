@@ -115,6 +115,19 @@ export function NavigationPanel({ isVisible }: { isVisible: boolean }) {
             {/* Separator */}
             <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
 
+            {/* Minimize Button */}
+            <button
+                onClick={() => {
+                    // @ts-ignore
+                    if (window.electron && window.electron.ipcRenderer) {
+                        // @ts-ignore
+                        window.electron.ipcRenderer.invoke('minimize-app')
+                    }
+                }}
+                className="w-3.5 h-3.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 flex-shrink-0 self-center"
+                title="Minimize App"
+            />
+
             {/* Close/Exit Button */}
             <button
                 onClick={() => {

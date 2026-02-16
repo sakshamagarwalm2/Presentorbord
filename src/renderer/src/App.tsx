@@ -1,4 +1,4 @@
-import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType, TLComponents } from '@tldraw/tldraw'
+import { Tldraw, useEditor, AssetRecordType, createShapeId, PageRecordType, TLComponents, TLUiOverrides } from '@tldraw/tldraw'
 import '@tldraw/tldraw/tldraw.css'
 
 import { useSubjectMode } from './store/useSubjectMode'
@@ -11,11 +11,41 @@ import { DrawingToolbar } from './components/DrawingToolbar'
 import { LoadingOverlay } from './components/LoadingOverlay'
 import { NavigationPanel } from './components/NavigationPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import { PageSelectionDialog } from './components/PageSelectionDialog'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
 
 const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil]
+
+// Context Menu Overrides
+const overrides: TLUiOverrides = {
+    // @ts-ignore - contextMenu might not be in the type definition but is supported
+    contextMenu: (editor: any, contextMenu: any, { actions }: any) => {
+        const selectedShapes = editor.getSelectedShapes()
+        
+        // Filter out images (PDF slides and imported images)
+        const copyableShapes = selectedShapes.filter((shape: any) => shape.type !== 'image')
+
+        // Only show if we have copyable shapes selected
+        if (copyableShapes.length === 0) return contextMenu
+
+        const copyToSlideAction = {
+            id: 'copy-to-slide',
+            label: 'Copy to Slide',
+            readonlyOk: false,
+            onSelect: () => {
+                // Dispatch custom event to notify App component
+                window.dispatchEvent(new CustomEvent('request-copy-to-slide', {
+                    detail: { shapeIds: copyableShapes.map((s: any) => s.id) }
+                }))
+            }
+        }
+
+        // Insert at the beginning or specific position
+        return [copyToSlideAction, ...contextMenu]
+    },
+}
 
 function AppContent() {
     const editor = useEditor()
@@ -23,6 +53,10 @@ function AppContent() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isImporting, setIsImporting] = useState(false)
     const [importProgress, setImportProgress] = useState('')
+
+    // Copy to Slide Dialog State
+    const [copyDialogVisible, setCopyDialogVisible] = useState(false)
+    const [copyCandidateShapeIds, setCopyCandidateShapeIds] = useState<string[]>([])
 
     // Custom confirm dialog state
     const [confirmDialogVisible, setConfirmDialogVisible] = useState(false)
@@ -46,6 +80,51 @@ function AppContent() {
         confirmResolverRef.current?.(false)
         confirmResolverRef.current = null
     }, [])
+
+    // Listen for custom copy request event from context menu
+    useEffect(() => {
+        const handleCopyRequest = (e: any) => {
+            const shapeIds = e.detail?.shapeIds
+            if (shapeIds && shapeIds.length > 0) {
+                setCopyCandidateShapeIds(shapeIds)
+                setCopyDialogVisible(true)
+            }
+        }
+        
+        window.addEventListener('request-copy-to-slide', handleCopyRequest)
+        return () => window.removeEventListener('request-copy-to-slide', handleCopyRequest)
+    }, [])
+
+    const handleCopyShapesToPage = (targetPageId: string) => {
+        setCopyDialogVisible(false)
+        
+        if (copyCandidateShapeIds.length === 0) return
+
+        const shapes = copyCandidateShapeIds.map(id => editor.getShape(id as any)).filter(Boolean)
+        if (shapes.length === 0) return
+
+        // 1. Get the target page
+        // 2. Clone shapes to that page
+        // 3. Optional: Navigate to that page or show success toast
+        
+        editor.run(() => {
+            shapes.forEach(shape => {
+                if (!shape) return
+                // Create a clone on the target page
+                // We keep the same X/Y coordinates
+                const { id: _id, parentId: _parentId, ...props } = shape as any
+                
+                editor.createShape({
+                    ...props,
+                    id: createShapeId(), // Generate new ID
+                    parentId: targetPageId as any // Set new parent (page)
+                })
+            })
+        })
+
+        // Optional: Show a quick feedback? For now, we just close the dialog.
+        // We could verify by checking if shapes exist on target page, but manual verification covers this.
+    }
 
     useEffect(() => {
         // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
@@ -107,6 +186,7 @@ function AppContent() {
         a.href = url
         a.download = 'project.tldr'
         a.click()
+        a.remove()
         URL.revokeObjectURL(url)
     }
 
@@ -409,6 +489,13 @@ function AppContent() {
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
             />
+            <PageSelectionDialog 
+                isVisible={copyDialogVisible}
+                onClose={() => setCopyDialogVisible(false)}
+                onConfirm={handleCopyShapesToPage}
+                pages={editor.getPages()}
+                currentPageId={editor.getCurrentPageId()}
+            />
             {mode === 'math' && (
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">
                     <button 
@@ -433,7 +520,12 @@ function App(): JSX.Element {
   return (
     <div className="tldraw__editor" style={{ position: 'fixed', inset: 0 }}>
       {/* Custom Close Button Removed - Moved to NavigationPanel */}
-      <Tldraw persistenceKey="tldraw-persistence" shapeUtils={customShapeUtils} components={components}>
+      <Tldraw 
+        persistenceKey="tldraw-persistence" 
+        shapeUtils={customShapeUtils} 
+        components={components}
+        overrides={overrides}
+      >
           <AppContent />
       </Tldraw>
     </div>

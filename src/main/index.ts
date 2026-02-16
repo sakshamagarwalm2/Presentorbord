@@ -184,6 +184,12 @@ ipcMain.handle('get-imports-dir', async () => {
     return importsDir
   })
   
+  // Minimize the app
+  ipcMain.handle('minimize-app', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) win.minimize()
+  })
+
   // Close the app
   ipcMain.handle('close-app', () => {
     app.quit()
