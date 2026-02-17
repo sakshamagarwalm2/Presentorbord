@@ -1,4 +1,4 @@
-import { useEditor, useValue, GeoShapeGeoStyle, DefaultColorStyle } from '@tldraw/tldraw'
+import { useEditor, useValue, GeoShapeGeoStyle, DefaultColorStyle, createShapeId } from '@tldraw/tldraw'
 import { useState, useRef, useEffect } from 'react'
 import {
   MousePointer2,
@@ -32,6 +32,8 @@ import {
   Scissors,
   BarChart2,
   Crosshair,
+  Clipboard,
+  Check,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -879,6 +881,110 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
       }
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  Custom Copy/Paste Logic (Annotation Only)                          */
+  /* ------------------------------------------------------------------ */
+
+  const selectedShapeIds = useValue('selected shapes', () => editor.getSelectedShapeIds(), [editor])
+  const [hasClipboardContent, setHasClipboardContent] = useState(false)
+  const [showCopyFeedback, setShowCopyFeedback] = useState(false)
+
+  // Check clipboard on mount and focus
+  useEffect(() => {
+    const checkClipboard = () => {
+      const content = localStorage.getItem('annotation-clipboard')
+      setHasClipboardContent(!!content)
+    }
+    checkClipboard()
+    
+    // Listen for storage events (cross-tab) and window focus
+    window.addEventListener('storage', checkClipboard)
+    window.addEventListener('focus', checkClipboard)
+    return () => {
+      window.removeEventListener('storage', checkClipboard)
+      window.removeEventListener('focus', checkClipboard)
+    }
+  }, [])
+
+  const handleCopyAnnotations = () => {
+    const shapes = editor.getSelectedShapes()
+    // Filter out images (and potential PDF backgrounds)
+    const annotations = shapes.filter(s => s.type !== 'image' && s.type !== 'video')
+    
+    if (annotations.length === 0) return
+
+    // Calculate offset from current viewport center to preserve "position in window"
+    const viewportCenter = editor.getViewportScreenCenter()
+    
+    const clipboardData = annotations.map((s: any) => ({
+        ...s,
+        meta: {
+            ...s.meta,
+            // Store the offset from center at the time of copy
+            clipOffsetX: s.x - viewportCenter.x,
+            clipOffsetY: s.y - viewportCenter.y
+        }
+    }))
+
+    localStorage.setItem('annotation-clipboard', JSON.stringify(clipboardData))
+    setHasClipboardContent(true)
+    
+    // Show feedback
+    setShowCopyFeedback(true)
+    setTimeout(() => setShowCopyFeedback(false), 2000)
+  }
+
+  const handlePasteAnnotations = () => {
+    const content = localStorage.getItem('annotation-clipboard')
+    if (!content) return
+
+    try {
+      const shapes = JSON.parse(content)
+      if (!Array.isArray(shapes)) return
+      if (shapes.length === 0) return
+
+      const viewportCenter = editor.getViewportScreenCenter()
+
+      const newShapes = shapes.map((s: any) => {
+        // Use stored offset if available, otherwise default to original logic (or keep as is)
+        let x = s.x
+        let y = s.y
+
+        if (typeof s.meta?.clipOffsetX === 'number' && typeof s.meta?.clipOffsetY === 'number') {
+            x = viewportCenter.x + s.meta.clipOffsetX
+            y = viewportCenter.y + s.meta.clipOffsetY
+        } else {
+             // Fallback for old clipboard data (though we just added it, good practice)
+             // If no offset, just paste at center? Or keep original coords?
+             // Let's try to center if no offset
+             // For now, let's just use the coordinates relative to the shape's original 0,0 
+             // relative to viewport? 
+             // Actually, if we don't have offsets, likely we should just paste at stored X/Y (absolute) 
+             // or re-calculate. But since we control the copy format now:
+             // We'll assume offsets are present.
+        }
+
+        // Remove the meta offsets before creating
+        const { clipOffsetX, clipOffsetY, ...meta } = s.meta || {}
+        
+        return {
+          ...s,
+          id: createShapeId(),
+          parentId: editor.getCurrentPageId(),
+          x,
+          y,
+          meta
+        }
+      })
+
+      editor.createShapes(newShapes)
+      editor.setSelectedShapes(newShapes.map((s: any) => s.id))
+      
+    } catch (e) {
+      console.error('Failed to paste annotations', e)
+    }
+  }
+
   return (
     <>
       {/* Eraser cursor overlay for stroke eraser */}
@@ -910,6 +1016,45 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
         )}
 
         <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
+          
+          {/* Custom Annotation Copy/Paste - Exclusive Logic */}
+          <div className="flex items-center gap-1 mr-1">
+            {selectedShapeIds.length > 0 ? (
+                // Show COPY if something is selected
+                <button
+                    onClick={handleCopyAnnotations}
+                    disabled={showCopyFeedback}
+                    className={`
+                        w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200
+                        ${showCopyFeedback 
+                            ? 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30' 
+                            : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
+                        }
+                    `}
+                    title={showCopyFeedback ? "Copied!" : "Copy Annotations"}
+                >
+                    {showCopyFeedback ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+            ) : (
+                // Show PASTE if nothing is selected (disabled if clipboard empty)
+                <button
+                    onClick={handlePasteAnnotations}
+                    disabled={!hasClipboardContent}
+                    className={`
+                        w-10 h-10 flex items-center justify-center rounded-xl transition-all
+                        ${hasClipboardContent 
+                            ? 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400' 
+                            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                        }
+                    `}
+                    title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
+                >
+                    <Clipboard size={18} />
+                </button>
+            )}
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+          </div>
+
           {/* Select & Hand */}
           {SIMPLE_TOOLS.map((tool) => (
             <ToolButton
