@@ -34,6 +34,7 @@ import {
   Crosshair,
   Clipboard,
   Check,
+  Lasso,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -753,6 +754,117 @@ function EraserCursorOverlay({ size, active }: { size: number; active: boolean }
 /*  Main DrawingToolbar                                                */
 /* ------------------------------------------------------------------ */
 
+const SELECT_GROUP: ToolDef[] = [
+  { id: 'select', label: 'Select', icon: MousePointer2 },
+  { id: 'lasso', label: 'Lasso Select', icon: Lasso },
+]
+
+/* ------------------------------------------------------------------ */
+/*  Select group button with flyout                                    */
+/* ------------------------------------------------------------------ */
+
+function SelectGroupButton({
+  activeTool,
+  onSelect,
+  activeTheme,
+}: {
+  activeTool: string
+  onSelect: (toolId: string) => void
+  activeTheme?: ColorTheme
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
+  const flyoutRef = useRef<HTMLDivElement>(null)
+  
+  const theme = activeTheme || COLOR_THEMES['blue']
+
+  // Close flyout on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (flyoutRef.current && !flyoutRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Update selected when tool changes externally
+  useEffect(() => {
+    const match = SELECT_GROUP.find((t) => t.id === activeTool)
+    if (match) setSelectedTool(match)
+  }, [activeTool])
+
+  const isGroupActive = SELECT_GROUP.some((t) => t.id === activeTool)
+  const Icon = selectedTool.icon
+
+  return (
+    <div className="relative" ref={flyoutRef}>
+      {/* Main button */}
+      <div className="flex items-center">
+        <button
+          onClick={() => onSelect(selectedTool.id)}
+          className={`
+            relative flex items-center justify-center
+            w-10 h-10 rounded-l-xl transition-all duration-150
+            ${isGroupActive
+              ? `${theme.bg} shadow-md ${theme.shadow}`
+              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+            }
+          `}
+          title={selectedTool.label}
+        >
+          <Icon size={20} />
+        </button>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`
+            flex items-center justify-center
+            w-5 h-10 rounded-r-xl border-l transition-all duration-150
+            ${isGroupActive
+              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
+              : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
+            }
+          `}
+          title="More select tools"
+        >
+          <ChevronDown size={12} />
+        </button>
+      </div>
+
+      {/* Flyout */}
+      {isOpen && (
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
+          {SELECT_GROUP.map((tool) => {
+            const TIcon = tool.icon
+            const isActive = activeTool === tool.id
+            return (
+              <button
+                key={tool.id}
+                onClick={() => {
+                  setSelectedTool(tool)
+                  onSelect(tool.id)
+                  setIsOpen(false)
+                }}
+                className={`
+                  flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                  ${isActive
+                    ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }
+                `}
+              >
+                <TIcon size={16} />
+                {tool.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?: boolean }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
@@ -795,15 +907,14 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
   // Determine if stroke eraser is currently active
   const isStrokeEraserActive = eraserMode === 'stroke' && activeTool === 'eraser'
 
+
+
   // Activate stroke eraser hook
   useStrokeEraser(editor, isStrokeEraserActive, eraserSize)
-
   // Activate palm eraser hook (always enabled)
   usePalmEraser(editor, true, eraserSize)
 
-  const selectTools = (toolId: string) => {
-    editor.setCurrentTool(toolId)
-  }
+
 
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
@@ -833,7 +944,6 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
     }
   }
 
-
   const handleEraserSelect = () => {
     // Always use tldraw's eraser tool; the stroke eraser hooks into it
     editor.setCurrentTool('eraser')
@@ -846,11 +956,6 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
 
   const canUndo = useValue('canUndo', () => editor.getCanUndo(), [editor])
   const canRedo = useValue('canRedo', () => editor.getCanRedo(), [editor])
-
-  const SIMPLE_TOOLS: ToolDef[] = [
-    { id: 'select', label: 'Select', icon: MousePointer2 },
-    { id: 'hand', label: 'Hand', icon: Hand },
-  ]
 
   // Recent Colors State
   const [recentColors, setRecentColors] = useState<string[]>(['black', 'red', 'blue'])
@@ -955,13 +1060,6 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
             y = viewportCenter.y + s.meta.clipOffsetY
         } else {
              // Fallback for old clipboard data (though we just added it, good practice)
-             // If no offset, just paste at center? Or keep original coords?
-             // Let's try to center if no offset
-             // For now, let's just use the coordinates relative to the shape's original 0,0 
-             // relative to viewport? 
-             // Actually, if we don't have offsets, likely we should just paste at stored X/Y (absolute) 
-             // or re-calculate. But since we control the copy format now:
-             // We'll assume offsets are present.
         }
 
         // Remove the meta offsets before creating
@@ -1055,16 +1153,20 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
           </div>
 
-          {/* Select & Hand */}
-          {SIMPLE_TOOLS.map((tool) => (
-            <ToolButton
-              key={tool.id}
-              tool={tool}
-              isActive={activeTool === tool.id}
-              onClick={() => selectTool(tool.id)}
-              activeTheme={activeColorTheme}
-            />
-          ))}
+          {/* Select Group Button (Select / Lasso) */}
+          <SelectGroupButton 
+            activeTool={activeTool} 
+            onSelect={selectTool} 
+            activeTheme={activeColorTheme} 
+          />
+          
+          {/* Hand Tool */}
+          <ToolButton
+            tool={{ id: 'hand', label: 'Hand', icon: Hand }}
+            isActive={activeTool === 'hand'}
+            onClick={() => selectTool('hand')}
+            activeTheme={activeColorTheme}
+          />
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-0.5" />
@@ -1086,7 +1188,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
           >
             <Redo2 size={18} />
           </button>
-
+          
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 

@@ -21,9 +21,10 @@ import { GraphAxes4ShapeUtil } from './shapes/graph/GraphAxes4ShapeUtil'
 import { CustomLaserTool } from './tools/CustomLaserTool'
 import { GraphAxes1Tool } from './tools/GraphAxes1Tool'
 import { GraphAxes4Tool } from './tools/GraphAxes4Tool'
+import { LassoTool } from './tools/LassoTool'
 
 const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil, GraphAxes1ShapeUtil, GraphAxes4ShapeUtil]
-const customTools = [CustomLaserTool, GraphAxes1Tool, GraphAxes4Tool]
+const customTools = [CustomLaserTool, GraphAxes1Tool, GraphAxes4Tool, LassoTool]
 
 // Context Menu Overrides
 const overrides: TLUiOverrides = {
