@@ -845,12 +845,63 @@ export function DrawingToolbar() {
     { id: 'hand', label: 'Hand', icon: Hand },
   ]
 
+  // Recent Colors State
+  const [recentColors, setRecentColors] = useState<string[]>(['black', 'red', 'blue'])
+
+  // Update recent colors when current color changes
+  useEffect(() => {
+    // We only want to track if it's a valid color in our themes
+    if (!COLOR_THEMES[currentColor]) return
+
+    setRecentColors(prev => {
+        // Remove if exists
+        const next = prev.filter(c => c !== currentColor)
+        // Add to front
+        next.unshift(currentColor)
+        // Keep max 3
+        return next.slice(0, 3)
+    })
+  }, [currentColor])
+
+  const handleRecentColorClick = (color: string) => {
+      editor.setStyleForNextShapes(DefaultColorStyle, color)
+      // If we have selected shapes, update them too
+      const selectedShapeIds = editor.getSelectedShapeIds()
+      if (selectedShapeIds.length > 0) {
+          editor.setStyleForSelectedShapes(DefaultColorStyle, color)
+      }
+  }
+
   return (
     <>
       {/* Eraser cursor overlay for stroke eraser */}
       <EraserCursorOverlay size={eraserSize} active={isStrokeEraserActive} />
 
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto">
+        
+        {/* Recent Colors Dots (Only visible if StylePanel is NOT visible) */}
+        {!stylePanelVisible && recentColors.length > 0 && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 p-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                {recentColors.map(color => {
+                    const theme = COLOR_THEMES[color]
+                    const isActive = currentColor === color
+                    return (
+                        <button
+                            key={color}
+                            onClick={() => handleRecentColorClick(color)}
+                            className={`
+                                w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
+                                ${theme?.bg.split(' ')[0]} 
+                                ${isActive ? 'scale-125' : 'hover:scale-125'}
+                                transition-all duration-200
+                            `}
+                            title={`Use ${color}`}
+                        />
+                    )
+                })}
+            </div>
+        )}
+
         <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
           {/* Select & Hand */}
           {SIMPLE_TOOLS.map((tool) => (
