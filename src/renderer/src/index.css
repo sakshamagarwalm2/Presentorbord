@@ -2,88 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== Hide Tldraw's default toolbar & menus ========== */
-.tlui-toolbar {
-    display: none !important;
+:root,
+.tldraw__editor {
+    /* Override tldraw laser color to Neon Red */
+    --color-laser: #ff0033 !important;
 }
 
+body {
+    background-color: transparent;
+}
+
+/* Neon Glow Effect for Laser Scribbles */
+.tl-scribble,
+.tl-scribble path {
+    /* Apply neon glow using the laser color */
+    filter: drop-shadow(0 0 8px var(--color-laser)) drop-shadow(0 0 15px var(--color-laser));
+}
+
+/* Hide default Tldraw UI layout containers to remove "empty boxes" and sidebars */
+.tlui-layout__top,
+.tlui-layout__bottom,
+/* .tlui-layout__left,  <-- standard toolbar might be here, hiding it in case null prop didn't fully */
+/* .tlui-layout__right, <-- style panel might be here */
+.tlui-helper-buttons,
+.tlui-quick-actions,
+.tlui-debug-panel,
 .tlui-menu-zone {
     display: none !important;
-}
-
-.tlui-navigation-panel {
-    display: none !important;
-}
-
-.tlui-help-menu {
-    display: none !important;
-}
-
-/* ========== Reposition Tldraw StylePanel to Bottom ========== */
-
-/* The top-right section that contains the style panel - 
-   pull it out of normal flow and anchor to bottom center */
-.tlui-layout__top__right {
-    position: fixed !important;
-    bottom: 80px !important;
-    right: 50% !important;
-    transform: translateX(50%) !important;
-    top: auto !important;
-    height: auto !important;
-    flex-direction: row !important;
-    align-items: flex-end !important;
-    z-index: 99997 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transition: opacity 0.25s ease, transform 0.25s ease !important;
-}
-
-/* Style panel wrapper - make it horizontal at the bottom */
-.tlui-style-panel__wrapper {
-    margin: 0 !important;
-    border-radius: 12px !important;
-    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08) !important;
-    background-color: rgba(255, 255, 255, 0.9) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    max-height: 200px !important;
-    overflow-y: auto !important;
-}
-
-.tl-theme__dark .tlui-style-panel__wrapper {
-    background-color: rgba(17, 24, 39, 0.9) !important;
-    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Make the style panel content flow horizontally */
-.tlui-style-panel {
-    width: auto !important;
-    max-width: none !important;
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 4px !important;
-    padding: 4px !important;
-}
-
-/* Style panel sections - lay out horizontally */
-.tlui-style-panel__section {
-    flex-direction: column !important;
-    border-bottom: none !important;
-    border-right: 1px solid var(--color-divider) !important;
-    padding-right: 4px !important;
-}
-
-.tlui-style-panel__section:last-child {
-    border-right: none !important;
-    padding-right: 0 !important;
-}
-
-/* Ensure the color/style grids stay compact */
-.tlui-buttons__grid {
-    grid-template-columns: repeat(4, auto) !important;
-}
-
-/* Hide scrollbar in sidebar */
-.sidebar-pages::-webkit-scrollbar {
-    display: none;
 }

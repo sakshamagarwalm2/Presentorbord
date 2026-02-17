@@ -10,7 +10,7 @@ const DESIRED_TOOLS = [
   'eraser',       // Eraser
   'arrow',        // Arrow
   'geo',          // Rectangle/Square (Tldraw calls it "geo")
-  'laser',        // Laser
+  'custom-laser', // Laser
   'highlight',    // Highlighter
 ]
 

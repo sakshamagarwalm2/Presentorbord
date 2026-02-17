@@ -74,7 +74,7 @@ interface ToolDef {
 const PEN_GROUP: ToolDef[] = [
   { id: 'draw', label: 'Pen', icon: Pen },
   { id: 'highlight', label: 'Highlighter', icon: Highlighter },
-  { id: 'laser', label: 'Laser', icon: Pointer },
+  { id: 'custom-laser', label: 'Laser', icon: Pointer },
 ]
 
 const MORE_TOOLS: ToolDef[] = [
@@ -273,6 +273,7 @@ function EraserGroupButton({
   onSelectTool,
   onSelectMode,
   onSelectSize,
+  onClearPage,
   activeTheme,
 }: {
   activeTool: string
@@ -281,6 +282,7 @@ function EraserGroupButton({
   onSelectTool: () => void
   onSelectMode: (mode: 'shape' | 'stroke') => void
   onSelectSize: (size: number) => void
+  onClearPage: () => void
   activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -404,6 +406,21 @@ function EraserGroupButton({
               </button>
             ))}
           </div>
+
+          {/* Divider */}
+          <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
+
+          {/* Clear Page Action */}
+          <button
+            onClick={() => {
+              onClearPage()
+              setIsOpen(false)
+            }}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+          >
+            <Trash2 size={16} />
+            Clear Annotations
+          </button>
         </div>
       )}
     </div>
@@ -781,9 +798,6 @@ export function DrawingToolbar() {
   // Activate palm eraser hook (always enabled)
   usePalmEraser(editor, true, eraserSize)
 
-  // Activate palm eraser hook (always enabled)
-  usePalmEraser(editor, true, eraserSize)
-
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
   }
@@ -798,6 +812,20 @@ export function DrawingToolbar() {
         break
     }
   }
+
+  const handleClearPage = () => {
+    const currentPageId = editor.getCurrentPageId()
+    const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
+    const shapesToDelete = shapeIds.filter(id => {
+      const shape = editor.getShape(id)
+      return shape && shape.type !== 'image'
+    })
+    
+    if (shapesToDelete.length > 0) {
+        editor.deleteShapes(shapesToDelete)
+    }
+  }
+
 
   const handleEraserSelect = () => {
     // Always use tldraw's eraser tool; the stroke eraser hooks into it
@@ -885,6 +913,7 @@ export function DrawingToolbar() {
             onSelectTool={handleEraserSelect}
             onSelectMode={handleEraserModeChange}
             onSelectSize={setEraserSize}
+            onClearPage={handleClearPage}
             activeTheme={activeColorTheme}
           />
 

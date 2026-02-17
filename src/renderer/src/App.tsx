@@ -15,8 +15,10 @@ import { PageSelectionDialog } from './components/PageSelectionDialog'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
+import { CustomLaserTool } from './tools/CustomLaserTool'
 
 const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil]
+const customTools = [CustomLaserTool]
 
 // Context Menu Overrides
 const overrides: TLUiOverrides = {
@@ -511,7 +513,14 @@ function AppContent() {
 }
 
 const components: TLComponents = {
-	DebugPanel: null
+	DebugPanel: null,
+	NavigationPanel: null,
+	PageMenu: null,
+	MainMenu: null,
+	StylePanel: null,
+	Toolbar: null,
+	QuickActions: null,
+	HelperButtons: null,
 }
 
 
@@ -523,6 +532,7 @@ function App(): JSX.Element {
       <Tldraw 
         persistenceKey="tldraw-persistence" 
         shapeUtils={customShapeUtils} 
+        tools={customTools}
         components={components}
         overrides={overrides}
       >
