@@ -8,6 +8,9 @@ class LassoDragging extends StateNode {
 
 	override onEnter = () => {
 		console.log('LassoDragging: onEnter')
+        // Clear any previous hinting
+        this.editor.setHintingShapes([])
+
 		this.points = []
 		const { x, y } = this.editor.inputs.currentPagePoint
 		this.points.push({ x, y })
@@ -53,6 +56,11 @@ class LassoDragging extends StateNode {
 			selectedIds = this.selectShapesInPolygon()
 		} else {
 			console.log('Lasso selection cancelled: Not enough points')
+            // If cancelled/cleared, ensure we clear visible selection
+            if (!this.editor.inputs.shiftKey) {
+                this.editor.setSelectedShapes([])
+                this.editor.setHintingShapes([])
+            }
 		}
 
 		// Highlight selected shapes so user can see them without switching tool
@@ -106,6 +114,7 @@ class LassoDragging extends StateNode {
 			 console.log('No shapes selected by lasso')
              if (!this.editor.inputs.shiftKey) {
                 this.editor.setSelectedShapes([])
+                this.editor.setHintingShapes([]) // Also clear hints
              }
         }
 		return shapesToSelect
@@ -149,6 +158,11 @@ export class LassoTool extends StateNode {
 		console.log('LassoTool: onEnter')
 		this.editor.setCursor({ type: 'cross', rotation: 0 })
 	}
+
+    override onExit = () => {
+        // Clear any hints when leaving the tool
+        this.editor.setHintingShapes([])
+    }
 }
 
 
