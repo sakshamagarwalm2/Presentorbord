@@ -1,4 +1,4 @@
-import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow, Monitor, Navigation2 } from 'lucide-react'
+import { Calculator as CalcIcon, LineChart, Globe, ChevronRight, ChevronLeft, Sigma, Ruler, Circle, FileUp, Settings, Palette, Grid, Moon, Plus, Trash2, Download, Upload, Youtube, Map, Figma, Box, Code, Code2, AppWindow, Monitor, Navigation2, MoreHorizontal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useEditor, createShapeId } from '@tldraw/tldraw'
 import { getEmbedDef } from '../utils/embedUtils'
@@ -10,6 +10,8 @@ interface ToolsSidebarProps {
   onDesktopModeToggle: () => void
   showNavPanel: boolean
   onToggleNavPanel: () => void
+  showRecentColors: boolean
+  onToggleRecentColors: () => void
   isOpen: boolean
   onToggle: (open: boolean) => void
 }
@@ -19,7 +21,7 @@ interface Bookmark {
   url: string
 }
 
-export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle, showNavPanel, onToggleNavPanel, isOpen, onToggle }: ToolsSidebarProps) {
+export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDesktopModeToggle, showNavPanel, onToggleNavPanel, showRecentColors, onToggleRecentColors, isOpen, onToggle }: ToolsSidebarProps) {
   const [showMathTools, setShowMathTools] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [settingsView, setSettingsView] = useState<'root' | 'embeds'>('root')
@@ -209,6 +211,12 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                                         label={showNavPanel ? "Hide Navigation" : "Show Navigation"} 
                                         isActive={showNavPanel}
                                         onClick={onToggleNavPanel} 
+                                    />
+                                    <ToolButton
+                                        icon={MoreHorizontal}
+                                        label={showRecentColors ? "Hide Colors" : "Show Colors"}
+                                        isActive={showRecentColors}
+                                        onClick={onToggleRecentColors}
                                     />
                                     <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
                                     <ToolButton icon={Download} label="Save Project" onClick={onSaveProject} />

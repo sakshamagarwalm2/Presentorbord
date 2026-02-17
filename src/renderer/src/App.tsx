@@ -417,6 +417,7 @@ function AppContent() {
 
     const [isDesktopMode, setIsDesktopMode] = useState(false)
     const [showNavPanel, setShowNavPanel] = useState(true)
+    const [showRecentColors, setShowRecentColors] = useState(true)
     const [leftSidebarOpen, setLeftSidebarOpen] = useState(false)
     const [rightSidebarOpen, setRightSidebarOpen] = useState(false)
 
@@ -462,10 +463,12 @@ function AppContent() {
                 onDesktopModeToggle={toggleDesktopMode}
                 showNavPanel={showNavPanel}
                 onToggleNavPanel={() => setShowNavPanel(!showNavPanel)}
+                showRecentColors={showRecentColors}
+                onToggleRecentColors={() => setShowRecentColors(!showRecentColors)}
                 isOpen={rightSidebarOpen}
                 onToggle={setRightSidebarOpen}
             />
-            <DrawingToolbar />
+            <DrawingToolbar showRecentColors={showRecentColors} />
             <NavigationPanel isVisible={showNavPanel} />
             <input 
                 type="file" 

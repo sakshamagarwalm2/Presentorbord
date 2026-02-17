@@ -750,7 +750,7 @@ function EraserCursorOverlay({ size, active }: { size: number; active: boolean }
 /*  Main DrawingToolbar                                                */
 /* ------------------------------------------------------------------ */
 
-export function DrawingToolbar() {
+export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?: boolean }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
@@ -797,6 +797,10 @@ export function DrawingToolbar() {
 
   // Activate palm eraser hook (always enabled)
   usePalmEraser(editor, true, eraserSize)
+
+  const selectTools = (toolId: string) => {
+    editor.setCurrentTool(toolId)
+  }
 
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
@@ -864,10 +868,12 @@ export function DrawingToolbar() {
   }, [currentColor])
 
   const handleRecentColorClick = (color: string) => {
+      // @ts-ignore - color string is valid but type definition is strict union
       editor.setStyleForNextShapes(DefaultColorStyle, color)
       // If we have selected shapes, update them too
       const selectedShapeIds = editor.getSelectedShapeIds()
       if (selectedShapeIds.length > 0) {
+          // @ts-ignore
           editor.setStyleForSelectedShapes(DefaultColorStyle, color)
       }
   }
@@ -879,9 +885,9 @@ export function DrawingToolbar() {
 
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto">
         
-        {/* Recent Colors Dots (Only visible if StylePanel is NOT visible) */}
-        {!stylePanelVisible && recentColors.length > 0 && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 p-1.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
+        {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 {recentColors.map(color => {
                     const theme = COLOR_THEMES[color]
                     const isActive = currentColor === color
