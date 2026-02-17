@@ -15,10 +15,15 @@ import { PageSelectionDialog } from './components/PageSelectionDialog'
 
 import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
 import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
-import { CustomLaserTool } from './tools/CustomLaserTool'
+import { GraphAxes1ShapeUtil } from './shapes/graph/GraphAxes1ShapeUtil'
+import { GraphAxes4ShapeUtil } from './shapes/graph/GraphAxes4ShapeUtil'
 
-const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil]
-const customTools = [CustomLaserTool]
+import { CustomLaserTool } from './tools/CustomLaserTool'
+import { GraphAxes1Tool } from './tools/GraphAxes1Tool'
+import { GraphAxes4Tool } from './tools/GraphAxes4Tool'
+
+const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil, GraphAxes1ShapeUtil, GraphAxes4ShapeUtil]
+const customTools = [CustomLaserTool, GraphAxes1Tool, GraphAxes4Tool]
 
 // Context Menu Overrides
 const overrides: TLUiOverrides = {

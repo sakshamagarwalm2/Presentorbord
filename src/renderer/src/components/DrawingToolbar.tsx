@@ -30,6 +30,8 @@ import {
   Trash2,
   Copy,
   Scissors,
+  BarChart2,
+  Crosshair,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -108,6 +110,8 @@ interface ShapeDef {
 
 const SHAPE_GROUP: ShapeDef[] = [
   { id: 'arrow', label: 'Arrow', icon: ArrowUpRight },
+  { id: 'graph-axes-1', label: '1st Quad', icon: BarChart2 },
+  { id: 'graph-axes-4', label: '4 Quad', icon: Crosshair },
   { id: 'geo', geoType: 'rectangle', label: 'Rectangle', icon: Square },
   { id: 'geo', geoType: 'ellipse', label: 'Ellipse', icon: Circle },
   { id: 'geo', geoType: 'triangle', label: 'Triangle', icon: Triangle },
@@ -459,14 +463,12 @@ function ShapeGroupButton({
 
   // Update selected shape when tool changes externally
   useEffect(() => {
-    if (activeTool === 'arrow') {
-      const arrow = SHAPE_GROUP.find((s) => s.id === 'arrow')
-      if (arrow) setSelectedShape(arrow)
-    }
-    // For geo, we keep the last selected geo shape
+    if (activeTool === 'geo') return
+    const match = SHAPE_GROUP.find((s) => s.id === activeTool)
+    if (match) setSelectedShape(match)
   }, [activeTool])
 
-  const isGroupActive = activeTool === 'arrow' || activeTool === 'geo'
+  const isGroupActive = SHAPE_GROUP.some((s) => s.id === activeTool)
   const Icon = selectedShape.icon
 
   const handleSelect = (shape: ShapeDef) => {
@@ -533,8 +535,7 @@ function ShapeGroupButton({
             {SHAPE_GROUP.map((shape, idx) => {
               const SIcon = shape.icon
               const isActive =
-                (shape.id === 'arrow' && activeTool === 'arrow') ||
-                (shape.id === 'geo' && activeTool === 'geo' && selectedShape.geoType === shape.geoType)
+                shape.id === activeTool && (shape.id !== 'geo' || selectedShape.geoType === shape.geoType)
               return (
                 <button
                   key={`${shape.id}-${shape.geoType ?? idx}`}
