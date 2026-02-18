@@ -35,6 +35,8 @@ import {
   Clipboard,
   Check,
   Lasso,
+  Lock,
+  Unlock,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -655,7 +657,21 @@ function MoreOptionsButton({
             className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Copy size={16} />
-            Duplicate
+             Duplicate
+          </button>
+          <button
+            onClick={() => { onAction('lock'); setIsOpen(false) }}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            <Lock size={16} />
+            Lock Selected
+          </button>
+          <button
+            onClick={() => { onAction('unlock-all'); setIsOpen(false) }}
+            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            <Unlock size={16} />
+            Unlock All
           </button>
         </div>
       )}
@@ -928,6 +944,24 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
       case 'duplicate':
         editor.duplicateShapes(editor.getSelectedShapeIds())
         break
+      case 'lock':
+        editor.updateShapes(editor.getSelectedShapes().map(shape => ({ ...shape, isLocked: true })))
+        break
+      case 'unlock-all':
+         const currentPageId = editor.getCurrentPageId()
+         const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
+         const shapesToUnlock = shapeIds
+            .map(id => editor.getShape(id))
+            .filter(s => s && s.isLocked) as any[] // type assertion to strict Shape
+         
+         if (shapesToUnlock.length > 0) {
+             editor.updateShapes(shapesToUnlock.map(shape => ({ 
+                 id: shape.id,
+                 type: shape.type,
+                 isLocked: false 
+             })))
+         }
+         break
     }
   }
 
