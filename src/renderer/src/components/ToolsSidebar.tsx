@@ -106,15 +106,6 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
     setSettingsView('root')
   }
 
-  const addShape = (type: 'ruler' | 'protractor') => {
-    const center = editor.getViewportScreenCenter()
-    editor.createShape({
-        id: createShapeId(),
-        type,
-        x: center.x - 150,
-        y: center.y - 75,
-    })
-  }
 
   const openSystemCalculator = async () => {
     // @ts-ignore
@@ -177,9 +168,6 @@ export function ToolsSidebar({ onImportClick, onOpenProject, onSaveProject, onDe
                         <div className="absolute right-full top-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 flex flex-col gap-2">
                              <ToolButton icon={CalcIcon} label="Calculator" onClick={() => { openSystemCalculator(); setShowMathTools(false); }} />
                              <ToolButton icon={LineChart} label="Graph" onClick={() => { openGraph(); setShowMathTools(false); }} />
-                             <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
-                             <ToolButton icon={Ruler} label="Ruler" onClick={() => { addShape('ruler'); setShowMathTools(false); }} />
-                             <ToolButton icon={Circle} label="Protractor" onClick={() => { addShape('protractor'); setShowMathTools(false); }} />
                         </div>
                     )}
                 </div>

@@ -13,8 +13,6 @@ import { NavigationPanel } from './components/NavigationPanel'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { PageSelectionDialog } from './components/PageSelectionDialog'
 
-import { ProtractorShapeUtil } from './shapes/protractor/ProtractorShapeUtil'
-import { RulerShapeUtil } from './shapes/ruler/RulerShapeUtil'
 import { GraphAxes1ShapeUtil } from './shapes/graph/GraphAxes1ShapeUtil'
 import { GraphAxes4ShapeUtil } from './shapes/graph/GraphAxes4ShapeUtil'
 
@@ -23,7 +21,8 @@ import { GraphAxes1Tool } from './tools/GraphAxes1Tool'
 import { GraphAxes4Tool } from './tools/GraphAxes4Tool'
 import { LassoTool } from './tools/LassoTool'
 
-const customShapeUtils = [ProtractorShapeUtil, RulerShapeUtil, GraphAxes1ShapeUtil, GraphAxes4ShapeUtil]
+
+const customShapeUtils = [GraphAxes1ShapeUtil, GraphAxes4ShapeUtil]
 const customTools = [CustomLaserTool, GraphAxes1Tool, GraphAxes4Tool, LassoTool]
 
 // Context Menu Overrides

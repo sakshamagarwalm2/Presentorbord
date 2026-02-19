@@ -4,6 +4,8 @@ import {
   HTMLContainer,
   T,
   Rectangle2d,
+  TLBaseShape,
+  resizeBox,
 } from '@tldraw/tldraw'
 import { IRulerShape } from './ruler-shape-types'
 
@@ -23,43 +25,45 @@ export class RulerShapeUtil extends ShapeUtil<IRulerShape> {
 
   override getGeometry(shape: IRulerShape) {
     return new Rectangle2d({
-        width: shape.props.w,
-        height: shape.props.h,
-        isFilled: true,
+      width: shape.props.w,
+      height: shape.props.h,
+      isFilled: true,
     })
+  }
+  
+  override canResize = () => true
+  override canScroll = () => false
+
+  override onResize = (shape: IRulerShape, info: any) => {
+    return resizeBox(shape, info)
   }
 
   override component(shape: IRulerShape) {
-    // Generate markings
-    const markings = []
-    const range = Math.floor(shape.props.w / 10) // Assuming 10px per marking/mm for visual simplicity
-
-    for (let i = 0; i <= range; i++) {
-        const x = i * 10
-        const isMajor = i % 5 === 0
-        const isLabel = i % 10 === 0
-        
-        markings.push(
-            <div key={i} style={{
-                position: 'absolute',
-                left: `${x}px`,
-                bottom: 0,
-                width: '1px',
-                height: isLabel ? '20px' : (isMajor ? '15px' : '8px'),
-                background: '#333',
-            }}>
-                {isLabel && (
-                    <span style={{
-                        position: 'absolute',
-                        top: '-15px',
-                        left: '-50%',
-                        fontSize: '9px',
-                        fontWeight: 600,
-                        color: '#333'
-                    }}>{i/10}</span>
-                )}
-            </div>
+    const { w, h } = shape.props
+    
+    // We'll simulate millimeters. Let's say 10px = 1cm for screen simplicity, 
+    // or maybe strict pixels. Let's do 100px = 1 logical unit (like "10")
+    // A standard screen ruler often uses 96dpi, so ~37.8px is 1cm. 
+    // Let's stick to a simple visual scale where 10px = 1 small tick, 50px = medium, 100px = big.
+    
+    const ticks = []
+    // Generate ticks based on width
+    for (let x = 0; x <= w; x += 10) {
+      if (x % 100 === 0) {
+        // Large tick + Label
+        ticks.push(
+          <g key={x}>
+            <line x1={x} y1={h} x2={x} y2={h - 20} stroke="black" strokeWidth={2} />
+            <text x={x + 2} y={h - 25} fontSize={10} fontFamily="sans-serif" fill="black">{x / 10}</text>
+          </g>
         )
+      } else if (x % 50 === 0) {
+        // Medium tick
+        ticks.push(<line key={x} x1={x} y1={h} x2={x} y2={h - 15} stroke="black" strokeWidth={1.5} />)
+      } else {
+        // Small tick
+        ticks.push(<line key={x} x1={x} y1={h} x2={x} y2={h - 8} stroke="black" strokeWidth={1} />)
+      }
     }
 
     return (
@@ -67,28 +71,14 @@ export class RulerShapeUtil extends ShapeUtil<IRulerShape> {
         id={shape.id}
         style={{
           pointerEvents: 'all',
-          background: 'rgba(255, 255, 255, 0.7)',
-          border: '1px solid rgba(0, 0, 0, 0.2)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(4px)',
-          width: '100%',
-          height: '100%',
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: '2px'
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'flex-end'
-        }}>
-            {markings}
-        </div>
+        <svg width={w} height={h} style={{ overflow: 'visible', background: 'rgba(255, 255, 255, 0.85)', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', border: '1px solid #ccc', borderRadius: 4 }}>
+          {ticks}
+        </svg>
       </HTMLContainer>
     )
   }

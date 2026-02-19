@@ -1,11 +1,11 @@
+
 import {
   ShapeUtil,
   HTMLContainer,
   T,
-  TLBaseShape,
-  Geometry2d,
   Rectangle2d,
-  Vec
+  resizeBox,
+  toDomPrecision,
 } from '@tldraw/tldraw'
 import { IProtractorShape } from './protractor-shape-types'
 
@@ -26,80 +26,127 @@ export class ProtractorShapeUtil extends ShapeUtil<IProtractorShape> {
   override getGeometry(shape: IProtractorShape) {
     return new Rectangle2d({
         width: shape.props.w,
-        height: shape.props.h, // Approximation for now
+        height: shape.props.h,
         isFilled: true,
     })
   }
 
+  override canResize = () => true
+  override onResize = (shape: IProtractorShape, info: any) => {
+    return resizeBox(shape, info)
+  }
+
   override component(shape: IProtractorShape) {
+    const { w, h } = shape.props
+    const r = w / 2
+
+    // Create tick marks
+    const ticks = []
+    
+    // 0 to 180 degrees
+    for (let i = 0; i <= 180; i++) {
+        // Calculate position
+        const angle = (i * Math.PI) / 180
+        // We want 0 on the right, 180 on the left (standard protractor)
+        // or 0 on left? Standard is usually 0 on right counter-clockwise to 180 on left.
+        // Let's do standard math: 0 is right (3 o'clock).
+        
+        // But screen coordinates: y is down.
+        // Center is (w/2, h)
+        // x = cx + r * cos(angle)
+        // y = cy - r * sin(angle)
+        
+        const cx = w / 2
+        const cy = h
+        
+        const isMajor = i % 10 === 0
+        const isMedium = i % 5 === 0
+        
+        const length = isMajor ? 15 : (isMedium ? 10 : 5)
+        const tickR = r - 2 // slight padding from edge
+        
+        const x1 = cx + tickR * Math.cos(-angle) // negative angle because y grows down
+        const y1 = cy + tickR * Math.sin(-angle)
+        
+        const matchR = tickR - length
+        const x2 = cx + matchR * Math.cos(-angle)
+        const y2 = cy + matchR * Math.sin(-angle)
+
+        ticks.push(
+            <line 
+                key={i} 
+                x1={x1} y1={y1} 
+                x2={x2} y2={y2} 
+                stroke="black" 
+                strokeWidth={isMajor ? 1.5 : 0.5} 
+            />
+        )
+
+        // Add labels
+        if (isMajor && i !== 0 && i !== 180) {
+            const textR = r - 25
+            const tx = cx + textR * Math.cos(-angle)
+            const ty = cy + textR * Math.sin(-angle)
+            ticks.push(
+                <text 
+                    key={`t-${i}`} 
+                    x={tx} 
+                    y={ty} 
+                    fontSize={10} 
+                    fontFamily="sans-serif" 
+                    textAnchor="middle" 
+                    dominantBaseline="middle"
+                    fill="black"
+                    transform={`rotate(${90-i}, ${tx}, ${ty})`} // Rotate text to be readable? Or keep horizontal? 
+                    // Let's keep specific rotation: 0 degrees -> horizontal.
+                    // Actually, standard protractors often have text oriented towards center or horizontal. 
+                    // Let's try simple horizontal first, but rotated might look cooler.
+                    // Let's remove transform for readability first.
+                >
+                    {i}
+                </text>
+            )
+        }
+    }
+
     return (
       <HTMLContainer
         id={shape.id}
         style={{
           pointerEvents: 'all',
-          background: 'rgba(255, 255, 255, 0.4)',
-          border: '2px solid rgba(0, 0, 0, 0.8)',
-          borderRadius: '150px 150px 0 0', // Semicircle top
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'center',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(4px)',
-          width: '100%',
-          height: '100%',
-          position: 'relative'
         }}
       >
-        <div style={{
-            position: 'absolute',
-            bottom: 0,
-            width: '100%',
-            height: '1px',
-            background: 'black'
-        }} />
-        <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: '50%',
-            width: '2px',
-            height: '10px',
-            background: 'black',
-            transform: 'translateX(-50%)'
-        }} />
-        
-        {/* Degree markings (simple) */}
-        {[0, 45, 90, 135, 180].map(deg => (
-            <div key={deg} style={{
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                height: '100%',
-                width: '1px',
-                transformOrigin: 'bottom center',
-                transform: `rotate(${deg - 90}deg)`
-            }}>
-                <div style={{
-                    width: '1px',
-                    height: '10px',
-                    background: 'black',
-                    position: 'absolute',
-                    top: 0
-                }} />
-                 <span style={{
-                    position: 'absolute',
-                    top: '12px',
-                    left: '-10px',
-                    fontSize: '10px',
-                    transform: `rotate(${-(deg - 90)}deg)` // Cancel rotation for text
-                }}>{deg}°</span>
-            </div>
-        ))}
-
+        <svg 
+            width={w} 
+            height={h} 
+            style={{ 
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.15))'
+            }}
+        >
+            <path 
+                d={`M 0 ${h} A ${w/2} ${h} 0 0 1 ${w} ${h} Z`} 
+                fill="rgba(255, 255, 255, 0.4)" 
+                stroke="rgba(0,0,0,0.5)" 
+                strokeWidth="1"
+                fillRule="evenodd"
+                style={{ backdropFilter: 'blur(4px)' }}
+            />
+            {ticks}
+            {/* Center point */}
+            <circle cx={w/2} cy={h} r={3} fill="black" />
+            <line x1={w/2} y1={h} x2={w/2} y2={h-10} stroke="black" />
+            <line x1={0} y1={h} x2={w} y2={h} stroke="black" />
+        </svg>
       </HTMLContainer>
     )
   }
 
   override indicator(shape: IProtractorShape) {
-    return <rect width={shape.props.w} height={shape.props.h} />
+     const { w, h } = shape.props
+     return <path d={`M 0 ${h} A ${w/2} ${h} 0 0 1 ${w} ${h} Z`} />
   }
 }
