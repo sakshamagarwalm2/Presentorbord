@@ -891,6 +891,9 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
   }, [editor])
   const activeColorTheme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']
 
+  // Track camera lock state for the toolbar button
+  const isCameraLocked = useValue('camera lock', () => editor.getCameraOptions().isLocked, [editor])
+
   const [stylePanelVisible, setStylePanelVisible] = useState(false)
   const stylePanelRef = useRef<HTMLDivElement>(null)
   const paletteButtonRef = useRef<HTMLDivElement>(null)
@@ -1194,13 +1197,28 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
             activeTheme={activeColorTheme} 
           />
           
-          {/* Hand Tool */}
           <ToolButton
             tool={{ id: 'hand', label: 'Hand', icon: Hand }}
             isActive={activeTool === 'hand'}
             onClick={() => selectTool('hand')}
             activeTheme={activeColorTheme}
           />
+
+          {/* Page Lock Toggle */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+            className={`
+                relative flex items-center justify-center
+                w-10 h-10 rounded-xl transition-all duration-150
+                ${isCameraLocked
+                ? 'bg-red-50 text-red-600 shadow-md shadow-red-100 dark:bg-red-900/30 dark:text-red-400 dark:shadow-red-900/20'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                }
+            `}
+            title={isCameraLocked ? "Unlock Page" : "Lock Page"}
+          >
+            {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
+          </button>
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-0.5" />

@@ -49,8 +49,81 @@ const overrides: TLUiOverrides = {
             }
         }
 
-        // Insert at the beginning or specific position
-        return [copyToSlideAction, ...contextMenu]
+    // Insert at the beginning or specific position
+        
+        const lockSelectedAction = {
+            id: 'lock-selected',
+            label: 'Lock Selected',
+            readonlyOk: false,
+            onSelect: () => {
+                editor.updateShapes(selectedShapes.map((s: any) => ({ ...s, isLocked: true })))
+            }
+        }
+
+        const unlockAllAction = {
+            id: 'unlock-all',
+            label: 'Unlock All (Non-Background)',
+            readonlyOk: false,
+            onSelect: () => {
+                const currentPageId = editor.getCurrentPageId()
+                const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
+                const shapesToUnlock = shapeIds
+                    .map((id: any) => editor.getShape(id))
+                    .filter((s: any) => s && s.isLocked && !s.meta?.isPageBackground) // Skip background
+                    .map((s: any) => ({ ...s, isLocked: false }))
+                
+                if (shapesToUnlock.length > 0) {
+                    editor.updateShapes(shapesToUnlock)
+                }
+            }
+        }
+
+        // Consolidated "Lock Page" Action
+        // This handles both the Viewport (Camera) and the Background Image
+        // The actual logic is now in handleTogglePageLock in AppContent,
+        // this action will trigger it.
+        const isCameraLockedInContextMenu = editor.getCameraOptions().isLocked // Get current state for label
+        
+        const togglePageLockAction = {
+            id: 'toggle-page-lock',
+            label: isCameraLockedInContextMenu ? 'Unlock Page' : 'Lock Page',
+            readonlyOk: true,
+            onSelect: () => {
+                // Dispatch custom event to notify App component
+                window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))
+            }
+        }
+
+        // New Action: Set Selected as Background
+        const setAsBackgroundAction = (selectedShapes.length === 1 && selectedShapes[0].type === 'image') ? {
+            id: 'set-as-background',
+            label: 'Set as Page Background',
+            readonlyOk: false,
+            onSelect: () => {
+                const shape = selectedShapes[0]
+                editor.updateShape({ 
+                    ...shape, 
+                    isLocked: true, 
+                    meta: { ...shape.meta, isPageBackground: true } 
+                })
+            }
+        } : null
+
+        const newActions = []
+        
+        // 1. Page Lock (First, as requested)
+        newActions.push(togglePageLockAction)
+
+        // 2. Selected Shape Actions
+        if (selectedShapes.length > 0) {
+            newActions.push(lockSelectedAction)
+            if (setAsBackgroundAction) newActions.push(setAsBackgroundAction)
+        }
+        
+        // 3. Unlock All
+        newActions.push(unlockAllAction)
+
+        return [copyToSlideAction, ...newActions, ...contextMenu]
     },
 }
 
@@ -102,6 +175,54 @@ function AppContent() {
         return () => window.removeEventListener('request-copy-to-slide', handleCopyRequest)
     }, [])
 
+
+
+    const handleTogglePageLock = useCallback(() => {
+        const isCameraLocked = editor.getCameraOptions().isLocked
+        const newLockedState = !isCameraLocked
+        
+        // 1. Toggle Camera
+        editor.setCameraOptions({ isLocked: newLockedState })
+        
+        // 2. Find and Toggle Background
+        const currentPageId = editor.getCurrentPageId()
+        const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
+        let backgroundShape = shapeIds
+            .map((id: any) => editor.getShape(id))
+            .find((s: any) => s.meta?.isPageBackground)
+        
+        // Fallback heuristics (largest image)
+        if (!backgroundShape) {
+             const images = shapeIds
+                 .map((id: any) => editor.getShape(id))
+                 .filter((s: any) => s.type === 'image')
+             
+             if (images.length > 0) {
+                 // Sort by area (w * h) desc
+                 backgroundShape = images.sort((a: any, b: any) => (b.props.w * b.props.h) - (a.props.w * a.props.h))[0]
+             }
+        }
+
+        if (backgroundShape) {
+            editor.updateShape({ 
+                ...backgroundShape, 
+                isLocked: newLockedState,
+                // Ensure it's marked as background if we are locking it
+                meta: newLockedState ? { ...backgroundShape.meta, isPageBackground: true } : backgroundShape.meta
+            })
+        }
+    }, [editor])
+
+    // Listen for custom toggle page lock event from context menu
+    useEffect(() => {
+        const handleToggleLockRequest = () => {
+            handleTogglePageLock()
+        }
+        
+        window.addEventListener('request-toggle-page-lock', handleToggleLockRequest)
+        return () => window.removeEventListener('request-toggle-page-lock', handleToggleLockRequest)
+    }, [handleTogglePageLock])
+
     const handleCopyShapesToPage = (targetPageId: string) => {
         setCopyDialogVisible(false)
         
@@ -137,22 +258,36 @@ function AppContent() {
         // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
         const cleanup = editor.sideEffects.registerBeforeDeleteHandler('shape', (shape) => {
             // If a shape is a page-level image, prevent its deletion
-            const pages = editor.getPages()
-            const isPageLevelImage = shape.type === 'image' && pages.some(p => p.id === shape.parentId)
-            if (isPageLevelImage) {
-                return false // Prevent deletion
+            // We check for the explicit meta flag
+            if (shape.meta?.isPageBackground) {
+                return false // Prevent deletion of background
             }
             return // Allow deletion
         })
 
-        // Retroactively lock any existing unlocked page-level images
+        // Retroactively lock any existing unlocked page-level images AND add meta
+        // This acts as a migration for existing projects
         const pages = editor.getPages()
         for (const page of pages) {
             const shapeIds = editor.getSortedChildIdsForParent(page.id)
             for (const id of shapeIds) {
                 const shape = editor.getShape(id)
-                if (shape && shape.type === 'image' && !shape.isLocked) {
-                    editor.updateShape({ id: shape.id, type: shape.type, isLocked: true })
+                // Heuristic: It's a background if it's an image, direct child of page, 
+                // and either already locked OR positioned at 0,0 (typical for imports)
+                if (shape && shape.type === 'image') {
+                     const looksLikeBackground = shape.isLocked || (shape.x === 0 && shape.y === 0)
+                     
+                     if (looksLikeBackground) {
+                         // Apply meta tagging and ensure locked
+                         if (!shape.meta?.isPageBackground || !shape.isLocked) {
+                            editor.updateShape({ 
+                                id: shape.id, 
+                                type: shape.type, 
+                                isLocked: true,
+                                meta: { ...shape.meta, isPageBackground: true }
+                            })
+                         }
+                     }
                 }
             }
         }
@@ -392,6 +527,9 @@ function AppContent() {
                         assetId: assetId,
                         w: viewport.width,
                         h: viewport.height
+                    },
+                    meta: {
+                        isPageBackground: true
                     }
                 })
             }
@@ -482,6 +620,7 @@ function AppContent() {
                 accept=".pdf,.ppt,.pptx"
                 onChange={handleFileChange}
             />
+
             <input 
                 type="file" 
                 ref={projectInputRef} 
