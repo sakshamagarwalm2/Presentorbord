@@ -129,41 +129,6 @@ const SHAPE_GROUP: ShapeDef[] = [
   { id: 'geo', geoType: 'octagon', label: 'Octagon', icon: Octagon },
 ]
 
-/* ------------------------------------------------------------------ */
-/*  Single toolbar button                                              */
-/* ------------------------------------------------------------------ */
-
-function ToolButton({
-  tool,
-  isActive,
-  onClick,
-  activeTheme,
-}: {
-  tool: ToolDef
-  isActive: boolean
-  onClick: () => void
-  activeTheme?: ColorTheme
-}) {
-  const Icon = tool.icon
-  const theme = activeTheme || COLOR_THEMES['blue']
-  
-  return (
-    <button
-      onClick={onClick}
-      className={`
-        relative flex flex-col items-center justify-center
-        w-10 h-10 rounded-xl transition-all duration-150
-        ${isActive
-          ? `${theme.bg} shadow-md ${theme.shadow}`
-          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-        }
-      `}
-      title={tool.label}
-    >
-      <Icon size={20} />
-    </button>
-  )
-}
 
 /* ------------------------------------------------------------------ */
 /*  Pen group button with flyout                                       */
@@ -773,6 +738,7 @@ function EraserCursorOverlay({ size, active }: { size: number; active: boolean }
 const SELECT_GROUP: ToolDef[] = [
   { id: 'select', label: 'Select', icon: MousePointer2 },
   { id: 'lasso', label: 'Lasso Select', icon: Lasso },
+  { id: 'hand', label: 'Hand', icon: Hand },
 ]
 
 /* ------------------------------------------------------------------ */
@@ -783,10 +749,14 @@ function SelectGroupButton({
   activeTool,
   onSelect,
   activeTheme,
+  isCameraLocked,
+  onToggleLock,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   activeTheme?: ColorTheme
+  isCameraLocked: boolean
+  onToggleLock: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
@@ -875,6 +845,24 @@ function SelectGroupButton({
               </button>
             )
           })}
+          
+          {/* Divider */}
+          <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
+
+          {/* Action items */}
+          <button
+            onClick={() => { onToggleLock(); setIsOpen(false) }}
+            className={`
+              flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+              ${isCameraLocked 
+                ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30' 
+                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+              }
+            `}
+          >
+            {isCameraLocked ? <Lock size={16} /> : <Unlock size={16} />}
+            {isCameraLocked ? "Unlock Page" : "Lock Page"}
+          </button>
         </div>
       )}
     </div>
@@ -1190,38 +1178,14 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
           </div>
 
-          {/* Select Group Button (Select / Lasso) */}
+          {/* Select Group Button (Select / Lasso / Hand / Lock) */}
           <SelectGroupButton 
             activeTool={activeTool} 
             onSelect={selectTool} 
             activeTheme={activeColorTheme} 
+            isCameraLocked={isCameraLocked}
+            onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
           />
-          
-          <ToolButton
-            tool={{ id: 'hand', label: 'Hand', icon: Hand }}
-            isActive={activeTool === 'hand'}
-            onClick={() => selectTool('hand')}
-            activeTheme={activeColorTheme}
-          />
-
-          {/* Page Lock Toggle */}
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
-            className={`
-                relative flex items-center justify-center
-                w-10 h-10 rounded-xl transition-all duration-150
-                ${isCameraLocked
-                ? 'bg-red-50 text-red-600 shadow-md shadow-red-100 dark:bg-red-900/30 dark:text-red-400 dark:shadow-red-900/20'
-                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-                }
-            `}
-            title={isCameraLocked ? "Unlock Page" : "Lock Page"}
-          >
-            {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
-          </button>
-
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-0.5" />
 
           {/* Undo & Redo */}
           <button
