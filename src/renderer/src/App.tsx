@@ -690,7 +690,6 @@ function App(): JSX.Element {
     <div className="tldraw__editor" style={{ position: 'fixed', inset: 0 }}>
       {/* Custom Close Button Removed - Moved to NavigationPanel */}
       <Tldraw 
-        persistenceKey="tldraw-persistence" 
         shapeUtils={customShapeUtils} 
         tools={customTools}
         components={components}
