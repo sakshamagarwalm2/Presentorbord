@@ -12,7 +12,7 @@ function createWindow(): void {
     transparent: true,
     fullscreen: true,
     hasShadow: false,
-    ...(process.platform === 'linux' ? { icon: path.join(__dirname, '../../build/icon.png') } : {}),
+    icon: path.join(__dirname, '../../build/icon.png'),
     webPreferences: {
       preload:  path.join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -194,4 +194,10 @@ ipcMain.handle('get-imports-dir', async () => {
   ipcMain.handle('close-app', () => {
     app.quit()
   })
+
+  // Forward renderer logs to the terminal
+  ipcMain.on('console-log', (_, ...args) => {
+    console.log('[Renderer UI]:', ...args)
+  })
+
 

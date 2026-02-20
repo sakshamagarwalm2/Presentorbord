@@ -1,10 +1,12 @@
 
-import * as pdfjsLib from 'pdfjs-dist/build/pdf.min.mjs';
+// @ts-ignore - The @types/pdfjs-dist package doesn't cover the legacy build path
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.min.mjs';
+// @ts-ignore - The @types/pdfjs-dist package doesn't cover the legacy build path
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-// Get worker code as string
-// @ts-ignore
-import pdfWorkerRaw from 'pdfjs-dist/build/pdf.worker.min.mjs?raw';
+// Get worker constructor via Vite using the legacy build
+// @ts-ignore - Vite ?worker suffix doesn't have a default type declaration in this project
+import PdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker';
 
 /**
  * PDF Utility with Robust Electron Worker Handling
@@ -15,6 +17,15 @@ interface LoadPdfOptions {
   verbose?: boolean;
 }
 
+// Helper for sending logs to Electron Main process terminal
+function logToTerminal(msg: string) {
+  // @ts-ignore
+  if (typeof window !== 'undefined' && window.electron?.ipcRenderer) {
+    // @ts-ignore
+    window.electron.ipcRenderer.send('console-log', msg);
+  }
+}
+
 export async function loadPdf(
   data: string | Uint8Array,
   options: LoadPdfOptions = {}
@@ -23,35 +34,46 @@ export async function loadPdf(
 
   if (verbose) {
     console.log('[pdfUtils] Initializing PDF loader...');
+    logToTerminal('[pdfUtils] Initializing PDF loader...');
   }
-
-  // Create a Blob URL for the worker
-  // This bypasses file resolution issues in Electron
-  const blob = new Blob([pdfWorkerRaw], { type: 'application/javascript' });
-  const workerUrl = URL.createObjectURL(blob);
 
   if (verbose) {
-    console.log('[pdfUtils] Created worker Blob URL:', workerUrl);
+    console.log('[pdfUtils] Using Vite ?worker for PDF.js');
+    logToTerminal(`[pdfUtils] Using Vite ?worker for PDF.js`);
   }
 
-  // Explicitly set the worker source
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  // PDF.js strictly requires workerSrc to be truthy, else it aggressively throws before
+  // even checking for a provided Worker object.
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.mjs';
 
   try {
+    logToTerminal('[pdfUtils] Stage 1: Spawning Vite ?worker...');
+    const worker = new PdfWorker();
+    
+    worker.onerror = (err: any) => {
+        console.error('[pdfUtils] Worker encountered an error:', err);
+        logToTerminal(`[pdfUtils] Worker onerror fired: ${err.message || String(err)}`);
+    };
+
+    // Inform PDF.js to globally use this exact Worker instance port
+    pdfjsLib.GlobalWorkerOptions.workerPort = worker;
+
+    logToTerminal('[pdfUtils] Stage 1: Starting getDocument via injected Vite worker...');
     const loadingTask = data instanceof Uint8Array
       ? pdfjsLib.getDocument({
           data: new Uint8Array(data),
           useWorkerFetch: false,
           isEvalSupported: false,
-          verbosity: verbose ? 5 : 0,
+          verbosity: verbose ? 5 : 0
         })
       : pdfjsLib.getDocument({
           url: data as string,
           useWorkerFetch: false,
           isEvalSupported: false,
-          verbosity: verbose ? 5 : 0,
+          verbosity: verbose ? 5 : 0
         });
 
+    logToTerminal(`[pdfUtils] Stage 1: Awaiting promise with ${timeout}ms timeout...`);
     // Add timeout protection
     const result = await Promise.race([
       loadingTask.promise,
@@ -60,47 +82,17 @@ export async function loadPdf(
       )
     ]);
 
-    // Clean up the Blob URL
-    URL.revokeObjectURL(workerUrl);
-
     if (verbose) {
-      console.log(`[pdfUtils] ✓ PDF loaded successfully (${result.numPages} pages)`);
+      console.log(`[pdfUtils] ✓ PDF loaded successfully (${result ? result.numPages : 0} pages)`);
+      logToTerminal(`[pdfUtils] ✓ PDF loaded successfully (${result ? result.numPages : 0} pages)`);
     }
 
     return result as PDFDocumentProxy;
   } catch (error) {
-    // If standard load fails, try manual worker injection
-    console.warn('[pdfUtils] Standard load failed, trying manual worker injection...', error);
-    
-    try {
-        const worker = new Worker(workerUrl);
-        
-        const loadingTask = data instanceof Uint8Array
-        ? pdfjsLib.getDocument({
-            data: new Uint8Array(data),
-            useWorkerFetch: false,
-            isEvalSupported: false,
-            verbosity: verbose ? 5 : 0,
-            worker // Inject manually created worker
-            })
-        : pdfjsLib.getDocument({
-            url: data as string,
-            useWorkerFetch: false,
-            isEvalSupported: false,
-            verbosity: verbose ? 5 : 0,
-            worker
-            });
-
-        const result = await loadingTask.promise;
-        URL.revokeObjectURL(workerUrl);
-        return result;
-    } catch (manualError) {
-        URL.revokeObjectURL(workerUrl);
-        console.error('[pdfUtils] Failed to load PDF even with manual worker:', manualError);
-        throw new Error(
-            `Failed to load PDF: ${manualError instanceof Error ? manualError.message : String(manualError)}`
-        );
-    }
+    logToTerminal(`[pdfUtils] Error in Stage 1: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to load PDF: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 

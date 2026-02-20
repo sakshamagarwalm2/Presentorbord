@@ -132,7 +132,14 @@ function AppContent() {
     const { mode } = useSubjectMode()
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isImporting, setIsImporting] = useState(false)
-    const [importProgress, setImportProgress] = useState('')
+    const [importProgress, _setImportProgress] = useState('')
+
+    const setImportProgress = (msg: string) => {
+        // @ts-ignore
+        if (window.electron?.ipcRenderer) window.electron.ipcRenderer.send('console-log', msg)
+        console.log(`[Import Progress] ${msg}`)
+        _setImportProgress(msg)
+    }
 
     // Copy to Slide Dialog State
     const [copyDialogVisible, setCopyDialogVisible] = useState(false)
@@ -485,6 +492,10 @@ function AppContent() {
             
             for (let i = 1; i <= pdf.numPages; i++) {
                 setImportProgress(`Rendering slide ${i} of ${pdf.numPages}...`)
+                
+                // Allow the UI to update with the new progress text
+                await new Promise(resolve => setTimeout(resolve, 50))
+                
                 const dataUrl = await renderPageToDataURL(pdf, i)
                 
                 // Create Asset
@@ -550,6 +561,8 @@ function AppContent() {
 
         } catch (error: any) {
             console.error('[Import] Import failed:', error)
+            // @ts-ignore
+            if (window.electron?.ipcRenderer) window.electron.ipcRenderer.send('console-log', `[ERROR] Import failed: ${error?.message || error}`)
             alert('Import failed: ' + (error?.message || error))
         } finally {
             setIsImporting(false)
