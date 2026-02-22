@@ -24,6 +24,9 @@ import {
   Monitor,
   Navigation2,
   MoreHorizontal,
+  Ruler,
+  PenTool,
+  Compass,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
@@ -40,6 +43,9 @@ interface ToolsSidebarProps {
   onToggleRecentColors: () => void;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
+  onAddRuler: () => void;
+  onAddProtractor: () => void;
+  onAddCompass: () => void;
 }
 
 interface Bookmark {
@@ -58,6 +64,9 @@ export function ToolsSidebar({
   onToggleRecentColors,
   isOpen,
   onToggle,
+  onAddRuler,
+  onAddProtractor,
+  onAddCompass,
 }: ToolsSidebarProps) {
   const [showMathTools, setShowMathTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -228,6 +237,30 @@ export function ToolsSidebar({
                     label="Graph"
                     onClick={() => {
                       openGraph();
+                      setShowMathTools(false);
+                    }}
+                  />
+                  <ToolButton
+                    icon={Ruler}
+                    label="Ruler"
+                    onClick={() => {
+                      onAddRuler();
+                      setShowMathTools(false);
+                    }}
+                  />
+                  <ToolButton
+                    icon={PenTool}
+                    label="Protractor"
+                    onClick={() => {
+                      onAddProtractor();
+                      setShowMathTools(false);
+                    }}
+                  />
+                  <ToolButton
+                    icon={Compass}
+                    label="Compass"
+                    onClick={() => {
+                      onAddCompass();
                       setShowMathTools(false);
                     }}
                   />

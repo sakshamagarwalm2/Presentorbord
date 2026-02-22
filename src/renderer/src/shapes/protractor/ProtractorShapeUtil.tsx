@@ -117,6 +117,7 @@ export class ProtractorShapeUtil extends ShapeUtil<IProtractorShape> {
           display: "flex",
           alignItems: "flex-end",
           justifyContent: "center",
+          position: "relative",
         }}
       >
         <svg
@@ -141,6 +142,31 @@ export class ProtractorShapeUtil extends ShapeUtil<IProtractorShape> {
           <line x1={w / 2} y1={h} x2={w / 2} y2={h - 10} stroke="black" />
           <line x1={0} y1={h} x2={w} y2={h} stroke="black" />
         </svg>
+        {/* Close Button */}
+        <button
+          onPointerDown={() => this.editor.deleteShapes([shape.id])}
+          style={{
+            position: "absolute",
+            right: -10,
+            top: 0,
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            background: "#e74c3c",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+            zIndex: 10,
+          }}
+          title="Remove Protractor"
+        >
+          X
+        </button>
       </HTMLContainer>
     );
   }

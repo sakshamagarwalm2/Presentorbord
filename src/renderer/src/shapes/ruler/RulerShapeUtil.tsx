@@ -107,6 +107,7 @@ export class RulerShapeUtil extends ShapeUtil<IRulerShape> {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          position: "relative",
         }}
       >
         <svg
@@ -122,6 +123,31 @@ export class RulerShapeUtil extends ShapeUtil<IRulerShape> {
         >
           {ticks}
         </svg>
+        {/* Close Button */}
+        <button
+          onPointerDown={() => this.editor.deleteShapes([shape.id])}
+          style={{
+            position: "absolute",
+            right: -10,
+            top: -10,
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            background: "#e74c3c",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+            zIndex: 10,
+          }}
+          title="Remove Ruler"
+        >
+          X
+        </button>
       </HTMLContainer>
     );
   }

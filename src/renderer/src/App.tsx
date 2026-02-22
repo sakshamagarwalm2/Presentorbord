@@ -12,6 +12,7 @@ import "@tldraw/tldraw/tldraw.css";
 import { useSubjectMode } from "./store/useSubjectMode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPdf, renderPageToDataURL } from "./utils/pdfUtils";
+import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
 import { Sidebar } from "./components/Sidebar";
 import { ToolsSidebar } from "./components/ToolsSidebar";
@@ -23,13 +24,22 @@ import { PageSelectionDialog } from "./components/PageSelectionDialog";
 
 import { GraphAxes1ShapeUtil } from "./shapes/graph/GraphAxes1ShapeUtil";
 import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
+import { RulerShapeUtil } from "./shapes/ruler/RulerShapeUtil";
+import { ProtractorShapeUtil } from "./shapes/protractor/ProtractorShapeUtil";
+import { CompassShapeUtil } from "./shapes/compass/CompassShapeUtil";
 
 import { CustomLaserTool } from "./tools/CustomLaserTool";
 import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
 import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
 
-const customShapeUtils = [GraphAxes1ShapeUtil, GraphAxes4ShapeUtil];
+const customShapeUtils = [
+  GraphAxes1ShapeUtil,
+  GraphAxes4ShapeUtil,
+  RulerShapeUtil,
+  ProtractorShapeUtil,
+  CompassShapeUtil,
+];
 const customTools = [
   CustomLaserTool,
   GraphAxes1Tool,
@@ -150,6 +160,7 @@ const overrides: TLUiOverrides = {
 
 function AppContent() {
   const editor = useEditor();
+  useGeometrySnapping(editor);
   const { mode } = useSubjectMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -347,6 +358,24 @@ function AppContent() {
       type: "protractor",
       x: editor.getViewportScreenCenter().x - 150,
       y: editor.getViewportScreenCenter().y - 75,
+    });
+  };
+
+  const addRuler = () => {
+    editor.createShape({
+      id: createShapeId(),
+      type: "ruler",
+      x: editor.getViewportScreenCenter().x - 150,
+      y: editor.getViewportScreenCenter().y - 25,
+    });
+  };
+
+  const addCompass = () => {
+    editor.createShape({
+      id: createShapeId(),
+      type: "compass",
+      x: editor.getViewportScreenCenter().x - 75,
+      y: editor.getViewportScreenCenter().y - 25,
     });
   };
 
@@ -718,6 +747,9 @@ function AppContent() {
         onToggleRecentColors={() => setShowRecentColors(!showRecentColors)}
         isOpen={rightSidebarOpen}
         onToggle={setRightSidebarOpen}
+        onAddRuler={addRuler}
+        onAddProtractor={addProtractor}
+        onAddCompass={addCompass}
       />
       <DrawingToolbar showRecentColors={showRecentColors} />
       <NavigationPanel isVisible={showNavPanel} position={navPosition} />
