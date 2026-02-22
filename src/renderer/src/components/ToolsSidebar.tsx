@@ -27,6 +27,7 @@ import {
   Ruler,
   PenTool,
   Compass,
+  Info,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
@@ -68,13 +69,14 @@ export function ToolsSidebar({
   onAddProtractor,
   onAddCompass,
 }: ToolsSidebarProps) {
+  const editor = useEditor();
+  const [showAbout, setShowAbout] = useState(false);
   const [showMathTools, setShowMathTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsView, setSettingsView] = useState<"root" | "embeds">("root");
   const [showCustomize, setShowCustomize] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
-  const editor = useEditor();
 
   useEffect(() => {
     const saved = localStorage.getItem("tools-sidebar-bookmarks");
@@ -460,7 +462,95 @@ export function ToolsSidebar({
             </div>
           </div>
         </div>
+
+        {/* About Button */}
+        <div className="px-2 pb-2">
+          <ToolButton
+            icon={Info}
+            label="About"
+            onClick={() => setShowAbout(true)}
+          />
+        </div>
       </div>
+
+      {/* About Popup Overlay */}
+      {showAbout && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowAbout(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+              borderRadius: 16,
+              padding: 32,
+              maxWidth: 420,
+              width: "90%",
+              color: "white",
+              boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
+              ✨ Presentorbord
+            </h2>
+            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>
+              An interactive digital whiteboard built for teaching and
+              presenting. Features include multi-page support, PDF import,
+              geometry tools (Ruler, Protractor, Compass), drawing with pen
+              snapping, and much more.
+            </p>
+            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+              Built with ❤️ using Electron, React, and tldraw.
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <a
+                href="https://github.com/sakshamagarwalm2/Presentorbord"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 16px",
+                  background: "#3b82f6",
+                  color: "white",
+                  borderRadius: 8,
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                ⭐ Support & Contribute on GitHub
+              </a>
+              <button
+                onClick={() => setShowAbout(false)}
+                style={{
+                  padding: "8px 16px",
+                  background: "rgba(255,255,255,0.1)",
+                  color: "white",
+                  borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  cursor: "pointer",
+                  fontSize: 14,
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

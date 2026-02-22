@@ -166,6 +166,11 @@ function AppContent() {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, _setImportProgress] = useState("");
 
+  // Set dark mode as default on first mount
+  useEffect(() => {
+    editor.user.updateUserPreferences({ colorScheme: "dark" });
+  }, []);
+
   const setImportProgress = (msg: string) => {
     if ((window as any).electron?.ipcRenderer)
       (window as any).electron.ipcRenderer.send("console-log", msg);
