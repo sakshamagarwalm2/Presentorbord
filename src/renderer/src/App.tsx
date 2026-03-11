@@ -11,7 +11,11 @@ import "@tldraw/tldraw/tldraw.css";
 
 import { useSubjectMode } from "./store/useSubjectMode";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadPdf, renderPageToDataURL } from "./utils/pdfUtils";
+import {
+  loadPdf,
+  renderPageToDataURL,
+  renderPageToArrayBuffer,
+} from "./utils/pdfUtils";
 import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
 import { Sidebar } from "./components/Sidebar";
@@ -589,18 +593,35 @@ function AppContent() {
       // --- Now import the new slides ---
       let currentPageId = firstExistingPageId || editor.getCurrentPageId();
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        setImportProgress(`Rendering slide ${i} of ${pdf.numPages}...`);
+      const addSlide = async (pageNum: number, isInitial = false) => {
+        if (isInitial)
+          setImportProgress(`Rendering slide ${pageNum} of ${pdf.numPages}...`);
 
-        // Allow the UI to update with the new progress text
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // Give the UI a moment to breathe
+        await new Promise((resolve) =>
+          setTimeout(resolve, isInitial ? 50 : 100),
+        );
 
-        const dataUrl = await renderPageToDataURL(pdf, i);
-
-        // Create Asset
-        const assetId = AssetRecordType.createId();
-        const page = await pdf.getPage(i);
+        let srcUrl = "";
+        const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: 1.5 });
+
+        // Optimize RAM by offloading to disk via Electron if available
+        // @ts-ignore
+        if (window.electron && window.electron.ipcRenderer) {
+          const { buffer } = await renderPageToArrayBuffer(pdf, pageNum);
+          // @ts-ignore
+          srcUrl = await window.electron.ipcRenderer.invoke(
+            "save-slide-cache",
+            Array.from(new Uint8Array(buffer)),
+            `slide-${Date.now()}-${pageNum}.png`,
+          );
+        } else {
+          // Fallback to DataURL directly in memory for web/fallback
+          srcUrl = await renderPageToDataURL(pdf, pageNum);
+        }
+
+        const assetId = AssetRecordType.createId();
 
         editor.createAssets([
           {
@@ -609,8 +630,8 @@ function AppContent() {
             type: "image",
             meta: {},
             props: {
-              name: `page-${i}.png`,
-              src: dataUrl,
+              name: `page-${pageNum}.png`,
+              src: srcUrl,
               w: viewport.width,
               h: viewport.height,
               mimeType: "image/png",
@@ -619,19 +640,18 @@ function AppContent() {
           },
         ]);
 
-        // Create Page if not first
-        if (i > 1) {
-          currentPageId = PageRecordType.createId();
+        let targetPageId = currentPageId;
+        if (pageNum > 1) {
+          targetPageId = PageRecordType.createId();
           editor.createPage({
-            id: currentPageId,
-            name: `Slide ${i}`,
+            id: targetPageId,
+            name: `Slide ${pageNum}`,
           });
         }
 
-        // Create Image Shape
         editor.createShape({
           type: "image",
-          parentId: currentPageId,
+          parentId: targetPageId,
           x: 0,
           y: 0,
           isLocked: true,
@@ -644,9 +664,14 @@ function AppContent() {
             isPageBackground: true,
           },
         });
+      };
+
+      // 1. Process and block the UI for only the very first slide (so user doesn't wait forever)
+      if (pdf.numPages >= 1) {
+        await addSlide(1, true);
       }
 
-      // Navigate to first page and zoom to fit
+      // 2. Center viewport immediately on the first slide
       const newFirstPageId = editor.getPages()[0]?.id;
       if (newFirstPageId) {
         editor.setCurrentPage(newFirstPageId);
@@ -658,6 +683,23 @@ function AppContent() {
             editor.zoomToFit();
           }
         });
+      }
+
+      // 3. Process remaining pages in background asynchronously
+      if (pdf.numPages > 1) {
+        setIsImporting(false); // Stop block
+        setImportProgress(""); // Clear text
+
+        // Let it run outside the async boundaries without waiting
+        setTimeout(async () => {
+          for (let i = 2; i <= pdf.numPages; i++) {
+            try {
+              await addSlide(i, false);
+            } catch (err) {
+              console.error(`Failed background load for slide ${i}`, err);
+            }
+          }
+        }, 100);
       }
     } catch (error: any) {
       console.error("[Import] Import failed:", error);

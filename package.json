@@ -1,6 +1,6 @@
 {
     "name": "presentorbord",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "main": "out/main/index.js",
     "description": "Educational Whiteboard App",
     "author": "Antigravity",
@@ -16,7 +16,7 @@
         "appId": "com.presentorbord.app",
         "productName": "Presentorbord",
         "directories": {
-            "output": "dist"
+            "output": "OutputInstaller"
         },
         "files": [
             "out/**/*"
