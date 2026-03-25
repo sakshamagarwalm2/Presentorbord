@@ -514,8 +514,13 @@ export function Sidebar({
 
           <div
             className="sidebar-pages flex-1 overflow-y-auto p-2 space-y-2"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            style={{
+              direction: "rtl",
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(34, 197, 94, 0.5) transparent",
+            }}
           >
+            <div style={{ direction: "ltr" }}>
             {sortedPages.map((page, i) => (
               <PageItem
                 key={page.id}
@@ -552,6 +557,7 @@ export function Sidebar({
                 cachedThumbnail={thumbnailCache[page.id] || null}
               />
             ))}
+            </div>
           </div>
         </div>
       </div>
