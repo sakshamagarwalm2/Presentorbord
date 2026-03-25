@@ -675,7 +675,7 @@ function AppContent() {
       });
 
       // Now add images in chunks to keep UI responsive
-      const pages = editor.getPages();
+      const pages = editor.getPages().sort((a, b) => (a.index > b.index ? 1 : -1));
       window.api.log(`[Import] Pages created: ${pages.length} (expected ${pageCount})`);
       const CHUNK_SIZE = 5;
 

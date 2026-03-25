@@ -608,6 +608,9 @@ function PageItem({
 }) {
   const editor = useEditor();
   const itemRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const isPointerDragging = useRef(false);
+  const startY = useRef(0);
 
   // Find an image asset thumbnail (for PDF pages)
   const imageAssetSrc = useValue(
@@ -627,10 +630,7 @@ function PageItem({
     [editor, page.id],
   );
 
-  // Use image asset (PDF) first, then cached SVG thumbnail (drawings), then placeholder
-  // Prefer cached thumbnail (shows drawings on top of PDF) over raw image asset
   const thumbnail = cachedThumbnail || imageAssetSrc;
-
   const slideNumber = index + 1;
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -650,9 +650,67 @@ function PageItem({
     onDrop();
   };
 
+  // Pointer/touch drag support
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    startY.current = e.clientY;
+    isPointerDragging.current = false;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    longPressTimer.current = window.setTimeout(() => {
+      isPointerDragging.current = true;
+      onDragStart();
+    }, 500);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    if (!isPointerDragging.current) {
+      if (Math.abs(e.clientY - startY.current) > 5) {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      }
+      return;
+    }
+    e.preventDefault();
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const pageItem = el?.closest("[data-page-index]");
+    if (pageItem) {
+      const targetIndex = parseInt(pageItem.getAttribute("data-page-index") || "0", 10);
+      onDragOver(targetIndex);
+    }
+
+    const scrollContainer = itemRef.current?.closest(".sidebar-pages") as HTMLElement;
+    if (scrollContainer) {
+      const rect = scrollContainer.getBoundingClientRect();
+      const scrollZone = 60;
+      const scrollSpeed = 8;
+      if (e.clientY < rect.top + scrollZone) {
+        scrollContainer.scrollTop -= scrollSpeed;
+      } else if (e.clientY > rect.bottom - scrollZone) {
+        scrollContainer.scrollTop += scrollSpeed;
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") return;
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (isPointerDragging.current) {
+      isPointerDragging.current = false;
+      onDrop();
+    }
+    onDragEnd();
+  };
+
   return (
     <div
       ref={itemRef}
+      data-page-index={index}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
@@ -716,7 +774,13 @@ function PageItem({
             <ChevronDown size={10} />
           </button>
         )}
-        <div className="p-0.5 rounded bg-black/40 text-white cursor-grab hidden md:block">
+        <div
+          className="p-0.5 rounded bg-black/40 text-white cursor-grab"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+        >
           <GripVertical size={10} />
         </div>
         <button
