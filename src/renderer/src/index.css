@@ -8,8 +8,16 @@
     --color-laser: #ff0033 !important;
 }
 
+/* Force a completely black background for the canvas and editor */
+.tldraw__editor,
+.tl-container,
+.tl-canvas,
+.tl-background {
+    background-color: #000000 !important;
+}
+
 body {
-    background-color: transparent;
+    background-color: #000000;
 }
 
 /* Neon Glow Effect for Laser Scribbles */

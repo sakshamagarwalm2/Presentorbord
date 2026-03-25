@@ -502,7 +502,7 @@ export function ToolsSidebar({
             }}
           >
             <img
-              src="src/assets/presentor banaer.jpg"
+              src="src/assets/presentorbanaer.jpg"
               alt="Presentorbord Banner"
               style={{
                 width: '100%',
