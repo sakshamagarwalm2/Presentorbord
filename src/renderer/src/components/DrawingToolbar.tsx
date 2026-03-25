@@ -18,6 +18,7 @@ import {
   Pentagon,
   Octagon,
   Highlighter,
+  Brush,
   Pointer,
   ChevronDown,
   ChevronUp,
@@ -37,6 +38,7 @@ import {
   Lasso,
   Lock,
   Unlock,
+  Wind,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -76,12 +78,17 @@ interface ToolDef {
   id: string
   label: string
   icon: React.FC<any>
+  type?: string
+  brushType?: string
 }
 
 const PEN_GROUP: ToolDef[] = [
-  { id: 'draw', label: 'Pen', icon: Pen },
-  { id: 'highlight', label: 'Highlighter', icon: Highlighter },
-  { id: 'custom-laser', label: 'Laser', icon: Pointer },
+  { id: 'draw', label: 'Pen', icon: Pen, type: 'pen' },
+  { id: 'brush-normal', label: 'Normal', icon: Brush, type: 'brush', brushType: 'normal' },
+  { id: 'brush-calligraphy', label: 'Calligraphy', icon: Brush, type: 'brush', brushType: 'calligraphy' },
+  { id: 'brush-airbrush', label: 'Airbrush', icon: Wind, type: 'brush', brushType: 'airbrush' },
+  { id: 'highlight', label: 'Highlighter', icon: Highlighter, type: 'highlighter' },
+  { id: 'custom-laser', label: 'Laser', icon: Pointer, type: 'laser' },
 ]
 
 const MORE_TOOLS: ToolDef[] = [
@@ -138,10 +145,12 @@ function PenGroupButton({
   activeTool,
   onSelect,
   activeTheme,
+  editor,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   activeTheme?: ColorTheme
+  editor: any
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(PEN_GROUP[0])
@@ -162,19 +171,53 @@ function PenGroupButton({
 
   // Update selected when tool changes externally
   useEffect(() => {
-    const match = PEN_GROUP.find((t) => t.id === activeTool)
+    // @ts-ignore
+    const isBrush = !!(window.currentIsBrushSignal?.get())
+    // @ts-ignore
+    const brushType = window.currentBrushTypeSignal?.get() || 'normal'
+
+    const match = PEN_GROUP.find((t) => {
+        if (t.type === 'brush') {
+            return activeTool === 'draw' && isBrush && brushType === t.brushType
+        }
+        if (t.id === 'draw') {
+            return activeTool === 'draw' && !isBrush
+        }
+        return t.id === activeTool
+    })
     if (match) setSelectedTool(match)
   }, [activeTool])
 
-  const isGroupActive = PEN_GROUP.some((t) => t.id === activeTool)
+  const isGroupActive = PEN_GROUP.some((t) => t.id === activeTool) || activeTool === 'draw'
   const Icon = selectedTool.icon
+
+  const handleSelect = (tool: ToolDef) => {
+    setSelectedTool(tool)
+    // @ts-ignore
+    const isBrushTool = tool.type === 'brush'
+    
+    if (isBrushTool) {
+      // @ts-ignore
+      window.currentIsBrushSignal?.set(true)
+      // @ts-ignore
+      window.currentBrushTypeSignal?.set(tool.brushType || 'normal')
+      editor.setCurrentTool('draw')
+    } else {
+      // @ts-ignore
+      window.currentIsBrushSignal?.set(false)
+      // @ts-ignore
+      window.currentBrushTypeSignal?.set('normal')
+      onSelect(tool.id)
+    }
+    setIsOpen(false)
+  }
 
   return (
     <div className="relative" ref={flyoutRef}>
       {/* Main button */}
       <div className="flex items-center">
         <button
-          onClick={() => onSelect(selectedTool.id)}
+          onClick={() => handleSelect(selectedTool)}
           className={`
             relative flex items-center justify-center
             w-10 h-10 rounded-l-xl transition-all duration-150
@@ -208,17 +251,28 @@ function PenGroupButton({
         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
           {PEN_GROUP.map((tool) => {
             const TIcon = tool.icon
-            const isActive = activeTool === tool.id
+            // @ts-ignore
+            const isBrush = !!(window.currentIsBrushSignal?.get())
+            // @ts-ignore
+            const brushType = window.currentBrushTypeSignal?.get() || 'normal'
+            
+            let isActive = false
+            // @ts-ignore
+            if (tool.type === 'brush') {
+                // @ts-ignore
+                isActive = activeTool === 'draw' && isBrush && brushType === tool.brushType
+            } else if (tool.id === 'draw') {
+                isActive = activeTool === 'draw' && !isBrush
+            } else {
+                isActive = activeTool === tool.id
+            }
+            
             return (
               <button
                 key={tool.id}
-                onClick={() => {
-                  setSelectedTool(tool)
-                  onSelect(tool.id)
-                  setIsOpen(false)
-                }}
+                onClick={() => handleSelect(tool)}
                 className={`
-                  flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                  flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
                   ${isActive
                     ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
                     : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -326,7 +380,7 @@ function EraserGroupButton({
               setIsOpen(false)
             }}
             className={`
-              flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+              flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
               ${eraserMode === 'shape'
                 ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
                 : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -343,7 +397,7 @@ function EraserGroupButton({
               setIsOpen(false)
             }}
             className={`
-              flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+              flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
               ${eraserMode === 'stroke'
                 ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
                 : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -390,7 +444,7 @@ function EraserGroupButton({
               onClearPage()
               setIsOpen(false)
             }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
           >
             <Trash2 size={16} />
             Clear Annotations
@@ -593,7 +647,7 @@ function MoreOptionsButton({
                   setIsOpen(false)
                 }}
                 className={`
-                  flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                  flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
                   ${isActive
                     ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
                     : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -612,28 +666,28 @@ function MoreOptionsButton({
           {/* Action items */}
           <button
             onClick={() => { onAction('delete'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+                  className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
           >
             <Trash2 size={16} />
             Delete
           </button>
           <button
             onClick={() => { onAction('duplicate'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Copy size={16} />
              Duplicate
           </button>
           <button
             onClick={() => { onAction('lock'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Lock size={16} />
             Lock Selected
           </button>
           <button
             onClick={() => { onAction('unlock-all'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Unlock size={16} />
             Unlock All
@@ -833,7 +887,7 @@ function SelectGroupButton({
                   setIsOpen(false)
                 }}
                 className={`
-                  flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                  flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
                   ${isActive
                     ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
                     : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -1221,7 +1275,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* Pen group (pen / highlighter / laser) */}
-          <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} />
+          <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} />
 
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />

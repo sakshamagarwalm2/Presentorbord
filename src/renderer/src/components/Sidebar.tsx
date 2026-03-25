@@ -28,7 +28,13 @@ export function Sidebar({
   onToggle: (open: boolean) => void;
 }) {
   const editor = useEditor();
-  const pages = useValue("pages", () => editor.getPages(), [editor]);
+  const pages = useValue("pages", () => {
+    const p = editor.getPages();
+    if (p.length > 35 && p.length < 45) {
+      console.log('[Sidebar] Pages received:', p.length);
+    }
+    return p;
+  }, [editor]);
   const currentPageId = useValue(
     "currentPageId",
     () => editor.getCurrentPageId(),

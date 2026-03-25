@@ -1,4 +1,4 @@
-import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle, DefaultSizeStyle } from '@tldraw/tldraw'
+import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
 import { Check } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -44,13 +44,17 @@ const FILL_ICONS: Record<string, React.FC<any>> = {
 }
 
 const DASH_ICONS: Record<string, React.FC<any>> = {
-  draw: () => <div className="w-4 h-0.5 bg-current rounded-full" />, // Scribble placeholder
+  draw: () => <div className="w-4 h-0.5 bg-current rounded-full" />,
   solid: () => <div className="w-4 h-0.5 bg-current rounded-full" />,
   dashed: () => <div className="w-4 h-0.5 border-t-2 border-dashed border-current" />,
   dotted: () => <div className="w-4 h-0.5 border-t-2 border-dotted border-current" />,
+  brush: () => (
+    <div className="relative w-4 h-2">
+      <div className="absolute inset-0 bg-current rounded-full opacity-20" />
+      <div className="absolute inset-y-0.5 inset-x-0 bg-current rounded-full" />
+    </div>
+  ),
 }
-
-const SIZES = ['s', 'm', 'l', 'xl']
 
 const OPACITIES = [0.1, 0.25, 0.5, 0.75, 1]
 
@@ -75,25 +79,35 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     return editor.getStyleForNextShape(DefaultDashStyle)
   }, [editor])
 
-  const currentSize = useValue('size', () => {
-    const shared = editor.getSharedStyles().get(DefaultSizeStyle)
-    if (shared && shared.type === 'shared') return shared.value
-    return editor.getStyleForNextShape(DefaultSizeStyle)
+  const currentThickness = useValue('thickness', () => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length > 0) {
+      return selected[0].meta?.thickness ?? 16
+    }
+    // @ts-ignore
+    return (window.currentThicknessSignal?.get() ?? 16)
+  }, [editor])
+
+  const currentIsBrush = useValue('isBrush', () => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length > 0) {
+      return !!selected[0].meta?.isBrush
+    }
+    // @ts-ignore
+    return !!(window.currentIsBrushSignal?.get() ?? false)
   }, [editor])
   
   // Opacity handling
   const currentOpacity = useValue('opacity', () => {
     const selected = editor.getSelectedShapes() as any[]
     if (selected.length > 0) {
-      // Return common opacity
       const firstOpacity = selected[0].opacity ?? 1
-      // Check if all vary
       const isMixed = selected.some(s => Math.abs((s.opacity ?? 1) - firstOpacity) > 0.05)
       return isMixed ? 1 : firstOpacity
     }
-    
     // @ts-ignore
-    return editor.getOpacityForNextShape ? editor.getOpacityForNextShape() : 1
+    if (editor.getOpacityForNextShape) return editor.getOpacityForNextShape()
+    return 1
   }, [editor])
 
   if (!isVisible) return null
@@ -109,36 +123,59 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   }
 
   const handleDashChange = (dash: string) => {
+    if (dash === 'brush') {
+       // Toggle brush mode via meta instead of dash style to avoid validation errors
+       const nextBrush = !currentIsBrush
+       editor.updateShapes(editor.getSelectedShapes().map(s => ({
+         id: s.id,
+         type: s.type,
+         meta: { ...s.meta, isBrush: nextBrush }
+       })))
+       // @ts-ignore
+       window.currentIsBrushSignal?.set(nextBrush)
+       return
+    }
+
+    // Normal dash styles
     editor.setStyleForSelectedShapes(DefaultDashStyle, dash as any)
     editor.setStyleForNextShapes(DefaultDashStyle, dash as any)
+    
+    // Disable brush if a normal dash is picked
+    editor.updateShapes(editor.getSelectedShapes().map(s => ({
+        id: s.id,
+        type: s.type,
+        meta: { ...s.meta, isBrush: false }
+    })))
+    // @ts-ignore
+    window.currentIsBrushSignal?.set(false)
   }
 
-  const handleSizeChange = (idx: number) => {
-    const size = SIZES[idx]
-    editor.setStyleForSelectedShapes(DefaultSizeStyle, size as any)
-    editor.setStyleForNextShapes(DefaultSizeStyle, size as any)
+  const handleThicknessChange = (thickness: number) => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length > 0) {
+      editor.updateShapes(selected.map(s => ({
+        id: s.id,
+        type: s.type,
+        meta: { ...s.meta, thickness }
+      })))
+    }
+    // @ts-ignore
+    window.currentThicknessSignal?.set(thickness)
   }
 
   const handleOpacityChange = (opacity: number) => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length > 0) {
+      editor.updateShapes(selected.map(s => ({
+        id: s.id,
+        type: s.type,
+        opacity
+      })))
+    }
     // @ts-ignore
-    if (editor.setOpacityForSelectedShapes) {
-         // @ts-ignore
-        editor.setOpacityForSelectedShapes(opacity)
-         // @ts-ignore
-        editor.setOpacityForNextShapes(opacity)
-    } else {
-        // Fallback for older Tldraw versions if needed
-        const selected = editor.getSelectedShapes()
-        if (selected.length > 0) {
-          editor.updateShapes(selected.map(s => ({ id: s.id, type: s.type, opacity })))
-        }
-        
-        // Also try to set for next shapes if possible
+    if (editor.setOpacityForNextShape) {
         // @ts-ignore
-        if (editor.setOpacityForNextShapes) {
-            // @ts-ignore
-            editor.setOpacityForNextShapes(opacity)
-        }
+        editor.setOpacityForNextShape(opacity)
     }
   }
 
@@ -204,9 +241,10 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
           <div className="flex-1">
             <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Dash</p>
             <div className="grid grid-cols-4 gap-1">
-                {DefaultDashStyle.values.map(dash => {
+                {/* We map the normal dash styles plus our custom brush toggle */}
+                {[...DefaultDashStyle.values, 'brush'].map(dash => {
                     const Icon = DASH_ICONS[dash] || DASH_ICONS['draw']
-                    const isActive = currentDash === dash
+                    const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
                     return (
                         <button
                             key={dash}
@@ -228,26 +266,40 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
           </div>
       </div>
 
-      {/* Size Slider */}
+      {/* Thickness Slider */}
       <div>
          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Size</p>
-            <p className="text-[10px] font-medium text-gray-500">{currentSize.toUpperCase()}</p>
+            <div className="flex items-center gap-2">
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Thickness</p>
+                <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900 dark:bg-zinc-100 shadow-inner"
+                    title="Thickness Preview"
+                >
+                    <div 
+                        className="rounded-full bg-white dark:bg-black"
+                        style={{ 
+                            width: Math.max(1.5, currentThickness / 2.5), 
+                            height: Math.max(1.5, currentThickness / 2.5),
+                            opacity: currentOpacity
+                        }}
+                    />
+                </div>
+            </div>
+            <p className="text-[10px] font-medium text-gray-500">{Math.round(currentThickness)}px</p>
          </div>
          <input 
             type="range"
-            min="0"
-            max="3"
+            min="1"
+            max="150"
             step="1"
-            value={SIZES.indexOf(currentSize)}
-            onChange={(e) => handleSizeChange(parseInt(e.target.value))}
+            value={currentThickness}
+            onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
             className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
          />
          <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
-             <span>S</span>
-             <span>M</span>
-             <span>L</span>
-             <span>XL</span>
+             <span>1px</span>
+             <span>75px</span>
+             <span>150px</span>
          </div>
       </div>
 
@@ -256,7 +308,6 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Opacity</p>
          <div className="flex gap-1">
              {OPACITIES.map(op => {
-                 // Fuzzy match for float opacity
                  const isActive = Math.abs(currentOpacity - op) < 0.05
                  return (
                      <button

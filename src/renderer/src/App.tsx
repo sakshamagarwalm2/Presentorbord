@@ -6,6 +6,9 @@ import {
   PageRecordType,
   TLComponents,
   TLUiOverrides,
+  getIndexAbove,
+  ZERO_INDEX_KEY,
+  atom,
 } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
 
@@ -14,7 +17,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   loadPdf,
   renderPageToDataURL,
-  renderPageToArrayBuffer,
 } from "./utils/pdfUtils";
 import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
@@ -31,6 +33,7 @@ import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
 import { RulerShapeUtil } from "./shapes/ruler/RulerShapeUtil";
 import { ProtractorShapeUtil } from "./shapes/protractor/ProtractorShapeUtil";
 import { CompassShapeUtil } from "./shapes/compass/CompassShapeUtil";
+import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
 
 import { CustomLaserTool } from "./tools/CustomLaserTool";
 import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
@@ -43,6 +46,7 @@ const customShapeUtils = [
   RulerShapeUtil,
   ProtractorShapeUtil,
   CompassShapeUtil,
+  CustomDrawShapeUtil,
 ];
 const customTools = [
   CustomLaserTool,
@@ -50,6 +54,11 @@ const customTools = [
   GraphAxes4Tool,
   LassoTool,
 ];
+
+// Continuous thickness support for Pen/Brush
+const currentThicknessSignal = atom('currentThickness', 7);
+const currentIsBrushSignal = atom('currentIsBrush', false);
+const currentBrushTypeSignal = atom('brushType', 'normal');
 
 // Context Menu Overrides
 const overrides: TLUiOverrides = {
@@ -176,9 +185,7 @@ function AppContent() {
   }, []);
 
   const setImportProgress = (msg: string) => {
-    if ((window as any).electron?.ipcRenderer)
-      (window as any).electron.ipcRenderer.send("console-log", msg);
-    console.log(`[Import Progress] ${msg}`);
+    window.api.log(`[Import Progress] ${msg}`);
     _setImportProgress(msg);
   };
 
@@ -317,6 +324,51 @@ function AppContent() {
   };
 
   useEffect(() => {
+    // Expose signals for external components
+    (window as any).currentThicknessSignal = currentThicknessSignal;
+    (window as any).currentIsBrushSignal = currentIsBrushSignal;
+    (window as any).currentBrushTypeSignal = currentBrushTypeSignal;
+
+    // Inject current thickness into new draw shapes
+    const cleanupThickness = editor.sideEffects.registerBeforeCreateHandler(
+      "shape",
+      (shape) => {
+        if (shape.type === "draw") {
+          const thickness = currentThicknessSignal.get();
+          const isBrush = currentIsBrushSignal.get();
+          const brushType = currentBrushTypeSignal.get();
+          window.api.log(`[Pen] Converting to custom-draw: thickness ${thickness}, isBrush ${isBrush}, type ${brushType}`);
+          return {
+            ...shape,
+            type: "custom-draw",
+            meta: {
+              ...shape.meta,
+              thickness,
+              isBrush,
+              brushType,
+            },
+          };
+        }
+        return shape;
+      },
+    );
+
+    // Log major store changes
+    const unsubStore = editor.store.listen((entry) => {
+      const changes = entry.changes;
+      const added = Object.keys(changes.added).length;
+      const updated = Object.keys(changes.updated).length;
+      const removed = Object.keys(changes.removed).length;
+
+      if (added > 0 || updated > 0 || removed > 0) {
+        // We don't log every single tiny move to avoid flooding,
+        // but we log when multiple things happen or major additions
+        if (added > 5 || updated > 20 || removed > 5) {
+            window.api.log(`Store Change: Added ${added}, Updated ${updated}, Removed ${removed}`);
+        }
+      }
+    });
+
     // Guard: prevent deletion of page-level image shapes (PDF slide backgrounds)
     const cleanup = editor.sideEffects.registerBeforeDeleteHandler(
       "shape",
@@ -358,7 +410,11 @@ function AppContent() {
       }
     }
 
-    return cleanup;
+    return () => {
+      cleanupThickness();
+      unsubStore();
+      cleanup();
+    };
   }, [editor]);
 
   const addProtractor = () => {
@@ -465,6 +521,7 @@ function AppContent() {
       }
     }
 
+    const importStartTime = performance.now();
     setIsImporting(true);
     setImportProgress("Reading file...");
     try {
@@ -475,23 +532,27 @@ function AppContent() {
       );
 
       if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+        const readStartTime = performance.now();
         setImportProgress("Converting file to buffer...");
         const arrayBuffer = await file.arrayBuffer();
         pdfData = new Uint8Array(arrayBuffer);
+        window.api.log(`File read and converted to buffer in ${(performance.now() - readStartTime).toFixed(2)}ms`);
 
         // Save to library
         // @ts-ignore
         if (window.electron && window.electron.ipcRenderer) {
+          const saveStartTime = performance.now();
           setImportProgress("Saving to library...");
           try {
             // @ts-ignore
             await window.electron.ipcRenderer.invoke(
               "save-imported-file",
-              pdfData,
+              Array.from(pdfData),
               file.name,
             );
+            window.api.log(`File saved to library in ${(performance.now() - saveStartTime).toFixed(2)}ms`);
           } catch (err) {
-            console.error("Failed to save file:", err);
+            window.api.log(`Failed to save file: ${err}`);
           }
         }
 
@@ -499,6 +560,8 @@ function AppContent() {
           `File loaded (${pdfData.length} bytes). Parsing PDF...`,
         );
       } else if (file.name.endsWith(".ppt") || file.name.endsWith(".pptx")) {
+        // ... (PPT logic already has some logs, but we can wrap it if needed)
+        const pptStartTime = performance.now();
         // @ts-ignore
         if (window.electron && window.electron.ipcRenderer) {
           setImportProgress(
@@ -521,28 +584,25 @@ function AppContent() {
             pdfPath,
           );
           pdfData = new Uint8Array(pdfBuffer);
-          setImportProgress(`PDF ready (${pdfData.length} bytes). Parsing...`);
+          window.api.log(`PPT converted and read in ${(performance.now() - pptStartTime).toFixed(2)}ms`);
         } else {
           alert("PPT conversion only supported in Electron app");
           setIsImporting(false);
           return;
         }
-      } else {
-        alert("Unsupported file type");
-        setIsImporting(false);
-        return;
       }
 
+      const parseStartTime = performance.now();
       setImportProgress("Loading PDF engine...");
-
       const pdf = await loadPdf(pdfData, { verbose: true, timeout: 60000 });
+      window.api.log(`PDF engine parsed document in ${(performance.now() - parseStartTime).toFixed(2)}ms`);
 
-      setImportProgress(
-        `PDF parsed! Found ${pdf.numPages} pages. Rendering...`,
-      );
-
-      // --- Clear existing project before importing new one ---
+      // --- Clear existing project ---
+      const clearStartTime = performance.now();
       setImportProgress("Clearing existing project...");
+      // ... (existing clear logic)
+      
+      window.api.log(`Cleared existing project in ${(performance.now() - clearStartTime).toFixed(2)}ms`);
 
       // Get all existing pages
       const existingPages = editor.getPages();
@@ -591,67 +651,91 @@ function AppContent() {
       }
 
       // --- Now import the new slides ---
+      setIsImporting(true);
+      const SCALE = 1.0;
+      
       let currentPageId = firstExistingPageId || editor.getCurrentPageId();
-
-      const addSlide = async (pageNum: number, isInitial = false) => {
-        if (isInitial)
-          setImportProgress(`Rendering slide ${pageNum} of ${pdf.numPages}...`);
-
-        // Give the UI a moment to breathe
-        await new Promise((resolve) =>
-          setTimeout(resolve, isInitial ? 50 : 100),
-        );
-
-        let srcUrl = "";
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
-
-        // Optimize RAM by offloading to disk via Electron if available
-        // @ts-ignore
-        if (window.electron && window.electron.ipcRenderer) {
-          const { buffer } = await renderPageToArrayBuffer(pdf, pageNum);
-          // @ts-ignore
-          srcUrl = await window.electron.ipcRenderer.invoke(
-            "save-slide-cache",
-            Array.from(new Uint8Array(buffer)),
-            `slide-${Date.now()}-${pageNum}.png`,
-          );
-        } else {
-          // Fallback to DataURL directly in memory for web/fallback
-          srcUrl = await renderPageToDataURL(pdf, pageNum);
+      window.api.log(`Starting import. First page ID: ${currentPageId}`);
+      
+      // Generate valid tldraw page indices
+      function generatePageIndices(count: number): any[] {
+        const indices: any[] = [];
+        let currentIndex: any = ZERO_INDEX_KEY;
+        for (let i = 0; i < count; i++) {
+          indices.push(currentIndex);
+          currentIndex = getIndexAbove(currentIndex);
         }
-
-        const assetId = AssetRecordType.createId();
-
-        editor.createAssets([
-          {
-            id: assetId,
-            typeName: "asset",
-            type: "image",
-            meta: {},
-            props: {
-              name: `page-${pageNum}.png`,
-              src: srcUrl,
-              w: viewport.width,
-              h: viewport.height,
-              mimeType: "image/png",
-              isAnimated: false,
-            },
-          },
-        ]);
-
-        let targetPageId = currentPageId;
+        return indices;
+      }
+      
+      const pageCount = pdf.numPages;
+      const pageIndices = generatePageIndices(pageCount);
+      
+      window.api.log(`[DEBUG] Generated ${pageCount} page indices. First: "${pageIndices[0]}", Last: "${pageIndices[pageCount - 1]}"`);
+      
+      // First, create all pages without images
+      for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
         if (pageNum > 1) {
-          targetPageId = PageRecordType.createId();
+          const newPageId = PageRecordType.createId();
           editor.createPage({
-            id: targetPageId,
+            id: newPageId,
             name: `Slide ${pageNum}`,
+            index: pageIndices[pageNum - 1],
           });
+          currentPageId = newPageId;
+        } else {
+          // Update the first page's index too
+          if (firstExistingPageId) {
+            editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
+          }
         }
+        
+        if (pageNum % 25 === 0 || pageNum === 1) {
+          const totalPages = editor.getPages().length;
+          window.api.log(`Created page ${pageNum}/${pageCount}. Store total: ${totalPages}`);
+        }
+      }
+      
+      window.api.log(`All ${pageCount} pages created. Now adding images...`);
+      
+      // Verify all pages are in store
+      const allPagesCheck = editor.getPages();
+      window.api.log(`[DEBUG] Pages in store after creation: ${allPagesCheck.length}`);
+      
+      // Now add images to each page
+      const pages = editor.getPages();
+      window.api.log(`[DEBUG] Pages retrieved for image insertion: ${pages.length}`);
+      for (let i = 0; i < pages.length; i++) {
+        const pageNum = i + 1;
+        const pageId = pages[i].id;
+        
+        if (pageNum % 20 === 1 || pageNum === 1) {
+          setImportProgress(`Rendering slide ${pageNum}/${pdf.numPages}...`);
+        }
+        
+        const srcUrl = await renderPageToDataURL(pdf, pageNum, { scale: SCALE, format: "jpeg", quality: 0.7 });
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: SCALE });
+        
+        const assetId = AssetRecordType.createId();
+        editor.createAssets([{
+          id: assetId,
+          typeName: "asset",
+          type: "image",
+          meta: {},
+          props: {
+            name: `slide-${pageNum}.jpg`,
+            src: srcUrl,
+            w: viewport.width,
+            h: viewport.height,
+            mimeType: "image/jpeg",
+            isAnimated: false,
+          },
+        }]);
 
         editor.createShape({
           type: "image",
-          parentId: targetPageId,
+          parentId: pageId,
           x: 0,
           y: 0,
           isLocked: true,
@@ -664,14 +748,15 @@ function AppContent() {
             isPageBackground: true,
           },
         });
-      };
-
-      // 1. Process and block the UI for only the very first slide (so user doesn't wait forever)
-      if (pdf.numPages >= 1) {
-        await addSlide(1, true);
+        
+        if (pageNum <= 5 || pageNum === pdf.numPages) {
+          window.api.log(`Slide ${pageNum} done. Total pages: ${editor.getPages().length}`);
+        }
       }
 
-      // 2. Center viewport immediately on the first slide
+      window.api.log(`All ${pdf.numPages} slides imported`);
+
+      // Center viewport on the first slide
       const newFirstPageId = editor.getPages()[0]?.id;
       if (newFirstPageId) {
         editor.setCurrentPage(newFirstPageId);
@@ -684,30 +769,11 @@ function AppContent() {
           }
         });
       }
-
-      // 3. Process remaining pages in background asynchronously
-      if (pdf.numPages > 1) {
-        setIsImporting(false); // Stop block
-        setImportProgress(""); // Clear text
-
-        // Let it run outside the async boundaries without waiting
-        setTimeout(async () => {
-          for (let i = 2; i <= pdf.numPages; i++) {
-            try {
-              await addSlide(i, false);
-            } catch (err) {
-              console.error(`Failed background load for slide ${i}`, err);
-            }
-          }
-        }, 100);
-      }
+      
+      const totalTime = performance.now() - importStartTime;
+      window.api.log(`[Import] Completed in ${(totalTime/1000).toFixed(2)}s`);
     } catch (error: any) {
-      console.error("[Import] Import failed:", error);
-      if ((window as any).electron?.ipcRenderer)
-        (window as any).electron.ipcRenderer.send(
-          "console-log",
-          `[ERROR] Import failed: ${error?.message || error}`,
-        );
+      window.api.log(`[Import] Import failed: ${error?.message || error}`);
       alert("Import failed: " + (error?.message || error));
     } finally {
       setIsImporting(false);
@@ -746,6 +812,16 @@ function AppContent() {
   const handleCloseCancel = () => {
     setExitDialogVisible(false);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "L") {
+        window.api.openLogDir();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Collapse both sidebars when clicking outside of them (on the workspace)
   useEffect(() => {

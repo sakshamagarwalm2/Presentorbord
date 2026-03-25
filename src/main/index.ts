@@ -1,7 +1,14 @@
-import { app, BrowserWindow, shell, protocol, net } from "electron";
+import { app, BrowserWindow, shell, protocol, net, ipcMain } from "electron";
 import path from "path";
 import { join } from "path";
 import { pathToFileURL } from "url";
+import { logger } from "./logger";
+import { exec } from "child_process";
+import fs from "fs";
+import os from "os";
+
+// Log app startup
+logger.log("Application is starting...");
 
 // Register scheme as privileged to support fetch, CSP bypass, and standard behavior
 protocol.registerSchemesAsPrivileged([
@@ -17,6 +24,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function createWindow(): void {
+  logger.log("Creating main window...");
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -26,7 +34,7 @@ function createWindow(): void {
     transparent: true,
     fullscreen: true,
     hasShadow: false,
-    icon: path.join(__dirname, "../../build/icon.png"),
+    icon: path.join(__dirname, "../../src/assets/presentor.jpg"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,
@@ -34,6 +42,7 @@ function createWindow(): void {
   });
 
   mainWindow.on("ready-to-show", () => {
+    logger.log("Main window ready to show.");
     mainWindow.show();
   });
 
@@ -46,6 +55,7 @@ function createWindow(): void {
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
+    logger.log(`External link opened: ${details.url}`);
     shell.openExternal(details.url);
     return { action: "deny" };
   });
@@ -53,13 +63,43 @@ function createWindow(): void {
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (process.env["ELECTRON_RENDERER_URL"]) {
+    logger.log(`Loading renderer from URL: ${process.env["ELECTRON_RENDERER_URL"]}`);
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    const indexPath = join(__dirname, "../renderer/index.html");
+    logger.log(`Loading renderer from file: ${indexPath}`);
+    mainWindow.loadFile(indexPath);
   }
 }
 
+// Log all IPC handle calls
+const originalHandle = ipcMain.handle.bind(ipcMain);
+ipcMain.handle = (channel: string, listener: (...args: any[]) => any) => {
+  return originalHandle(channel, async (event, ...args) => {
+    logger.log(`IPC Handle: ${channel}`, ...args);
+    try {
+      const result = await listener(event, ...args);
+      return result;
+    } catch (error) {
+      logger.log(`IPC Handle Error in ${channel}:`, error);
+      throw error;
+    }
+  });
+};
+
+// Log all IPC on calls
+const originalOn = ipcMain.on.bind(ipcMain);
+ipcMain.on = (channel: string, listener: (...args: any[]) => any) => {
+  return originalOn(channel, (event, ...args) => {
+    if (channel !== 'log-message') { // Avoid infinite loop if logger uses ipcMain.on
+        logger.log(`IPC On: ${channel}`, ...args);
+    }
+    return listener(event, ...args);
+  });
+};
+
 app.whenReady().then(() => {
+  logger.log("App ready.");
   // Handle local-asset scheme
   protocol.handle("local-asset", (request) => {
     let filePath = request.url.slice("local-asset://".length);
@@ -75,17 +115,14 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  logger.log("All windows closed.");
   if (process.platform !== "darwin") {
     app.quit();
   }
 });
 
-import { ipcMain } from "electron";
-import { exec } from "child_process";
-import fs from "fs";
-import os from "os";
-
 ipcMain.handle("convert-ppt-to-pdf", async (_, pptPath: string) => {
+  // ... (existing code, now wrapped in logged handle)
   const pdfPath = path.join(
     os.tmpdir(),
     `${path.basename(pptPath, path.extname(pptPath))}-${Date.now()}.pdf`,

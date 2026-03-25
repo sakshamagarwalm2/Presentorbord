@@ -501,6 +501,15 @@ export function ToolsSidebar({
               border: "1px solid rgba(255,255,255,0.1)",
             }}
           >
+            <img
+              src="src/assets/presentor banaer.jpg"
+              alt="Presentorbord Banner"
+              style={{
+                width: '100%',
+                borderRadius: 12,
+                marginBottom: 16,
+              }}
+            />
             <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
               ✨ Presentorbord
             </h2>

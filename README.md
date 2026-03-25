@@ -1,5 +1,7 @@
 # Presentorbord
 
+![Presentorbord Banner](src/assets/presentor%20banaer.jpg)
+
 An educational whiteboard application built with Electron, React, Vite, and [tldraw](https://tldraw.dev/). Designed for teaching and presentations, it features an infinite canvas, custom educational tools, and native support for importing presentation files.
 
 ## ✨ Features
