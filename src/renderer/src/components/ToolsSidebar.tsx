@@ -30,6 +30,7 @@ import {
   Info,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import bannerImg from "../../../assets/presentorbanaer.jpg";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
 import { getEmbedDef } from "../utils/embedUtils";
 
@@ -502,7 +503,7 @@ export function ToolsSidebar({
             }}
           >
             <img
-              src="src/assets/presentorbanaer.jpg"
+              src={bannerImg}
               alt="Presentorbord Banner"
               style={{
                 width: '100%',
