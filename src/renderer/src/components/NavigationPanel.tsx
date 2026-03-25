@@ -28,9 +28,6 @@ export function NavigationPanel({
 
     const updateInfo = () => {
       const pages = editor.getPages();
-      if (pages.length > 35 && pages.length < 45) {
-        console.log('[NavigationPanel] Pages:', pages.length);
-      }
       const currentPageId = editor.getCurrentPageId();
       const index = pages.findIndex((p: any) => p.id === currentPageId);
 

@@ -14,10 +14,6 @@ import "@tldraw/tldraw/tldraw.css";
 
 import { useSubjectMode } from "./store/useSubjectMode";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  loadPdf,
-  renderPageToDataURL,
-} from "./utils/pdfUtils";
 import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
 import { Sidebar } from "./components/Sidebar";
@@ -139,18 +135,18 @@ const overrides: TLUiOverrides = {
     const setAsBackgroundAction =
       selectedShapes.length === 1 && selectedShapes[0].type === "image"
         ? {
-            id: "set-as-background",
-            label: "Set as Page Background",
-            readonlyOk: false,
-            onSelect: () => {
-              const shape = selectedShapes[0];
-              editor.updateShape({
-                ...shape,
-                isLocked: true,
-                meta: { ...shape.meta, isPageBackground: true },
-              });
-            },
-          }
+          id: "set-as-background",
+          label: "Set as Page Background",
+          readonlyOk: false,
+          onSelect: () => {
+            const shape = selectedShapes[0];
+            editor.updateShape({
+              ...shape,
+              isLocked: true,
+              meta: { ...shape.meta, isPageBackground: true },
+            });
+          },
+        }
         : null;
 
     const newActions = [];
@@ -364,7 +360,7 @@ function AppContent() {
         // We don't log every single tiny move to avoid flooding,
         // but we log when multiple things happen or major additions
         if (added > 5 || updated > 20 || removed > 5) {
-            window.api.log(`Store Change: Added ${added}, Updated ${updated}, Removed ${removed}`);
+          window.api.log(`Store Change: Added ${added}, Updated ${updated}, Removed ${removed}`);
         }
       }
     });
@@ -544,10 +540,12 @@ function AppContent() {
           const saveStartTime = performance.now();
           setImportProgress("Saving to library...");
           try {
+            // Convert to regular array ONLY for saving to avoid IPC cloning issues if needed, 
+            // but Uint8Array is usually supported in modern Electron IPC.
             // @ts-ignore
             await window.electron.ipcRenderer.invoke(
               "save-imported-file",
-              Array.from(pdfData),
+              pdfData,
               file.name,
             );
             window.api.log(`File saved to library in ${(performance.now() - saveStartTime).toFixed(2)}ms`);
@@ -573,7 +571,7 @@ function AppContent() {
           // @ts-ignore
           const pdfPath = await window.electron.ipcRenderer.invoke(
             "convert-ppt-buffer-to-pdf",
-            Array.from(fileBytes),
+            fileBytes,
             file.name,
           );
 
@@ -594,70 +592,59 @@ function AppContent() {
 
       const parseStartTime = performance.now();
       setImportProgress("Loading PDF engine...");
-      const pdf = await loadPdf(pdfData, { verbose: true, timeout: 60000 });
+      // Import the new utility
+      const { loadPdf, renderPageToBlobUrl } = await import("./utils/pdfUtils");
+      const pdf = await loadPdf(pdfData, { verbose: true, timeout: 120000 });
       window.api.log(`PDF engine parsed document in ${(performance.now() - parseStartTime).toFixed(2)}ms`);
 
       // --- Clear existing project ---
       const clearStartTime = performance.now();
       setImportProgress("Clearing existing project...");
-      // ... (existing clear logic)
-      
+
+      editor.batch(() => {
+        const existingPages = editor.getPages();
+        const firstExistingPageId = existingPages[0]?.id;
+
+        if (firstExistingPageId) {
+          editor.setCurrentPage(firstExistingPageId);
+        }
+
+        for (const page of existingPages) {
+          if (page.id !== firstExistingPageId) {
+            editor.deletePage(page.id);
+          }
+        }
+
+        if (firstExistingPageId) {
+          const shapeIds = editor.getSortedChildIdsForParent(firstExistingPageId);
+          if (shapeIds.length > 0) {
+            for (const id of shapeIds) {
+              const shape = editor.getShape(id);
+              if (shape && shape.isLocked) {
+                editor.updateShape({
+                  id: shape.id,
+                  type: shape.type,
+                  isLocked: false,
+                });
+              }
+            }
+            editor.deleteShapes(shapeIds);
+          }
+          editor.renamePage(firstExistingPageId, "Slide 1");
+        }
+
+        const existingAssets = editor.getAssets();
+        if (existingAssets.length > 0) {
+          editor.deleteAssets(existingAssets.map((a) => a.id));
+        }
+      });
+
       window.api.log(`Cleared existing project in ${(performance.now() - clearStartTime).toFixed(2)}ms`);
 
-      // Get all existing pages
-      const existingPages = editor.getPages();
-      const firstExistingPageId = existingPages[0]?.id;
+      const firstExistingPageId = editor.getPages()[0]?.id;
+      const SCALE = 0.5;
+      const pageCount = pdf.numPages;
 
-      // Switch to the first page so we can safely delete others
-      if (firstExistingPageId) {
-        editor.setCurrentPage(firstExistingPageId);
-      }
-
-      // Delete all pages except the first one (tldraw requires at least one page)
-      for (const page of existingPages) {
-        if (page.id !== firstExistingPageId) {
-          editor.deletePage(page.id);
-        }
-      }
-
-      // Clear all shapes from the first page
-      if (firstExistingPageId) {
-        const shapeIds = editor.getSortedChildIdsForParent(firstExistingPageId);
-        if (shapeIds.length > 0) {
-          // Temporarily unlock shapes so they can be deleted
-          for (const id of shapeIds) {
-            const shape = editor.getShape(id);
-            if (shape && shape.isLocked) {
-              editor.updateShape({
-                id: shape.id,
-                type: shape.type,
-                isLocked: false,
-              });
-            }
-          }
-          editor.deleteShapes(shapeIds);
-        }
-      }
-
-      // Delete all existing assets
-      const existingAssets = editor.getAssets();
-      if (existingAssets.length > 0) {
-        editor.deleteAssets(existingAssets.map((a) => a.id));
-      }
-
-      // Rename first page to "Slide 1"
-      if (firstExistingPageId) {
-        editor.renamePage(firstExistingPageId, "Slide 1");
-      }
-
-      // --- Now import the new slides ---
-      setIsImporting(true);
-      const SCALE = 1.0;
-      
-      let currentPageId = firstExistingPageId || editor.getCurrentPageId();
-      window.api.log(`Starting import. First page ID: ${currentPageId}`);
-      
-      // Generate valid tldraw page indices
       function generatePageIndices(count: number): any[] {
         const indices: any[] = [];
         let currentIndex: any = ZERO_INDEX_KEY;
@@ -667,94 +654,86 @@ function AppContent() {
         }
         return indices;
       }
-      
-      const pageCount = pdf.numPages;
+
       const pageIndices = generatePageIndices(pageCount);
-      
-      window.api.log(`[DEBUG] Generated ${pageCount} page indices. First: "${pageIndices[0]}", Last: "${pageIndices[pageCount - 1]}"`);
-      
-      // First, create all pages without images
-      for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-        if (pageNum > 1) {
-          const newPageId = PageRecordType.createId();
-          editor.createPage({
-            id: newPageId,
-            name: `Slide ${pageNum}`,
-            index: pageIndices[pageNum - 1],
-          });
-          currentPageId = newPageId;
-        } else {
-          // Update the first page's index too
-          if (firstExistingPageId) {
+      window.api.log(`Starting import of ${pageCount} pages...`);
+
+      // Create all pages synchronously (this is fast)
+      editor.batch(() => {
+        for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+          if (pageNum > 1) {
+            const newPageId = PageRecordType.createId();
+            editor.createPage({
+              id: newPageId,
+              name: `Slide ${pageNum}`,
+              index: pageIndices[pageNum - 1],
+            });
+          } else if (firstExistingPageId) {
             editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
           }
         }
-        
-        if (pageNum % 25 === 0 || pageNum === 1) {
-          const totalPages = editor.getPages().length;
-          window.api.log(`Created page ${pageNum}/${pageCount}. Store total: ${totalPages}`);
-        }
-      }
-      
-      window.api.log(`All ${pageCount} pages created. Now adding images...`);
-      
-      // Verify all pages are in store
-      const allPagesCheck = editor.getPages();
-      window.api.log(`[DEBUG] Pages in store after creation: ${allPagesCheck.length}`);
-      
-      // Now add images to each page
+      });
+
+      // Now add images in chunks to keep UI responsive
       const pages = editor.getPages();
-      window.api.log(`[DEBUG] Pages retrieved for image insertion: ${pages.length}`);
-      for (let i = 0; i < pages.length; i++) {
-        const pageNum = i + 1;
-        const pageId = pages[i].id;
-        
-        if (pageNum % 20 === 1 || pageNum === 1) {
-          setImportProgress(`Rendering slide ${pageNum}/${pdf.numPages}...`);
-        }
-        
-        const srcUrl = await renderPageToDataURL(pdf, pageNum, { scale: SCALE, format: "jpeg", quality: 0.7 });
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: SCALE });
-        
-        const assetId = AssetRecordType.createId();
-        editor.createAssets([{
-          id: assetId,
-          typeName: "asset",
-          type: "image",
-          meta: {},
-          props: {
-            name: `slide-${pageNum}.jpg`,
-            src: srcUrl,
-            w: viewport.width,
-            h: viewport.height,
-            mimeType: "image/jpeg",
-            isAnimated: false,
-          },
-        }]);
+      window.api.log(`[Import] Pages created: ${pages.length} (expected ${pageCount})`);
+      const CHUNK_SIZE = 5;
 
-        editor.createShape({
-          type: "image",
-          parentId: pageId,
-          x: 0,
-          y: 0,
-          isLocked: true,
-          props: {
-            assetId: assetId,
-            w: viewport.width,
-            h: viewport.height,
-          },
-          meta: {
-            isPageBackground: true,
-          },
-        });
-        
-        if (pageNum <= 5 || pageNum === pdf.numPages) {
-          window.api.log(`Slide ${pageNum} done. Total pages: ${editor.getPages().length}`);
+      for (let i = 0; i < pages.length; i += CHUNK_SIZE) {
+        const end = Math.min(i + CHUNK_SIZE, pages.length);
+        setImportProgress(`Rendering slides ${i + 1}-${end} of ${pageCount}...`);
+
+        // Process a chunk
+        for (let j = i; j < end; j++) {
+          const pageNum = j + 1;
+          const pageId = pages[j].id;
+
+          try {
+            const { url, w, h } = await renderPageToBlobUrl(pdf, pageNum, { scale: SCALE, format: "jpeg", quality: 0.7 });
+
+            editor.batch(() => {
+              const assetId = AssetRecordType.createId();
+              editor.createAssets([{
+                id: assetId,
+                typeName: "asset",
+                type: "image",
+                meta: {},
+                props: {
+                  name: `slide-${pageNum}.jpg`,
+                  src: url,
+                  w,
+                  h,
+                  mimeType: "image/jpeg",
+                  isAnimated: false,
+                },
+              }]);
+
+              editor.createShape({
+                type: "image",
+                parentId: pageId,
+                x: 0,
+                y: 0,
+                isLocked: true,
+                props: {
+                  assetId: assetId,
+                  w,
+                  h,
+                },
+                meta: {
+                  isPageBackground: true,
+                },
+              });
+            });
+          } catch (renderError) {
+            window.api.log(`[Import] ERROR on page ${pageNum}: ${renderError}`);
+          }
         }
+
+        // Yield to browser to update UI
+        await new Promise(resolve => requestAnimationFrame(resolve));
       }
 
-      window.api.log(`All ${pdf.numPages} slides imported`);
+      window.api.log(`Import complete. Pages with images: ${editor.getPages().length} of ${pdf.numPages}`);
 
       // Center viewport on the first slide
       const newFirstPageId = editor.getPages()[0]?.id;
@@ -769,9 +748,9 @@ function AppContent() {
           }
         });
       }
-      
+
       const totalTime = performance.now() - importStartTime;
-      window.api.log(`[Import] Completed in ${(totalTime/1000).toFixed(2)}s`);
+      window.api.log(`[Import] Completed in ${(totalTime / 1000).toFixed(2)}s`);
     } catch (error: any) {
       window.api.log(`[Import] Import failed: ${error?.message || error}`);
       alert("Import failed: " + (error?.message || error));
@@ -967,6 +946,7 @@ function App(): JSX.Element {
         tools={customTools}
         components={components}
         overrides={overrides}
+        options={{ maxPages: 700 }}
       >
         <AppContent />
       </Tldraw>

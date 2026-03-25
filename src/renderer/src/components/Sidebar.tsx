@@ -29,11 +29,7 @@ export function Sidebar({
 }) {
   const editor = useEditor();
   const pages = useValue("pages", () => {
-    const p = editor.getPages();
-    if (p.length > 35 && p.length < 45) {
-      console.log('[Sidebar] Pages received:', p.length);
-    }
-    return p;
+    return editor.getPages();
   }, [editor]);
   const currentPageId = useValue(
     "currentPageId",

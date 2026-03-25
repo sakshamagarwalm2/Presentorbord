@@ -231,14 +231,14 @@ ipcMain.handle("open-system-calculator", () => {
 
 ipcMain.handle("read-pdf-file", async (_, filePath: string) => {
   const buffer = fs.readFileSync(filePath);
-  // Return as a plain number array so it serializes properly over IPC
-  return Array.from(new Uint8Array(buffer));
+  // Return Uint8Array directly for better performance over IPC
+  return new Uint8Array(buffer);
 });
 
 // Save imported files to a dedicated app data folder
 ipcMain.handle(
   "save-imported-file",
-  async (_, fileBytes: number[], fileName: string) => {
+  async (_, fileBytes: Uint8Array, fileName: string) => {
     const appDataPath = app.getPath("userData");
     const importsDir = path.join(appDataPath, "imported-files");
 
