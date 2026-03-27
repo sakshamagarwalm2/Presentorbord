@@ -38,7 +38,6 @@ import {
   Lasso,
   Lock,
   Unlock,
-  Wind,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
@@ -83,10 +82,9 @@ interface ToolDef {
 }
 
 const PEN_GROUP: ToolDef[] = [
-  { id: 'draw', label: 'Pen', icon: Pen, type: 'pen' },
-  { id: 'brush-normal', label: 'Normal', icon: Brush, type: 'brush', brushType: 'normal' },
-  { id: 'brush-calligraphy', label: 'Calligraphy', icon: Brush, type: 'brush', brushType: 'calligraphy' },
-  { id: 'brush-airbrush', label: 'Airbrush', icon: Wind, type: 'brush', brushType: 'airbrush' },
+  { id: 'super-pen', label: 'Pen', icon: Pen, type: 'super-pen' },
+  { id: 'super-brush', label: 'Brush', icon: Brush, type: 'super-pen', brushType: 'brush' },
+  { id: 'super-marker', label: 'Marker', icon: Pen, type: 'super-pen', brushType: 'marker' },
   { id: 'highlight', label: 'Highlighter', icon: Highlighter, type: 'highlighter' },
   { id: 'custom-laser', label: 'Laser', icon: Pointer, type: 'laser' },
 ]
@@ -177,6 +175,9 @@ function PenGroupButton({
     const brushType = window.currentBrushTypeSignal?.get() || 'normal'
 
     const match = PEN_GROUP.find((t) => {
+        if (t.type === 'super-pen') {
+            return activeTool === 'super-pen' && (t.brushType || 'pen') === brushType
+        }
         if (t.type === 'brush') {
             return activeTool === 'draw' && isBrush && brushType === t.brushType
         }
@@ -188,15 +189,22 @@ function PenGroupButton({
     if (match) setSelectedTool(match)
   }, [activeTool])
 
-  const isGroupActive = PEN_GROUP.some((t) => t.id === activeTool) || activeTool === 'draw'
+  const isGroupActive = PEN_GROUP.some((t) => t.id === activeTool) || activeTool === 'draw' || activeTool === 'super-pen'
   const Icon = selectedTool.icon
 
   const handleSelect = (tool: ToolDef) => {
     setSelectedTool(tool)
-    // @ts-ignore
-    const isBrushTool = tool.type === 'brush'
     
-    if (isBrushTool) {
+    if (tool.type === 'super-pen') {
+      // Update super-pen mode on the tool instance
+      const superPenTool = (editor as any).root?.children?.['super-pen']
+      if (superPenTool) {
+        superPenTool.updateSettings({
+          mode: tool.brushType || 'pen'
+        })
+      }
+      editor.setCurrentTool('super-pen')
+    } else if (tool.type === 'brush') {
       // @ts-ignore
       window.currentIsBrushSignal?.set(true)
       // @ts-ignore
@@ -257,12 +265,11 @@ function PenGroupButton({
             const brushType = window.currentBrushTypeSignal?.get() || 'normal'
             
             let isActive = false
-            // @ts-ignore
-            if (tool.type === 'brush') {
+            if (tool.type === 'super-pen') {
+              isActive = activeTool === 'super-pen' && (tool.brushType || 'pen') === brushType
+            } else if (tool.type === 'brush') {
                 // @ts-ignore
                 isActive = activeTool === 'draw' && isBrush && brushType === tool.brushType
-            } else if (tool.id === 'draw') {
-                isActive = activeTool === 'draw' && !isBrush
             } else {
                 isActive = activeTool === tool.id
             }

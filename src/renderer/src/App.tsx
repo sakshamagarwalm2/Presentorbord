@@ -35,6 +35,8 @@ import { CustomLaserTool } from "./tools/CustomLaserTool";
 import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
 import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
+import { SuperPenTool } from "./tools/SuperPenTool";
+import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
 const customShapeUtils = [
   GraphAxes1ShapeUtil,
@@ -43,12 +45,14 @@ const customShapeUtils = [
   ProtractorShapeUtil,
   CompassShapeUtil,
   CustomDrawShapeUtil,
+  SuperPenShapeUtil,
 ];
 const customTools = [
   CustomLaserTool,
   GraphAxes1Tool,
   GraphAxes4Tool,
   LassoTool,
+  SuperPenTool,
 ];
 
 // Continuous thickness support for Pen/Brush
