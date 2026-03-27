@@ -287,20 +287,20 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
             </div>
             <p className="text-[10px] font-medium text-gray-500">{Math.round(currentThickness)}px</p>
          </div>
-         <input 
-            type="range"
-            min="1"
-            max="150"
-            step="1"
-            value={currentThickness}
-            onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
-            className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-         />
-         <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
-             <span>1px</span>
-             <span>75px</span>
-             <span>150px</span>
-         </div>
+          <input 
+             type="range"
+             min="1"
+             max="70"
+             step="1"
+             value={currentThickness}
+             onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
+             className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+          />
+          <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
+              <span>1px</span>
+              <span>35px</span>
+              <span>70px</span>
+          </div>
       </div>
 
       {/* Opacity Buttons */}

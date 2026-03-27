@@ -18,10 +18,11 @@ export type TSuperPenShape = TLBaseShape<
     opacity: number
     isComplete: boolean
     mode: 'pen' | 'brush' | 'marker'
+    dash: 'solid' | 'dashed' | 'dotted'
   }
 >
 
-function getFreehandOptions(mode: string, size: number, isComplete: boolean) {
+function getFreehandOptions(mode: string, size: number, isComplete: boolean, dash: string) {
   const base = {
     size,
     last: isComplete,
@@ -65,6 +66,17 @@ function getFreehandOptions(mode: string, size: number, isComplete: boolean) {
   }
 }
 
+function getDashArray(dash: string, size: number): string | undefined {
+  switch (dash) {
+    case 'dashed':
+      return `${size * 3} ${size * 2}`
+    case 'dotted':
+      return `${size * 0.5} ${size * 1.5}`
+    default:
+      return undefined
+  }
+}
+
 function toSvgPath(outlinePoints: number[][]): string {
   if (!outlinePoints.length) return ''
   const d = outlinePoints.reduce(
@@ -98,6 +110,7 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
       opacity: 1,
       isComplete: false,
       mode: 'pen',
+      dash: 'solid',
     }
   }
 
@@ -111,13 +124,14 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   }
 
   override component(shape: TSuperPenShape) {
-    const { points, color, size, opacity, isComplete, mode } = shape.props
+    const { points, color, size, opacity, isComplete, mode, dash } = shape.props
     if (!points || points.length === 0) return null
 
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, isComplete)
+    const options = getFreehandOptions(mode, size, isComplete, dash)
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
+    const dashArray = getDashArray(dash, size)
 
     if (!pathData) return null
 
@@ -127,7 +141,10 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
           d={pathData}
           fill={color}
           opacity={opacity}
-          strokeLinecap="round"
+          stroke={dashArray ? color : 'none'}
+          strokeWidth={dashArray ? size * 0.8 : 0}
+          strokeDasharray={dashArray}
+          strokeLinecap={dash === 'dotted' ? 'round' : 'butt'}
           strokeLinejoin="round"
           style={{ pointerEvents: 'none' }}
         />
@@ -136,31 +153,40 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   }
 
   override indicator(shape: TSuperPenShape) {
-    const { points, size, isComplete, mode } = shape.props
+    const { points, size, isComplete, mode, opacity } = shape.props
     if (!points || points.length === 0) return null
 
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, isComplete)
+    const options = getFreehandOptions(mode, size, isComplete, 'solid')
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
 
-    return <path d={pathData} />
+    return <path d={pathData} opacity={opacity} />
   }
 
   override toSvg(shape: TSuperPenShape, _ctx: SvgExportContext) {
-    const { points, color, size, opacity, mode } = shape.props
+    const { points, color, size, opacity, isComplete, mode, dash } = shape.props
     if (!points || points.length === 0) return null
 
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, true)
+    const options = getFreehandOptions(mode, size, true, dash)
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
+    const dashArray = getDashArray(dash, size)
 
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
     el.setAttribute('d', pathData)
     el.setAttribute('fill', color)
     el.setAttribute('opacity', String(opacity))
     el.setAttribute('stroke-linecap', 'round')
+    if (dashArray) {
+      el.setAttribute('stroke', color)
+      el.setAttribute('stroke-width', String(size * 0.8))
+      el.setAttribute('stroke-dasharray', dashArray)
+      if (dash === 'dotted') {
+        el.setAttribute('stroke-linecap', 'round')
+      }
+    }
 
     return el as unknown as JSX.Element
   }

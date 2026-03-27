@@ -1,5 +1,7 @@
 # Presentorbord
 
+![Version](https://img.shields.io/badge/version-v1.1.2-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 ![Presentorbord Banner](src/assets/presentorbanaer.jpg)
 
 An educational whiteboard application built with Electron, React, Vite, and [tldraw](https://tldraw.dev/). Designed for teaching and presentations, it features an infinite canvas, custom educational tools, and native support for importing presentation files.

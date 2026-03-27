@@ -1,4 +1,4 @@
-import { StateNode, TLEventHandlers, createShapeId, DefaultColorStyle } from 'tldraw'
+import { StateNode, TLEventHandlers, createShapeId, DefaultColorStyle, DefaultDashStyle } from 'tldraw'
 import { SuperSmoothPipeline, PipelineConfig, DEFAULT_CONFIG } from '../utils/SuperSmoothPipeline'
 import { SuperPenPoint, TSuperPenShape } from '../shapes/SuperPenShapeUtil'
 
@@ -83,6 +83,23 @@ class Drawing extends StateNode {
     return (window.currentThicknessSignal?.get() ?? 7)
   }
 
+  private getCurrentOpacity(): number {
+    // @ts-ignore
+    if (this.editor.getOpacityForNextShape) {
+      // @ts-ignore
+      return this.editor.getOpacityForNextShape() ?? 1
+    }
+    return 1
+  }
+
+  private getCurrentDash(): 'solid' | 'dashed' | 'dotted' {
+    const dashValue = this.editor.getStyleForNextShape(DefaultDashStyle)
+    if (dashValue === 'dashed' || dashValue === 'dotted') {
+      return dashValue
+    }
+    return 'solid'
+  }
+
   override onEnter = () => {
     const tool = this.parent as SuperPenTool
     const { mode, pipeline } = tool.settings
@@ -102,6 +119,8 @@ class Drawing extends StateNode {
 
     const color = this.getCurrentColor()
     const size = this.getCurrentThickness()
+    const opacity = this.getCurrentOpacity()
+    const dash = this.getCurrentDash()
 
     this.editor.createShape<TSuperPenShape>({
       id: this.shapeId,
@@ -112,8 +131,9 @@ class Drawing extends StateNode {
         points: [...this.livePoints],
         color,
         size,
-        opacity: 1,
+        opacity,
         mode,
+        dash,
         isComplete: false,
       },
     })
