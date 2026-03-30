@@ -4,7 +4,6 @@ import {
   MousePointer2,
   Hand,
   Palette,
-  Pen,
   Eraser,
   ArrowUpRight,
   Square,
@@ -17,9 +16,6 @@ import {
   Hexagon,
   Pentagon,
   Octagon,
-  Highlighter,
-  Brush,
-  Pointer,
   ChevronDown,
   ChevronUp,
   Type,
@@ -42,6 +38,7 @@ import {
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
 import { StylePanel } from './StylePanel'
+import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon } from './ToolIcons'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -82,11 +79,11 @@ interface ToolDef {
 }
 
 const PEN_GROUP: ToolDef[] = [
-  { id: 'super-pen', label: 'Pen', icon: Pen, type: 'super-pen' },
-  { id: 'super-brush', label: 'Brush', icon: Brush, type: 'super-pen', brushType: 'brush' },
-  { id: 'super-marker', label: 'Marker', icon: Pen, type: 'super-pen', brushType: 'marker' },
-  { id: 'highlight', label: 'Highlighter', icon: Highlighter, type: 'highlighter' },
-  { id: 'custom-laser', label: 'Laser', icon: Pointer, type: 'laser' },
+  { id: 'super-pen', label: 'Pen', icon: PenIcon, type: 'super-pen' },
+  { id: 'super-marker', label: 'Marker', icon: MarkerIcon, type: 'super-pen', brushType: 'marker' },
+  { id: 'super-brush', label: 'Brush', icon: BrushIcon, type: 'super-pen', brushType: 'brush' },
+  { id: 'highlight', label: 'Highlighter', icon: HighlighterIcon, type: 'highlighter' },
+  { id: 'custom-laser', label: 'Laser', icon: LaserIcon, type: 'laser' },
 ]
 
 const MORE_TOOLS: ToolDef[] = [

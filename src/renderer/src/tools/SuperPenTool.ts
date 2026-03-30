@@ -6,7 +6,7 @@ export interface SuperPenSettings {
   color: string
   size: number
   opacity: number
-  mode: 'pen' | 'brush' | 'marker'
+  mode: 'pen' | 'marker' | 'brush' | 'highlighter' | 'laser'
   pipeline: PipelineConfig
 }
 

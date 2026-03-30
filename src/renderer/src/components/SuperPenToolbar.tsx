@@ -1,11 +1,14 @@
 import { useState, useCallback } from 'react'
 import { useEditor } from 'tldraw'
 import { SuperPenTool, SuperPenSettings, DEFAULT_SETTINGS } from '../tools/SuperPenTool'
+import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon } from './ToolIcons'
 
 const PEN_MODES = [
-  { id: 'pen', label: 'Pen', desc: 'Note3 / Notability feel' },
-  { id: 'brush', label: 'Brush', desc: 'Chinese calligraphy brush' },
-  { id: 'marker', label: 'Marker', desc: 'Flat uniform marker' },
+  { id: 'pen', label: 'Pen', desc: 'Ballpoint pen', Icon: PenIcon },
+  { id: 'marker', label: 'Marker', desc: 'Chisel tip marker', Icon: MarkerIcon },
+  { id: 'brush', label: 'Brush', desc: 'Calligraphy brush', Icon: BrushIcon },
+  { id: 'highlighter', label: 'Highlight', desc: 'Highlighter pen', Icon: HighlighterIcon },
+  { id: 'laser', label: 'Laser', desc: 'Laser pointer', Icon: LaserIcon },
 ] as const
 
 const COLORS = [
@@ -65,13 +68,14 @@ export function SuperPenToolbar() {
             key={m.id}
             onClick={() => updateSetting('mode', m.id)}
             title={m.desc}
-            className={`flex-1 py-1 text-xs rounded transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1 py-1 text-xs rounded transition-colors ${
               settings.mode === m.id
                 ? 'bg-blue-100 text-blue-700 font-medium'
                 : 'bg-gray-50 hover:bg-gray-100 text-gray-600'
             }`}
           >
-            {m.label}
+            <m.Icon size={14} />
+            <span>{m.label}</span>
           </button>
         ))}
       </div>
