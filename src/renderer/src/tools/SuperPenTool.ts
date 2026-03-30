@@ -177,7 +177,7 @@ class Drawing extends StateNode {
     this.updateShapeLive()
   }
 
-  override onPointerMove: TLEventHandlers['onPointerMove'] = () => {
+  override onPointerMove: TLEventHandlers['onPointerMove'] = (info) => {
     if (this.rawUpdateHandler) return
 
     const pagePt = this.editor.inputs.currentPagePoint
@@ -185,7 +185,7 @@ class Drawing extends StateNode {
     const smoothed = this.pipeline.process({
       x: pagePt.x,
       y: pagePt.y,
-      pressure: 0.5,
+      pressure: (info as any).event?.pressure ?? info.point.z ?? 0.5,
       timeStamp: Date.now(),
     })
 

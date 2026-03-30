@@ -22,11 +22,17 @@ export type TSuperPenShape = TLBaseShape<
   }
 >
 
-function getFreehandOptions(mode: string, size: number, isComplete: boolean, dash: string) {
+function getFreehandOptions(
+  mode: string,
+  size: number,
+  isComplete: boolean,
+  _dash: string,
+  hasPressure = false
+) {
   const base = {
     size,
     last: isComplete,
-    simulatePressure: true,
+    simulatePressure: !hasPressure,
   }
 
   switch (mode) {
@@ -34,8 +40,8 @@ function getFreehandOptions(mode: string, size: number, isComplete: boolean, das
       return {
         ...base,
         thinning: 0.7,
-        smoothing: 0.8,
-        streamline: 0.6,
+        smoothing: 0.5,
+        streamline: 0.3,
         easing: (t: number) => Math.sin((t * Math.PI) / 2),
         start: { taper: size * 6, cap: true, easing: (t: number) => t * t },
         end: { taper: size * 8, cap: true, easing: (t: number) => 1 - (1 - t) * (1 - t) },
@@ -44,9 +50,9 @@ function getFreehandOptions(mode: string, size: number, isComplete: boolean, das
     case 'marker':
       return {
         ...base,
-        thinning: 0.1,
-        smoothing: 0.7,
-        streamline: 0.7,
+        thinning: 0.05,
+        smoothing: 0.3,
+        streamline: 0.2,
         easing: (t: number) => t,
         start: { taper: 0, cap: true },
         end: { taper: 0, cap: true },
@@ -57,8 +63,8 @@ function getFreehandOptions(mode: string, size: number, isComplete: boolean, das
       return {
         ...base,
         thinning: 0.45,
-        smoothing: 0.82,
-        streamline: 0.72,
+        smoothing: 0.5,
+        streamline: 0.0,
         easing: (t: number) => 1 - Math.pow(1 - t, 3),
         start: { taper: size * 4, cap: true, easing: (t: number) => t * t * t },
         end: { taper: size * 5, cap: true, easing: (t: number) => 1 - Math.pow(1 - t, 3) },
@@ -89,6 +95,10 @@ function toSvgPath(outlinePoints: number[][]): string {
   )
   d.push('Z')
   return d.join(' ')
+}
+
+function detectRealPressure(points: SuperPenPoint[]): boolean {
+  return points.some(p => p.z !== 0.5 && p.z !== 0)
 }
 
 export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
@@ -127,8 +137,9 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const { points, color, size, opacity, isComplete, mode, dash } = shape.props
     if (!points || points.length === 0) return null
 
+    const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, isComplete, dash)
+    const options = getFreehandOptions(mode, size, isComplete, dash, hasPressure)
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)
@@ -156,8 +167,9 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const { points, size, isComplete, mode, opacity } = shape.props
     if (!points || points.length === 0) return null
 
+    const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, isComplete, 'solid')
+    const options = getFreehandOptions(mode, size, isComplete, 'solid', hasPressure)
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
 
@@ -168,8 +180,9 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const { points, color, size, opacity, isComplete, mode, dash } = shape.props
     if (!points || points.length === 0) return null
 
+    const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
-    const options = getFreehandOptions(mode, size, true, dash)
+    const options = getFreehandOptions(mode, size, true, dash, hasPressure)
     const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)

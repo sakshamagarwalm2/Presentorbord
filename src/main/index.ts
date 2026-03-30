@@ -34,7 +34,7 @@ function createWindow(): void {
     transparent: true,
     fullscreen: true,
     hasShadow: false,
-    icon: path.join(__dirname, "../../src/assets/presentor.jpg"),
+    icon: path.join(__dirname, "../../src/assets/presentor.ico"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
       sandbox: false,

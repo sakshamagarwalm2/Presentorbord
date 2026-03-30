@@ -1,6 +1,6 @@
 {
   "name": "presentorbord",
-  "version": "1.1.2",
+  "version": "1.1.6",
   "main": "out/main/index.js",
   "description": "Educational Whiteboard App",
   "author": "Antigravity",
@@ -22,13 +22,14 @@
       "output": "OutputInstaller"
     },
     "files": [
-      "out/**/*"
+      "out/**/*",
+      "src/assets/presentor.ico"
     ],
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.png"
+      "icon": "src/assets/icon.png"
     },
     "nsis": {
       "oneClick": false,
