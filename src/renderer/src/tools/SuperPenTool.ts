@@ -1,6 +1,7 @@
 import { StateNode, TLEventHandlers, createShapeId, DefaultColorStyle, DefaultDashStyle } from 'tldraw'
 import { SuperSmoothPipeline, PipelineConfig, DEFAULT_CONFIG } from '../utils/SuperSmoothPipeline'
 import { SuperPenPoint, TSuperPenShape } from '../shapes/SuperPenShapeUtil'
+import { currentThicknessSignal, currentOpacitySignal } from '../store/styleSignals'
 
 export interface SuperPenSettings {
   color: string
@@ -79,17 +80,11 @@ class Drawing extends StateNode {
   }
 
   private getCurrentThickness(): number {
-    // @ts-ignore
-    return (window.currentThicknessSignal?.get() ?? 7)
+    return currentThicknessSignal.get()
   }
 
   private getCurrentOpacity(): number {
-    // @ts-ignore
-    if (this.editor.getOpacityForNextShape) {
-      // @ts-ignore
-      return this.editor.getOpacityForNextShape() ?? 1
-    }
-    return 1
+    return currentOpacitySignal.get()
   }
 
   private getCurrentDash(): 'solid' | 'dashed' | 'dotted' {
@@ -110,12 +105,24 @@ class Drawing extends StateNode {
     this.isDrawing = true
 
     const pagePoint = this.editor.inputs.currentPagePoint
-    const initPoint: SuperPenPoint = {
+    
+    // Process the initial point through the pipeline immediately
+    const smoothed = this.pipeline.process({
       x: pagePoint.x,
       y: pagePoint.y,
-      z: 0.5,
+      pressure: 0.5,
+      timeStamp: Date.now(),
+    })
+
+    if (smoothed) {
+      const initPoint: SuperPenPoint = {
+        x: smoothed.x,
+        y: smoothed.y,
+        z: smoothed.pressure,
+      }
+      console.log(`[Stroke Start] Mouse Down at: x=${initPoint.x.toFixed(2)}, y=${initPoint.y.toFixed(2)}`)
+      this.livePoints.push(initPoint)
     }
-    this.livePoints.push(initPoint)
 
     const color = this.getCurrentColor()
     const size = this.getCurrentThickness()

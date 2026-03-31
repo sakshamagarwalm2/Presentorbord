@@ -40,7 +40,7 @@ function getFreehandOptions(
         simulatePressure,
         thinning: 0.3,
         smoothing: 0.5,
-        streamline: 0.0,
+        streamline: 0.4, // Increased from 0.0 for buttery flow
         easing: (t: number) => t,
         start: { taper: 0, cap: true },
         end: { taper: 0, cap: true },
@@ -53,7 +53,7 @@ function getFreehandOptions(
         simulatePressure,
         thinning: 0.0,
         smoothing: 0.4,
-        streamline: 0.1,
+        streamline: 0.5, // Increased from 0.1
         easing: (t: number) => t,
         start: { taper: 0, cap: true },
         end: { taper: 0, cap: true },
@@ -66,11 +66,12 @@ function getFreehandOptions(
         simulatePressure,
         thinning: 0.4,
         smoothing: 0.5,
-        streamline: 0.2,
+        streamline: 0.6, // Increased from 0.2
         easing: (t: number) => Math.sin((t * Math.PI) / 2),
         start: { taper: size * 0.2, cap: true, easing: (t: number) => t * t },
         end: { taper: size * 0.2, cap: true, easing: (t: number) => 1 - (1 - t) * (1 - t) },
       }
+
 
     case 'highlighter':
       return {
