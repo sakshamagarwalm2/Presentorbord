@@ -1,6 +1,11 @@
 import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
 import { Check, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
+import { 
+  currentThicknessSignal, 
+  currentOpacitySignal, 
+  currentIsBrushSignal 
+} from '../store/styleSignals'
 
 /* ------------------------------------------------------------------ */
 /*  Color Definitions & Themes                                         */
@@ -86,8 +91,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     if (selected.length > 0) {
       return selected[0].meta?.thickness ?? 16
     }
-    // @ts-ignore
-    return (window.currentThicknessSignal?.get() ?? 16)
+    return currentThicknessSignal.get()
   }, [editor])
 
   const currentIsBrush = useValue('isBrush', () => {
@@ -95,8 +99,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     if (selected.length > 0) {
       return !!selected[0].meta?.isBrush
     }
-    // @ts-ignore
-    return !!(window.currentIsBrushSignal?.get() ?? false)
+    return currentIsBrushSignal.get()
   }, [editor])
   
   // Opacity handling
@@ -107,8 +110,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       const isMixed = selected.some(s => Math.abs((s.opacity ?? 1) - firstOpacity) > 0.05)
       return isMixed ? 1 : firstOpacity
     }
-    // @ts-ignore
-    return (window.currentOpacitySignal?.get() ?? 1)
+    return currentOpacitySignal.get()
   }, [editor])
 
   if (!isVisible) return null
@@ -132,8 +134,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
          type: s.type,
          meta: { ...s.meta, isBrush: nextBrush }
        })))
-       // @ts-ignore
-       window.currentIsBrushSignal?.set(nextBrush)
+       currentIsBrushSignal.set(nextBrush)
        return
     }
 
@@ -147,8 +148,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
         type: s.type,
         meta: { ...s.meta, isBrush: false }
     })))
-    // @ts-ignore
-    window.currentIsBrushSignal?.set(false)
+    currentIsBrushSignal.set(false)
   }
 
   const handleThicknessChange = (thickness: number) => {
@@ -160,8 +160,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
         meta: { ...s.meta, thickness }
       })))
     }
-    // @ts-ignore
-    window.currentThicknessSignal?.set(thickness)
+    currentThicknessSignal.set(thickness)
   }
 
   const handleOpacityChange = (opacity: number) => {
@@ -173,8 +172,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
         opacity
       })))
     }
-    // @ts-ignore
-    window.currentOpacitySignal?.set(opacity)
+    currentOpacitySignal.set(opacity)
   }
 
   const theme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']

@@ -55,12 +55,12 @@ const customTools = [
   LassoTool,
   SuperPenTool,
 ];
-
-// Continuous thickness support for Pen/Brush
-const currentThicknessSignal = atom('currentThickness', 7);
-const currentOpacitySignal = atom('currentOpacity', 1);
-const currentIsBrushSignal = atom('currentIsBrush', false);
-const currentBrushTypeSignal = atom('brushType', 'normal');
+import {
+  currentThicknessSignal,
+  currentOpacitySignal,
+  currentIsBrushSignal,
+  currentBrushTypeSignal,
+} from "./store/styleSignals";
 
 // Context Menu Overrides
 const overrides: TLUiOverrides = {

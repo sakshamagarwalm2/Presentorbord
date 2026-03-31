@@ -243,4 +243,122 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
       />
     );
   }
+
+  override toSvg(shape: TLDrawShape) {
+    const { props } = shape;
+    const { color, segments } = props;
+    const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() });
+    const strokeColor = theme[color].solid;
+    const thickness = (shape.meta?.thickness as number) || 7;
+    const isBrush = !!shape.meta?.isBrush;
+    const brushType = (shape.meta?.brushType as string) || "normal";
+
+    if (segments.length === 0) return null;
+
+    if (isBrush) {
+      if (brushType === "normal") {
+        const renderPenRibbon = (offsetAngle: number, widthScale: number, opacity: number) => {
+          let d = "";
+          let reverseD = "";
+          segments.forEach((segment: any) => {
+            const pts = segment.points;
+            if (pts.length < 2) return;
+            pts.forEach((p: any, i: number) => {
+              const z = p.z !== undefined ? p.z : 0.5;
+              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0); 
+              const size = (thickness * pressureEffect * widthScale) / 2;
+              const dx = Math.cos(offsetAngle) * size;
+              const dy = Math.sin(offsetAngle) * size;
+              if (i === 0) d += `M ${p.x - dx} ${p.y - dy} `;
+              else d += `L ${p.x - dx} ${p.y - dy} `;
+            });
+            [...pts].reverse().forEach((p: any) => {
+              const z = p.z !== undefined ? p.z : 0.5;
+              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0); 
+              const size = (thickness * pressureEffect * widthScale) / 2;
+              const dx = Math.cos(offsetAngle) * size;
+              const dy = Math.sin(offsetAngle) * size;
+              reverseD += `L ${p.x + dx} ${p.y + dy} `;
+            });
+          });
+          if (!d) return null;
+          return <path key={offsetAngle} d={d + reverseD + " Z"} fill={strokeColor} opacity={opacity} stroke="none" />;
+        };
+
+        return (
+          <g>
+            {renderPenRibbon(0, 1.0, 0.95)}
+            {renderPenRibbon(Math.PI / 2, 0.8, 0.3)}
+          </g>
+        );
+      }
+
+      if (brushType === "airbrush") {
+        const paths = segments.map((segment: any, sIdx: number) => {
+           const d = ptsToPath(segment.points);
+           return (
+             <g key={sIdx}>
+               <path d={d} fill="none" stroke={strokeColor} strokeWidth={thickness * 3} strokeLinecap="round" opacity={0.05} />
+               <path d={d} fill="none" stroke={strokeColor} strokeWidth={thickness * 2} strokeLinecap="round" opacity={0.1} />
+               <path d={d} fill="none" stroke={strokeColor} strokeWidth={thickness * 1} strokeLinecap="round" opacity={0.2} />
+               <path d={d} fill="none" stroke={strokeColor} strokeWidth={thickness * 0.5} strokeLinecap="round" opacity={0.4} />
+             </g>
+           );
+        });
+        return <g>{paths}</g>;
+      }
+
+      const angle = Math.PI / 4; 
+      const renderCalligraphyRibbon = (offsetT: number, opacity: number, widthScale: number) => {
+        let leftD = "";
+        let reverseRightD = "";
+        segments.forEach((segment: any) => {
+          const pts = segment.points;
+          pts.forEach((p: any, i: number) => {
+            const z = p.z !== undefined ? p.z : 0.5;
+            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5); 
+            const size = thickness * pressureEffect * widthScale;
+            const dx = Math.cos(angle + Math.PI/2) * (size / 2);
+            const dy = Math.sin(angle + Math.PI/2) * (size / 2);
+            const bx = Math.cos(angle + Math.PI/2) * (offsetT * thickness);
+            const by = Math.sin(angle + Math.PI/2) * (offsetT * thickness);
+            if (i === 0) leftD += `M ${p.x - dx + bx} ${p.y - dy + by} `;
+            else leftD += `L ${p.x - dx + bx} ${p.y - dy + by} `;
+          });
+          [...segment.points].reverse().forEach((p: any) => {
+            const z = p.z !== undefined ? p.z : 0.5;
+            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5); 
+            const size = thickness * pressureEffect * widthScale;
+            const dx = Math.cos(angle + Math.PI/2) * (size / 2);
+            const dy = Math.sin(angle + Math.PI/2) * (size / 2);
+            const bx = Math.cos(angle + Math.PI/2) * (offsetT * thickness);
+            const by = Math.sin(angle + Math.PI/2) * (offsetT * thickness);
+            reverseRightD += `L ${p.x + dx + bx} ${p.y + dy + by} `;
+          });
+        });
+        if (!leftD) return null;
+        return <path key={offsetT} d={leftD + reverseRightD + " Z"} fill={strokeColor} opacity={opacity} stroke="none" />;
+      };
+
+      return (
+        <g>
+          {renderCalligraphyRibbon(0, 0.8, 1.0)}
+          {renderCalligraphyRibbon(-0.15, 0.4, 0.6)}
+          {renderCalligraphyRibbon(0.15, 0.4, 0.6)}
+        </g>
+      );
+    }
+
+    const pathData = ptsToPath(segments[0].points);
+    return (
+      <path
+        d={pathData}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth={thickness}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+  }
 }

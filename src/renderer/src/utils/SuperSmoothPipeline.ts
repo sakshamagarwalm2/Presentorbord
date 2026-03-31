@@ -30,6 +30,7 @@ export const DEFAULT_CONFIG: PipelineConfig = {
 export class SuperSmoothPipeline {
   private config: PipelineConfig
   private points: SmoothPoint[] = []
+  private lastSmoothed: SmoothPoint | null = null
 
   constructor(config: Partial<PipelineConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -37,16 +38,35 @@ export class SuperSmoothPipeline {
 
   reset(): void {
     this.points = []
+    this.lastSmoothed = null
   }
 
   process(raw: RawPoint): SmoothPoint | null {
-    const point: SmoothPoint = {
-      x: raw.x,
-      y: raw.y,
-      pressure: raw.pressure > 0 ? raw.pressure : 0.5,
+    if (!this.lastSmoothed) {
+      const first: SmoothPoint = {
+        x: raw.x,
+        y: raw.y,
+        pressure: raw.pressure > 0 ? raw.pressure : 0.5,
+      }
+      this.lastSmoothed = first
+      this.points.push(first)
+      return first
     }
-    this.points.push(point)
-    return point
+
+    // Simple exponential smoothing
+    // alpha = 0.3 means 30% new data, 70% old data. 
+    // This provides a "smooth" feel without too much lag.
+    const alpha = 0.35 
+    
+    const smoothed: SmoothPoint = {
+      x: this.lastSmoothed.x + alpha * (raw.x - this.lastSmoothed.x),
+      y: this.lastSmoothed.y + alpha * (raw.y - this.lastSmoothed.y),
+      pressure: this.lastSmoothed.pressure + alpha * (raw.pressure - this.lastSmoothed.pressure),
+    }
+
+    this.lastSmoothed = smoothed
+    this.points.push(smoothed)
+    return smoothed
   }
 
   finish(): SmoothPoint[] {

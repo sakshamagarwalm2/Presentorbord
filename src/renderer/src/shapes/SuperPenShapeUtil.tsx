@@ -129,23 +129,6 @@ function detectRealPressure(points: SuperPenPoint[]): boolean {
   return points.some(p => p.z !== 0.5 && p.z !== 0)
 }
 
-function applyEllipticalTip(
-  outlinePoints: [number, number][],
-  scaleX: number,
-  scaleY: number
-): [number, number][] {
-  if (!outlinePoints.length) return outlinePoints
-
-  const originX = outlinePoints[0][0]
-  const originY = outlinePoints[0][1]
-
-  return outlinePoints.map(pt => {
-    const x = pt[0]
-    const y = pt[1]
-    return [originX + (x - originX) * scaleX, originY + (y - originY) * scaleY] as [number, number]
-  })
-}
-
 export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   static override type = 'super-pen' as const
 
@@ -185,13 +168,7 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, isComplete, dash, hasPressure)
-    let outlinePoints = getStroke(inputPoints, options)
-
-    if (mode === 'marker' || mode === 'highlighter') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.55)
-    } else if (mode === 'brush') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.75)
-    }
+    const outlinePoints = getStroke(inputPoints, options)
 
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)
@@ -222,14 +199,7 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, isComplete, 'solid', hasPressure)
-    let outlinePoints = getStroke(inputPoints, options)
-
-    if (mode === 'marker' || mode === 'highlighter') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.55)
-    } else if (mode === 'brush') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.75)
-    }
-
+    const outlinePoints = getStroke(inputPoints, options)
     const pathData = toSvgPath(outlinePoints)
 
     return <path d={pathData} opacity={opacity} />
@@ -242,31 +212,22 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const hasPressure = detectRealPressure(points)
     const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, true, dash, hasPressure)
-    let outlinePoints = getStroke(inputPoints, options)
-
-    if (mode === 'marker' || mode === 'highlighter') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.55)
-    } else if (mode === 'brush') {
-      outlinePoints = applyEllipticalTip(outlinePoints, 1.0, 0.75)
-    }
+    const outlinePoints = getStroke(inputPoints, options)
 
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)
 
-    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-    el.setAttribute('d', pathData)
-    el.setAttribute('fill', color)
-    el.setAttribute('opacity', String(opacity))
-    el.setAttribute('stroke-linecap', 'round')
-    if (dashArray) {
-      el.setAttribute('stroke', color)
-      el.setAttribute('stroke-width', String(size * 0.8))
-      el.setAttribute('stroke-dasharray', dashArray)
-      if (dash === 'dotted') {
-        el.setAttribute('stroke-linecap', 'round')
-      }
-    }
-
-    return el as unknown as JSX.Element
+    return (
+      <path
+        d={pathData}
+        fill={color}
+        opacity={opacity}
+        stroke={dashArray ? color : 'none'}
+        strokeWidth={dashArray ? size * 0.8 : 0}
+        strokeDasharray={dashArray}
+        strokeLinecap={dash === 'dotted' ? 'round' : 'butt'}
+        strokeLinejoin="round"
+      />
+    )
   }
 }
