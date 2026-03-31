@@ -120,7 +120,6 @@ class Drawing extends StateNode {
         y: smoothed.y,
         z: smoothed.pressure,
       }
-      console.log(`[Stroke Start] Mouse Down at: x=${initPoint.x.toFixed(2)}, y=${initPoint.y.toFixed(2)}`)
       this.livePoints.push(initPoint)
     }
 

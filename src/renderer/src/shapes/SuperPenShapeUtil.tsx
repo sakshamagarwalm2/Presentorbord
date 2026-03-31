@@ -130,6 +130,34 @@ function detectRealPressure(points: SuperPenPoint[]): boolean {
   return points.some(p => p.z !== 0.5 && p.z !== 0)
 }
 
+function getMarkerOutlinePoints(points: SuperPenPoint[], size: number, options: any) {
+  const angle = Math.PI / 4 // +45 degrees (opposite direction)
+  const s = Math.sin(angle)
+  const c = Math.cos(angle)
+  
+  // 1. Rotate and squash input points
+  const transformedPoints = points.map(p => {
+    const nx = p.x * c - p.y * s
+    const ny = p.x * s + p.y * c
+    return [nx, ny * 0.35, p.z] as [number, number, number]
+  })
+
+  // 2. Generate stroke in the "squashed" space
+  const outline = getStroke(transformedPoints, options)
+
+  // 3. Un-squash and rotate back
+  const sB = Math.sin(-angle)
+  const cB = Math.cos(-angle)
+
+  return outline.map(p => {
+    const ux = p[0]
+    const uy = p[1] / 0.35
+    const rx = ux * cB - uy * sB
+    const ry = ux * sB + uy * cB
+    return [rx, ry] as [number, number]
+  })
+}
+
 export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   static override type = 'super-pen' as const
 
@@ -167,9 +195,15 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     if (!points || points.length === 0) return null
 
     const hasPressure = detectRealPressure(points)
-    const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, isComplete, dash, hasPressure)
-    const outlinePoints = getStroke(inputPoints, options)
+    
+    let outlinePoints: number[][]
+    if (mode === 'marker') {
+      outlinePoints = getMarkerOutlinePoints(points, size, options)
+    } else {
+      const inputPoints = points.map(p => [p.x, p.y, p.z])
+      outlinePoints = getStroke(inputPoints, options)
+    }
 
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)
@@ -198,9 +232,16 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     if (!points || points.length === 0) return null
 
     const hasPressure = detectRealPressure(points)
-    const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, isComplete, 'solid', hasPressure)
-    const outlinePoints = getStroke(inputPoints, options)
+    
+    let outlinePoints: number[][]
+    if (mode === 'marker') {
+      outlinePoints = getMarkerOutlinePoints(points, size, options)
+    } else {
+      const inputPoints = points.map(p => [p.x, p.y, p.z])
+      outlinePoints = getStroke(inputPoints, options)
+    }
+
     const pathData = toSvgPath(outlinePoints)
 
     return <path d={pathData} opacity={opacity} />
@@ -211,9 +252,15 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     if (!points || points.length === 0) return null
 
     const hasPressure = detectRealPressure(points)
-    const inputPoints = points.map(p => [p.x, p.y, p.z])
     const options = getFreehandOptions(mode, size, true, dash, hasPressure)
-    const outlinePoints = getStroke(inputPoints, options)
+    
+    let outlinePoints: number[][]
+    if (mode === 'marker') {
+      outlinePoints = getMarkerOutlinePoints(points, size, options)
+    } else {
+      const inputPoints = points.map(p => [p.x, p.y, p.z])
+      outlinePoints = getStroke(inputPoints, options)
+    }
 
     const pathData = toSvgPath(outlinePoints)
     const dashArray = getDashArray(dash, size)
