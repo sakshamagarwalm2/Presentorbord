@@ -38,7 +38,7 @@ import {
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { usePalmEraser } from '../tools/usePalmEraser'
 import { StylePanel } from './StylePanel'
-import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon } from './ToolIcons'
+import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -51,7 +51,7 @@ interface ColorTheme {
 }
 
 const COLOR_THEMES: Record<string, ColorTheme> = {
-  black: { bg: 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
+  black: { bg: 'bg-black text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
   grey: { bg: 'bg-zinc-500 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
   'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-300' },
   violet: { bg: 'bg-violet-600 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-500' },
@@ -63,7 +63,7 @@ const COLOR_THEMES: Record<string, ColorTheme> = {
   'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-900/40', border: 'border-emerald-300' },
   red: { bg: 'bg-red-500 text-white', shadow: 'shadow-red-200 dark:shadow-red-900/40', border: 'border-red-400' },
   'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-900/40', border: 'border-rose-300' },
-  white: { bg: 'bg-white text-black border border-gray-200', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
+  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
 }
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +79,7 @@ interface ToolDef {
 }
 
 const PEN_GROUP: ToolDef[] = [
+  { id: 'draw', label: 'Draw', icon: DrawIcon },
   { id: 'super-pen', label: 'Pen', icon: PenIcon, type: 'super-pen' },
   { id: 'super-marker', label: 'Marker', icon: MarkerIcon, type: 'super-pen', brushType: 'marker' },
   { id: 'super-brush', label: 'Brush', icon: BrushIcon, type: 'super-pen', brushType: 'brush' },

@@ -9,6 +9,7 @@ import {
   getIndexAbove,
   ZERO_INDEX_KEY,
   atom,
+  DefaultColorStyle,
 } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
 
@@ -57,6 +58,7 @@ const customTools = [
 
 // Continuous thickness support for Pen/Brush
 const currentThicknessSignal = atom('currentThickness', 7);
+const currentOpacitySignal = atom('currentOpacity', 1);
 const currentIsBrushSignal = atom('currentIsBrush', false);
 const currentBrushTypeSignal = atom('brushType', 'normal');
 
@@ -182,7 +184,8 @@ function AppContent() {
   // Set dark mode as default on first mount
   useEffect(() => {
     editor.user.updateUserPreferences({ colorScheme: "dark" });
-  }, []);
+    editor.setStyleForNextShapes(DefaultColorStyle, 'white');
+  }, [editor]);
 
   const setImportProgress = (msg: string) => {
     window.api.log(`[Import Progress] ${msg}`);
@@ -326,21 +329,24 @@ function AppContent() {
   useEffect(() => {
     // Expose signals for external components
     (window as any).currentThicknessSignal = currentThicknessSignal;
+    (window as any).currentOpacitySignal = currentOpacitySignal;
     (window as any).currentIsBrushSignal = currentIsBrushSignal;
     (window as any).currentBrushTypeSignal = currentBrushTypeSignal;
 
-    // Inject current thickness into new draw shapes
+    // Inject current thickness and opacity into new draw shapes
     const cleanupThickness = editor.sideEffects.registerBeforeCreateHandler(
       "shape",
       (shape) => {
         if (shape.type === "draw") {
           const thickness = currentThicknessSignal.get();
+          const opacity = currentOpacitySignal.get();
           const isBrush = currentIsBrushSignal.get();
           const brushType = currentBrushTypeSignal.get();
-          window.api.log(`[Pen] Converting to custom-draw: thickness ${thickness}, isBrush ${isBrush}, type ${brushType}`);
+          window.api.log(`[Pen] Converting to custom-draw: thickness ${thickness}, opacity ${opacity}, isBrush ${isBrush}, type ${brushType}`);
           return {
             ...shape,
             type: "custom-draw",
+            opacity,
             meta: {
               ...shape.meta,
               thickness,

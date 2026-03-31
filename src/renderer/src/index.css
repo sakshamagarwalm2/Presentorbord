@@ -6,6 +6,10 @@
 .tldraw__editor {
     /* Override tldraw laser color to Neon Red */
     --color-laser: #ff0033 !important;
+    
+    /* Force tldraw's 'black' and 'white' colors to not invert in dark mode */
+    --tl-color-black: #000000 !important;
+    --tl-color-white: #ffffff !important;
 }
 
 /* Force a completely black background for the canvas and editor */

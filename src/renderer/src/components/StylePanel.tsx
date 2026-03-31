@@ -1,5 +1,6 @@
 import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
-import { Check } from 'lucide-react'
+import { Check, SlidersHorizontal } from 'lucide-react'
+import { useState } from 'react'
 
 /* ------------------------------------------------------------------ */
 /*  Color Definitions & Themes                                         */
@@ -12,7 +13,7 @@ interface ColorTheme {
 }
 
 const COLOR_THEMES: Record<string, ColorTheme> = {
-  black: { bg: 'bg-zinc-800 text-white dark:bg-zinc-100 dark:text-zinc-900', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
+  black: { bg: 'bg-black text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
   grey: { bg: 'bg-zinc-500 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
   'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-300' },
   violet: { bg: 'bg-violet-600 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-500' },
@@ -24,7 +25,7 @@ const COLOR_THEMES: Record<string, ColorTheme> = {
   'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-900/40', border: 'border-emerald-300' },
   red: { bg: 'bg-red-500 text-white', shadow: 'shadow-red-200 dark:shadow-red-900/40', border: 'border-red-400' },
   'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-900/40', border: 'border-rose-300' },
-  white: { bg: 'bg-white text-black border border-gray-200', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
+  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
 }
 
 const FILL_ICONS: Record<string, React.FC<any>> = {
@@ -60,6 +61,7 @@ const OPACITIES = [0.1, 0.25, 0.5, 0.75, 1]
 
 export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const editor = useEditor()
+  const [showCustomThickness, setShowCustomThickness] = useState(false)
   
   const currentColor = useValue('color', () => {
     const shared = editor.getSharedStyles().get(DefaultColorStyle)
@@ -106,8 +108,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       return isMixed ? 1 : firstOpacity
     }
     // @ts-ignore
-    if (editor.getOpacityForNextShape) return editor.getOpacityForNextShape()
-    return 1
+    return (window.currentOpacitySignal?.get() ?? 1)
   }, [editor])
 
   if (!isVisible) return null
@@ -173,10 +174,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       })))
     }
     // @ts-ignore
-    if (editor.setOpacityForNextShape) {
-        // @ts-ignore
-        editor.setOpacityForNextShape(opacity)
-    }
+    window.currentOpacitySignal?.set(opacity)
   }
 
   const theme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']
@@ -287,20 +285,44 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
             </div>
             <p className="text-[10px] font-medium text-gray-500">{Math.round(currentThickness)}px</p>
          </div>
-          <input 
-             type="range"
-             min="1"
-             max="70"
-             step="1"
-             value={currentThickness}
-             onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
-             className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-          />
-          <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
-              <span>1px</span>
-              <span>35px</span>
-              <span>70px</span>
-          </div>
+         
+         <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 4, 6, 8, 12].map(t => (
+              <button 
+                key={t}
+                onClick={() => handleThicknessChange(t)}
+                className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${currentThickness === t ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+              >
+                {t}
+              </button>
+            ))}
+            <button 
+              onClick={() => setShowCustomThickness(!showCustomThickness)}
+              className={`p-1.5 rounded-lg transition-all ${showCustomThickness ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+              title="Custom Thickness"
+            >
+              <SlidersHorizontal size={14} />
+            </button>
+         </div>
+
+         {showCustomThickness && (
+           <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+              <input 
+                type="range"
+                min="1"
+                max="30"
+                step="1"
+                value={currentThickness}
+                onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
+                className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+              />
+              <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
+                  <span>1px</span>
+                  <span>15px</span>
+                  <span>30px</span>
+              </div>
+           </div>
+         )}
       </div>
 
       {/* Opacity Buttons */}
@@ -321,7 +343,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
                             }
                         `}
                      >
-                         {op * 100}%
+                         {Math.round(op * 100)}%
                      </button>
                  )
              })}
