@@ -64,12 +64,12 @@ function getFreehandOptions(
         size,
         last: isComplete,
         simulatePressure,
-        thinning: 0.5,
+        thinning: 0.4,
         smoothing: 0.5,
         streamline: 0.2,
         easing: (t: number) => Math.sin((t * Math.PI) / 2),
-        start: { taper: size * 1.5, cap: true, easing: (t: number) => t * t },
-        end: { taper: size * 2.0, cap: true, easing: (t: number) => 1 - (1 - t) * (1 - t) },
+        start: { taper: size * 0.2, cap: true, easing: (t: number) => t * t },
+        end: { taper: size * 0.2, cap: true, easing: (t: number) => 1 - (1 - t) * (1 - t) },
       }
 
     case 'highlighter':
