@@ -1,24 +1,29 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { Editor } from '@tldraw/tldraw'
+import { Editor, createShapeId, Vec } from '@tldraw/tldraw'
 
 /**
- * Custom hook that implements a "stroke eraser" – an eraser that only deletes
- * shapes whose bounds are directly hit by the pointer, rather than tldraw's
- * default behaviour of queueing everything for bulk deletion.
- *
- * When active, this hook intercepts pointer events on the tldraw canvas and
- * calls `editor.getShapesAtPoint()` + `editor.deleteShapes()` in real-time
- * as the pointer moves.
+ * Robust distance from point P to line segment AB
+ */
+function distToSegment(p: Vec, a: Vec, b: Vec): number {
+  const l2 = Vec.Dist2(a, b)
+  if (l2 === 0) return Vec.Dist(p, a)
+  let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2
+  t = Math.max(0, Math.min(1, t))
+  return Vec.Dist(p, new Vec(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)))
+}
+
+/**
+ * Custom hook that implements a "stroke eraser" or "precision eraser"
  */
 export function useStrokeEraser(
   editor: Editor | null,
   active: boolean,
   eraserSize: number,
+  mode: 'shape' | 'stroke' | 'precision' = 'stroke',
 ) {
   const isPointerDownRef = useRef(false)
   const rafRef = useRef<number | null>(null)
 
-  // Convert screen coordinates to page coordinates using the editor camera
   const screenToPage = useCallback(
     (screenX: number, screenY: number) => {
       if (!editor) return { x: 0, y: 0 }
@@ -36,67 +41,150 @@ export function useStrokeEraser(
         hitInside: true,
       })
 
-      if (shapes.length === 0) {
-          // Log occasionally to avoid spam, but enough to see it's working
-          if (Math.random() < 0.1) {
-              console.log(`[StrokeEraser] Searching at point`, pagePoint, `(Margin: ${eraserSize}) - No shapes found.`)
-          }
-          return;
-      }
+      if (shapes.length === 0) return
 
-      if (shapes.length > 0) {
-        // Detailed info about what was found
-        const foundDetails = shapes.map(s => {
-            const isCustom = s.type === 'custom-draw';
-            const isSuper = s.type === 'super-pen';
-            let details = `[${s.type}]`;
-            if (isCustom) details += ` pen:${s.meta?.brushType || 'standard'}`;
-            if (isSuper) details += ` mode:${(s as any).props?.mode}`;
-            return details;
-        });
-        
-        console.log(`[StrokeEraser] Found ${shapes.length} shapes:`, foundDetails.join(', '), pagePoint)
-        
-        // Filter out locked shapes and non-erasable shapes (like images used as slide backgrounds)
-        const erasable = shapes.filter((s) => {
-          const isLocked = editor.isShapeOrAncestorLocked(s)
-          const isBackground = s.type === 'image' && s.parentId === editor.getCurrentPageId()
+      const erasable = shapes.filter((s) => {
+        const isLocked = editor.isShapeOrAncestorLocked(s)
+        const isBackground = s.type === 'image' && s.parentId === editor.getCurrentPageId()
+        return !isLocked && !isBackground
+      })
+
+      if (erasable.length === 0) return
+
+      if (mode === 'precision') {
+        const toDelete: string[] = []
+        const toCreate: any[] = []
+
+        erasable.forEach((shape) => {
+          let points: any[] = []
+          let isSuper = false
+          let isCustom = false
+
+          if (shape.type === 'super-pen') {
+            points = (shape as any).props.points || []
+            isSuper = true
+          } else if (shape.type === 'custom-draw') {
+            // Flatten segments into a single points array for splitting
+            const segments = (shape as any).props.segments || []
+            segments.forEach((seg: any) => {
+                seg.points.forEach((p: any) => points.push(p))
+            })
+            isCustom = true
+          }
+
+          if (points.length === 0) {
+            console.log(`[PrecisionEraser] DELETE: Non-splittable or empty shape ${shape.id} (${shape.type})`)
+            toDelete.push(shape.id)
+            return
+          }
+
+          // Use local coordinates for distance check
+          const localPoint = new Vec(pagePoint.x - shape.x, pagePoint.y - shape.y)
           
-          if (isLocked) console.log(`[StrokeEraser] SKIPPING: Shape ${s.id} is LOCKED.`)
-          if (isBackground) console.log(`[StrokeEraser] SKIPPING: Shape ${s.id} is SLIDE BACKGROUND.`)
-          
-          return !isLocked && !isBackground
+          // Step 1: Identify which segments are hit by the eraser
+          // A segment (i, i+1) is hit if either point is inside OR the segment passes through
+          const keepIndices: number[] = []
+          const removedIndices: Set<number> = new Set()
+
+          for (let i = 0; i < points.length; i++) {
+            const p = points[i]
+            const d = Vec.Dist(new Vec(p.x, p.y), localPoint)
+            
+            // If the point itself is in the eraser, remove it
+            if (d <= eraserSize) {
+              removedIndices.add(i)
+              continue
+            }
+
+            // Also check the segment leading to the next point
+            if (i < points.length - 1) {
+              const nextP = points[i+1]
+              const dSeg = distToSegment(localPoint, new Vec(p.x, p.y), new Vec(nextP.x, nextP.y))
+              if (dSeg <= eraserSize) {
+                // If the segment is hit, we mark BOTH points for potential removal 
+                // OR we just ensure a split happens here. 
+                // To be safe and precise, if a segment is hit, we split the stroke.
+                removedIndices.add(i)
+                removedIndices.add(i+1)
+              }
+            }
+          }
+
+          // Step 2: Build kept points
+          for (let i = 0; i < points.length; i++) {
+            if (!removedIndices.has(i)) {
+              keepIndices.push(i)
+            }
+          }
+
+          if (keepIndices.length === 0) {
+            toDelete.push(shape.id)
+            console.log(`[PrecisionEraser] DELETE: Entire stroke ${shape.id} erased.`)
+          } else if (keepIndices.length < points.length) {
+            toDelete.push(shape.id)
+            
+            const segments: any[][] = []
+            let currentSegment: any[] = []
+            
+            for (let i = 0; i < keepIndices.length; i++) {
+              const currentIndex = keepIndices[i]
+              currentSegment.push(points[currentIndex])
+              
+              const nextIndex = keepIndices[i+1]
+              if (nextIndex === undefined || nextIndex !== currentIndex + 1) {
+                if (currentSegment.length > 0) {
+                  segments.push(currentSegment)
+                }
+                currentSegment = []
+              }
+            }
+
+            console.log(`[PrecisionEraser] SPLIT: ${shape.id} (${shape.type}) -> ${segments.length} parts.`)
+            
+            segments.forEach((seg) => {
+              if (isSuper) {
+                toCreate.push({
+                  ...shape,
+                  id: createShapeId(),
+                  x: shape.x,
+                  y: shape.y,
+                  props: { ...shape.props, points: seg }
+                })
+              } else if (isCustom) {
+                toCreate.push({
+                  ...shape,
+                  id: createShapeId(),
+                  x: shape.x,
+                  y: shape.y,
+                  props: { 
+                    ...shape.props, 
+                    segments: [{ type: 'free', points: seg.map(p => ({ x: p.x, y: p.y, z: p.z || 0.5 })) }] 
+                  }
+                })
+              }
+            })
+          }
         })
 
-        if (erasable.length > 0) {
-          const deleteDetails = erasable.map(s => {
-             if (s.type === 'custom-draw') return `CustomDraw(${s.meta?.brushType || 'pen'})`;
-             if (s.type === 'super-pen') return `SuperPen(${(s as any).props?.mode})`;
-             return s.type;
-          });
-          
-          console.log(`[StrokeEraser] ERASING:`, deleteDetails.join(', '))
-          editor.deleteShapes(erasable.map((s) => s.id))
-        } else {
-          console.log(`[StrokeEraser] RESULT: No erasable shapes at this point after filtering.`)
-        }
+        if (toDelete.length > 0) editor.deleteShapes(toDelete)
+        if (toCreate.length > 0) editor.createShapes(toCreate)
+      } else {
+        editor.deleteShapes(erasable.map((s) => s.id))
       }
     },
-    [editor, eraserSize, screenToPage],
+    [editor, eraserSize, screenToPage, mode],
   )
 
   useEffect(() => {
     if (!active || !editor) return
 
-    console.log(`[StrokeEraser] Activated with size ${eraserSize}`)
+    console.log(`[Eraser] Activated: Mode=${mode}, Size=${eraserSize}`)
 
     const container = document.querySelector('.tl-container') as HTMLElement
     if (!container) return
 
     const onPointerDown = (e: PointerEvent) => {
-      // Only respond to pen and mouse, not touch (touch is handled by palm eraser)
       if (e.pointerType === 'touch') return
-      console.log(`[StrokeEraser] Pointer Down: ${e.pointerType} at (${e.clientX}, ${e.clientY})`)
       isPointerDownRef.current = true
       eraseAtPoint(e.clientX, e.clientY)
     }
@@ -105,7 +193,6 @@ export function useStrokeEraser(
       if (!isPointerDownRef.current) return
       if (e.pointerType === 'touch') return
 
-      // Throttle with rAF
       if (rafRef.current !== null) return
       rafRef.current = requestAnimationFrame(() => {
         eraseAtPoint(e.clientX, e.clientY)
@@ -136,5 +223,7 @@ export function useStrokeEraser(
         rafRef.current = null
       }
     }
-  }, [active, editor, eraseAtPoint])
+  }, [active, editor, eraseAtPoint, mode, eraserSize])
 }
+
+
