@@ -39,6 +39,7 @@ import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
 import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
 import { SuperPenTool } from "./tools/SuperPenTool";
+import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
 const customShapeUtils = [
@@ -56,6 +57,7 @@ const customTools = [
   GraphAxes4Tool,
   LassoTool,
   SuperPenTool,
+  PrecisionEraserTool,
 ];
 import {
   currentThicknessSignal,

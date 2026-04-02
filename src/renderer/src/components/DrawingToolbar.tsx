@@ -38,6 +38,7 @@ import {
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
+import { currentEraserSizeSignal } from '../store/styleSignals'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -309,10 +310,10 @@ function EraserGroupButton({
   activeTheme,
 }: {
   activeTool: string
-  eraserMode: 'shape' | 'stroke' | 'precision'
+  eraserMode: 'shape' | 'precision'
   eraserSize: number
   onSelectTool: () => void
-  onSelectMode: (mode: 'shape' | 'stroke' | 'precision') => void
+  onSelectMode: (mode: 'shape' | 'precision') => void
   onSelectSize: (size: number) => void
   onClearPage: () => void
   activeTheme?: ColorTheme
@@ -333,8 +334,8 @@ function EraserGroupButton({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const isActive = activeTool === 'eraser' || activeTool === 'stroke-eraser'
-  const ActiveIcon = eraserMode === 'shape' ? Eraser : (eraserMode === 'stroke' ? Scissors : Crosshair)
+  const isActive = activeTool === 'eraser' || activeTool === 'precision-eraser'
+  const ActiveIcon = eraserMode === 'shape' ? Eraser : Crosshair
 
   return (
     <div className="relative" ref={flyoutRef}>
@@ -350,7 +351,7 @@ function EraserGroupButton({
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
             }
           `}
-          title={eraserMode === 'shape' ? 'Shape Eraser' : (eraserMode === 'stroke' ? 'Stroke Eraser' : 'Precision Eraser')}
+          title={eraserMode === 'shape' ? 'Shape Eraser' : 'Precision Eraser'}
         >
           <ActiveIcon size={20} />
         </button>
@@ -393,23 +394,6 @@ function EraserGroupButton({
           >
             <Eraser size={16} />
             Shape Eraser
-          </button>
-
-          <button
-            onClick={() => {
-              onSelectMode('stroke')
-              setIsOpen(false)
-            }}
-            className={`
-              flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
-              ${eraserMode === 'stroke'
-                ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
-                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-              }
-            `}
-          >
-            <Scissors size={16} />
-            Stroke Eraser
           </button>
 
           <button
@@ -589,7 +573,7 @@ function ShapeGroupButton({
                     flex flex-col items-center justify-center gap-0.5 p-2 rounded-lg transition-all
                     ${isActive
                       ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
                     }
                   `}
                   title={shape.label}
@@ -983,15 +967,15 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
   }, [stylePanelVisible])
 
   // Eraser state
-  const [eraserMode, setEraserMode] = useState<'shape' | 'stroke' | 'precision'>('shape')
+  const [eraserMode, setEraserMode] = useState<'shape' | 'precision'>('shape')
   const [eraserSize, setEraserSize] = useState(12)
 
-  // Determine if stroke or precision eraser is currently active
-  const isCustomEraserActive = (eraserMode === 'stroke' || eraserMode === 'precision') && activeTool === 'eraser'
+  // Determine if precision eraser is currently active
+  const isCustomEraserActive = eraserMode === 'precision' && activeTool === 'precision-eraser'
 
 
 
-  // Activate stroke eraser hook
+  // Activate stroke eraser hook (mainly for precision eraser cursor overlay)
   useStrokeEraser(editor, isCustomEraserActive, eraserSize, eraserMode)
 
   const selectTool = (toolId: string) => {
@@ -1041,13 +1025,20 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
   }
 
   const handleEraserSelect = () => {
-    // Always use tldraw's eraser tool; the stroke eraser hooks into it
-    editor.setCurrentTool('eraser')
+    if (eraserMode === 'precision') {
+      editor.setCurrentTool('precision-eraser')
+    } else {
+      editor.setCurrentTool('eraser')
+    }
   }
 
-  const handleEraserModeChange = (mode: 'shape' | 'stroke' | 'precision') => {
+  const handleEraserModeChange = (mode: 'shape' | 'precision') => {
     setEraserMode(mode)
-    editor.setCurrentTool('eraser')
+    if (mode === 'precision') {
+      editor.setCurrentTool('precision-eraser')
+    } else {
+      editor.setCurrentTool('eraser')
+    }
   }
 
   const canUndo = useValue('canUndo', () => editor.getCanUndo(), [editor])
@@ -1297,14 +1288,17 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
-          {/* Eraser group (shape eraser / stroke eraser + size) */}
+          {/* Eraser group (shape eraser + size) */}
           <EraserGroupButton
             activeTool={activeTool}
             eraserMode={eraserMode}
             eraserSize={eraserSize}
             onSelectTool={handleEraserSelect}
             onSelectMode={handleEraserModeChange}
-            onSelectSize={setEraserSize}
+            onSelectSize={(s) => {
+              setEraserSize(s)
+              currentEraserSizeSignal.set(s)
+            }}
             onClearPage={handleClearPage}
             activeTheme={activeColorTheme}
           />
