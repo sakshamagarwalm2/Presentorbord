@@ -6,6 +6,7 @@ import {
   Circle2d,
   Polyline2d,
   Vec,
+  TLResizeInfo,
 } from 'tldraw'
 import { getStroke } from 'perfect-freehand'
 
@@ -164,22 +165,35 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   static override type = 'super-pen' as const
 
   override isAspectRatioLocked = () => false
-  override canResize = () => false
+  override canResize = () => true
   override canBind = () => false
-  override hideResizeHandles = () => true
-  override hideRotateHandle = () => true
-  override hideSelectionBoundsFg = () => true
-  override hideSelectionBoundsBg = () => true
+  // Removed hideResizeHandles/hideRotateHandle/etc to allow resizing
 
-  override getDefaultProps(): TSuperPenShape['props'] {
+  override onResize = (shape: TSuperPenShape, info: TLResizeInfo<TSuperPenShape>) => {
+    const { initialBounds, handle, scaleX, scaleY } = info
+    
+    // Scale points relative to the corner/handle being dragged
+    const newPoints = shape.props.points.map(p => {
+      // Find relative position in initial bounds
+      const rx = (p.x - initialBounds.minX) / initialBounds.width
+      const ry = (p.y - initialBounds.minY) / initialBounds.height
+      
+      // Calculate new position based on scale
+      // Actually tldraw handles the shape's x,y position change
+      // so we only need to scale the local points
+      return {
+        x: p.x * scaleX,
+        y: p.y * scaleY,
+        z: p.z // Pressure stays same
+      }
+    })
+
     return {
-      points: [],
-      color: '#1a1a1a',
-      size: 3,
-      opacity: 1,
-      isComplete: false,
-      mode: 'pen',
-      dash: 'solid',
+      props: {
+        points: newPoints,
+        // Optional: scale size if desired, but usually freehand looks better with fixed size or scaled size
+        size: shape.props.size * Math.abs((scaleX + scaleY) / 2)
+      }
     }
   }
 

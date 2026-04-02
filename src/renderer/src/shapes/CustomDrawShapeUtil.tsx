@@ -5,6 +5,7 @@ import {
   getDefaultColorTheme,
   Polyline2d,
   Vec,
+  TLResizeInfo,
 } from "@tldraw/tldraw";
 
 // Helper to convert points to SVG path data
@@ -39,6 +40,29 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
       scale: 1,
     };
   }
+
+  override canResize = (_shape: TLDrawShape) => true;
+
+  override onResize = (shape: TLDrawShape, info: TLResizeInfo<TLDrawShape>) => {
+    const { scaleX, scaleY } = info;
+
+    const newSegments = shape.props.segments.map((segment: any) => {
+      return {
+        ...segment,
+        points: segment.points.map((p: any) => ({
+          ...p,
+          x: p.x * scaleX,
+          y: p.y * scaleY,
+        })),
+      };
+    });
+
+    return {
+      props: {
+        segments: newSegments,
+      },
+    };
+  };
 
   getGeometry(shape: TLDrawShape) {
     const points: Vec[] = [];

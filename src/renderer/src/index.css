@@ -20,6 +20,14 @@
     background-color: #000000 !important;
 }
 
+/* Ensure selection handles and UI overlays are interactive */
+.tl-overlays,
+.tl-ui-overlays,
+.tl-selection-proxy,
+.tl-corner-handle {
+    pointer-events: all !important;
+}
+
 body {
     background-color: #000000;
 }
