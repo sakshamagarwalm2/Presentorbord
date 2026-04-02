@@ -73,11 +73,9 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
     });
 
     if (points.length < 2) {
-      console.log(`[CustomDrawShapeUtil] getGeometry for shape ${shape.id} - not enough points:`, points.length)
       return new Polyline2d({ points: [new Vec(0, 0), new Vec(1, 1)] });
     }
 
-    // console.log(`[CustomDrawShapeUtil] getGeometry for shape ${shape.id} - points:`, points.length)
     return new Polyline2d({
       points,
     });

@@ -234,11 +234,25 @@ class Drawing extends StateNode {
         props: { isComplete: true },
       })
     } else {
+      // Normalize coordinates: set x,y to top-left and make points relative
+      let minX = Infinity
+      let minY = Infinity
+      for (const p of finalPoints) {
+        if (p.x < minX) minX = p.x
+        if (p.y < minY) minY = p.y
+      }
+
       this.editor.updateShape<TSuperPenShape>({
         id: this.shapeId,
         type: 'super-pen',
+        x: minX,
+        y: minY,
         props: {
-          points: finalPoints.map(p => ({ x: p.x, y: p.y, z: p.pressure })),
+          points: finalPoints.map(p => ({ 
+            x: p.x - minX, 
+            y: p.y - minY, 
+            z: p.pressure 
+          })),
           isComplete: true,
         },
       })

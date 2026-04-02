@@ -167,31 +167,34 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   override isAspectRatioLocked = () => false
   override canResize = () => true
   override canBind = () => false
-  // Removed hideResizeHandles/hideRotateHandle/etc to allow resizing
+
+  override getDefaultProps(): TSuperPenShape['props'] {
+    return {
+      points: [],
+      color: '#1a1a1a',
+      size: 3,
+      opacity: 1,
+      isComplete: false,
+      mode: 'pen',
+      dash: 'solid',
+    }
+  }
 
   override onResize = (shape: TSuperPenShape, info: TLResizeInfo<TSuperPenShape>) => {
-    const { initialBounds, handle, scaleX, scaleY } = info
+    const { scaleX, scaleY } = info
     
-    // Scale points relative to the corner/handle being dragged
+    // Points are now local to shape.x/y, so we just scale them
     const newPoints = shape.props.points.map(p => {
-      // Find relative position in initial bounds
-      const rx = (p.x - initialBounds.minX) / initialBounds.width
-      const ry = (p.y - initialBounds.minY) / initialBounds.height
-      
-      // Calculate new position based on scale
-      // Actually tldraw handles the shape's x,y position change
-      // so we only need to scale the local points
       return {
         x: p.x * scaleX,
         y: p.y * scaleY,
-        z: p.z // Pressure stays same
+        z: p.z 
       }
     })
 
     return {
       props: {
         points: newPoints,
-        // Optional: scale size if desired, but usually freehand looks better with fixed size or scaled size
         size: shape.props.size * Math.abs((scaleX + scaleY) / 2)
       }
     }
@@ -200,8 +203,7 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   override getGeometry(shape: TSuperPenShape) {
     const pts = shape.props.points
     if (!pts || pts.length < 2) {
-      const p = pts?.[0] ?? { x: 0, y: 0 }
-      return new Circle2d({ x: p.x, y: p.y, radius: 2, isFilled: true })
+      return new Circle2d({ x: 0, y: 0, radius: 2, isFilled: true })
     }
     return new Polyline2d({
       points: pts.map((p) => new Vec(p.x, p.y)),
