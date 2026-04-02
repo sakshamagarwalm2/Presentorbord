@@ -24,6 +24,8 @@ import { LoadingOverlay } from "./components/LoadingOverlay";
 import { NavigationPanel } from "./components/NavigationPanel";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { PageSelectionDialog } from "./components/PageSelectionDialog";
+import { AllSlidesGrid } from "./components/AllSlidesGrid";
+import { jsPDF } from "jspdf";
 
 import { GraphAxes1ShapeUtil } from "./shapes/graph/GraphAxes1ShapeUtil";
 import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
@@ -791,6 +793,233 @@ function AppContent() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
+  const [isAllSlidesGridVisible, setIsAllSlidesGridVisible] = useState(false);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgressExport] = useState("");
+
+  const addPage = useCallback(() => {
+    const pages = editor.getPages();
+    const sortedPages = pages.sort((a, b) => (a.index > b.index ? 1 : -1));
+    const currentPageId = editor.getCurrentPageId();
+    const newPageId = PageRecordType.createId();
+
+    const currentIndex = sortedPages.findIndex((p) => p.id === currentPageId);
+    let newIndex: string;
+    if (currentIndex >= 0 && currentIndex < sortedPages.length - 1) {
+      const curr = sortedPages[currentIndex].index;
+      const next = sortedPages[currentIndex + 1].index;
+      newIndex = curr.slice(0, -1) + String.fromCharCode(curr.charCodeAt(curr.length - 1) + 1);
+      if (newIndex >= next) newIndex = curr + "V";
+    } else {
+      const last = sortedPages[sortedPages.length - 1]?.index || "a0";
+      newIndex = last + "V";
+    }
+
+    editor.createPage({
+      id: newPageId,
+      name: `Page ${pages.length + 1}`,
+      index: newIndex as any,
+    });
+    editor.setCurrentPage(newPageId);
+    requestAnimationFrame(() => editor.zoomToFit());
+  }, [editor]);
+
+  const deletePage = useCallback((id: string) => {
+    const pages = editor.getPages();
+    if (pages.length <= 1) return;
+    editor.deletePage(id as any);
+    const thumbnailCache = (window as any).thumbnailCache;
+    if (thumbnailCache) delete thumbnailCache[id];
+  }, [editor]);
+
+  const duplicatePage = useCallback(async (targetPageId?: string) => {
+    const pages = editor.getPages();
+    const sortedPages = pages.sort((a, b) => (a.index > b.index ? 1 : -1));
+    const pageIdToDuplicate = targetPageId || editor.getCurrentPageId();
+    
+    // Gather shapes and their data
+    const shapeIds = Array.from(editor.getSortedChildIdsForParent(pageIdToDuplicate as any));
+    const shapeData = shapeIds.map((id) => editor.getShape(id)).filter(Boolean);
+
+    const newPageId = PageRecordType.createId();
+    const currentIdx = sortedPages.findIndex((p) => p.id === pageIdToDuplicate);
+    
+    let newIndex: string;
+    if (currentIdx >= 0 && currentIdx < sortedPages.length - 1) {
+      newIndex = sortedPages[currentIdx].index + "V";
+    } else {
+      const last = sortedPages[sortedPages.length - 1]?.index || "a0";
+      newIndex = last + "V";
+    }
+
+    editor.createPage({
+      id: newPageId,
+      name: `Page ${pages.length + 1}`,
+      index: newIndex as any,
+    });
+
+    editor.setCurrentPage(newPageId);
+
+    for (const shape of shapeData) {
+      if (!shape) continue;
+      const { id: _oldId, parentId: _oldParent, ...rest } = shape as any;
+      editor.createShape({
+        ...rest,
+        parentId: newPageId as any,
+      });
+    }
+
+    requestAnimationFrame(() => {
+      const bounds = editor.getCurrentPageBounds();
+      if (bounds) editor.zoomToBounds(bounds, { inset: 0 });
+      else editor.zoomToFit();
+    });
+  }, [editor]);
+
+  const handleMovePage = useCallback((fromId: string, toIndex: number) => {
+    const pages = editor.getPages();
+    const sortedPages = pages.sort((a, b) => (a.index > b.index ? 1 : -1));
+    const fromIndex = sortedPages.findIndex((p) => p.id === fromId);
+    if (fromIndex === -1 || fromIndex === toIndex) return;
+
+    const movingPage = sortedPages[fromIndex];
+    const reordered = [...sortedPages];
+    reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, movingPage);
+
+    editor.batch(() => {
+      for (let i = 0; i < reordered.length; i++) {
+        const original = sortedPages[i];
+        const moved = reordered[i];
+        if (original.id !== moved.id) {
+          editor.updatePage({ id: moved.id, index: original.index });
+        }
+      }
+    });
+  }, [editor]);
+
+  const handleExportImage = useCallback(async (targetPageId?: string) => {
+    const pageId = targetPageId || editor.getCurrentPageId();
+    const shapeIds = Array.from(editor.getSortedChildIdsForParent(pageId as any));
+    if (shapeIds.length === 0) return alert("Page is empty");
+
+    setIsExporting(true);
+    setExportProgressExport("Generating image...");
+
+    try {
+      const svg = await editor.getSvg(shapeIds);
+      if (!svg) throw new Error("Could not generate SVG");
+
+      const imageString = await new Promise<string>((resolve, reject) => {
+        const svgString = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx?.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        };
+        img.onerror = reject;
+        img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+      });
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = imageString;
+      downloadLink.download = `page-${pageId}.png`;
+      downloadLink.click();
+    } catch (e) {
+      console.error(e);
+      alert("Export failed");
+    } finally {
+      setIsExporting(false);
+      setExportProgressExport("");
+    }
+  }, [editor]);
+
+  const handleExportPdf = useCallback(async () => {
+    const pages = editor.getPages();
+    if (!pages.length) return;
+    const sortedPages = [...pages].sort((a, b) => (a.index > b.index ? 1 : -1));
+
+    setIsExporting(true);
+    setExportProgressExport("Initializing PDF export...");
+
+    const originalPageId = editor.getCurrentPageId();
+
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [1920, 1080],
+        compress: true,
+      });
+
+      for (let i = 0; i < sortedPages.length; i++) {
+        const page = sortedPages[i];
+        setExportProgressExport(`Processing page ${i + 1} of ${sortedPages.length}...`);
+        editor.setCurrentPage(page.id);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+        if (shapeIds.length === 0) {
+          if (i > 0) doc.addPage([1920, 1080], "landscape");
+          continue;
+        }
+
+        const isDarkMode = document.documentElement.classList.contains("dark") || 
+                           document.documentElement.classList.contains("tl-theme__dark") || 
+                           editor.user.getIsDarkMode();
+
+        const svg = await editor.getSvg(shapeIds, {
+          scale: 1,
+          background: false,
+          padding: 0,
+          darkMode: isDarkMode,
+        });
+
+        if (svg) {
+          const { dataUrl } = await new Promise<{ dataUrl: string }>((resolve, reject) => {
+            const svgString = new XMLSerializer().serializeToString(svg);
+            const canvas = document.createElement("canvas");
+            canvas.width = 1920;
+            canvas.height = 1080;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return reject("No context");
+
+            ctx.fillStyle = isDarkMode ? "#212529" : "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const img = new Image();
+            img.onload = () => {
+              const svgWidth = parseFloat(svg.getAttribute("width") || "1920");
+              const svgHeight = parseFloat(svg.getAttribute("height") || "1080");
+              const scale = Math.min(1920 / svgWidth, 1080 / svgHeight);
+              const destWidth = svgWidth * scale;
+              const destHeight = svgHeight * scale;
+              ctx.drawImage(img, 0, 0, svgWidth, svgHeight, (1920 - destWidth) / 2, (1080 - destHeight) / 2, destWidth, destHeight);
+              resolve({ dataUrl: canvas.toDataURL("image/jpeg", 0.8) });
+            };
+            img.onerror = reject;
+            img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
+          });
+
+          if (i > 0) doc.addPage([1920, 1080], "landscape");
+          doc.addImage(dataUrl, "JPEG", 0, 0, 1920, 1080);
+        }
+      }
+      doc.save("presentation.pdf");
+    } catch (e) {
+      console.error("PDF Export Error", e);
+      alert("PDF Export failed: " + e);
+    } finally {
+      editor.setCurrentPage(originalPageId);
+      setIsExporting(false);
+      setExportProgressExport("");
+    }
+  }, [editor]);
 
   useEffect(() => {
     const handleCloseAppRequest = () => {
@@ -844,6 +1073,12 @@ function AppContent() {
         onImport={handleImportClick}
         isOpen={leftSidebarOpen}
         onToggle={setLeftSidebarOpen}
+        onShowAllSlides={() => setIsAllSlidesGridVisible(true)}
+        addPage={addPage}
+        deletePage={deletePage}
+        duplicatePage={duplicatePage}
+        handleExportImage={handleExportImage}
+        handleExportPdf={handleExportPdf}
       />
       <ToolsSidebar
         onImportClick={handleImportClick}
@@ -892,9 +1127,9 @@ function AppContent() {
         onChange={handleProjectFileChange}
       />
       <LoadingOverlay
-        isVisible={isImporting}
-        message="Importing File"
-        subMessage={importProgress || "Please wait..."}
+        isVisible={isImporting || isExporting}
+        message={isImporting ? "Importing File" : "Exporting..."}
+        subMessage={importProgress || exportProgress || "Please wait..."}
       />
       <ConfirmDialog
         isVisible={confirmDialogVisible}
@@ -916,6 +1151,20 @@ function AppContent() {
         onConfirm={handleCopyShapesToPage}
         pages={editor.getPages()}
         currentPageId={editor.getCurrentPageId()}
+      />
+      <AllSlidesGrid
+        isVisible={isAllSlidesGridVisible}
+        onClose={() => setIsAllSlidesGridVisible(false)}
+        onSelectPage={(id) => editor.setCurrentPage(id as any)}
+        pages={editor.getPages()}
+        currentPageId={editor.getCurrentPageId()}
+        onAddPage={addPage}
+        onDuplicatePage={duplicatePage}
+        onDeletePage={deletePage}
+        onMovePage={handleMovePage}
+        onImport={handleImportClick}
+        onExportImage={handleExportImage}
+        onExportPdf={handleExportPdf}
       />
       {mode === "math" && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">

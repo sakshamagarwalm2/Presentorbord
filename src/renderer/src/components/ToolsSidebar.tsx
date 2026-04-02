@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
+import packageJson from "../../../../package.json";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
 import { getEmbedDef } from "../utils/embedUtils";
 
@@ -503,15 +504,39 @@ export function ToolsSidebar({
                 marginBottom: 16,
               }}
             />
-            <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-              ✨ Presentorbord
-            </h2>
-            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
+                ✨ Presentorbord
+              </h2>
+              <span style={{ 
+                background: 'rgba(59, 130, 246, 0.2)', 
+                color: '#60a5fa', 
+                padding: '2px 8px', 
+                borderRadius: 99, 
+                fontSize: 11, 
+                fontWeight: 600,
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}>
+                v{packageJson.version}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>
               An interactive digital whiteboard built for teaching and
               presenting. Features include multi-page support, PDF import,
               geometry tools (Ruler, Protractor, Compass), drawing with pen
               snapping, and much more.
             </p>
+            <div style={{ 
+              marginBottom: 20, 
+              padding: '10px 14px', 
+              background: 'rgba(255,255,255,0.05)', 
+              borderRadius: 10,
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+               <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>
+                🚀 <strong>Funded by Learn&Share</strong>
+              </p>
+            </div>
             <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
               Built with ❤️ using Electron, React, and tldraw.
             </p>

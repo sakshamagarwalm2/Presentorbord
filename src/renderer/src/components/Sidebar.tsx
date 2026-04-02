@@ -10,6 +10,7 @@ import {
   Upload,
   ChevronUp,
   ChevronDown,
+  LayoutGrid,
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { jsPDF } from "jspdf";
@@ -17,15 +18,28 @@ import { LoadingOverlay } from "./LoadingOverlay";
 
 // Global thumbnail cache so it persists across re-renders
 const thumbnailCache: Record<string, string> = {};
+(window as any).thumbnailCache = thumbnailCache;
 
 export function Sidebar({
   onImport,
   isOpen,
   onToggle,
+  onShowAllSlides,
+  addPage,
+  deletePage,
+  duplicatePage,
+  handleExportImage,
+  handleExportPdf,
 }: {
   onImport: () => void;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
+  onShowAllSlides: () => void;
+  addPage: () => void;
+  deletePage: (id: string) => void;
+  duplicatePage: () => void;
+  handleExportImage: () => void;
+  handleExportPdf: () => void;
 }) {
   const editor = useEditor();
   const pages = useValue("pages", () => {
@@ -40,8 +54,6 @@ export function Sidebar({
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
 
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportBtnRef = useRef<HTMLDivElement>(null);
 
@@ -103,99 +115,23 @@ export function Sidebar({
     return () => clearInterval(interval);
   }, [captureThumbnail, currentPageId]);
 
-  const addPage = () => {
+  const onAddPage = () => {
     captureThumbnail();
-    const newPageId = PageRecordType.createId();
-
-    // Calculate index to insert after current page
-    const currentIndex = sortedPages.findIndex((p) => p.id === currentPageId);
-    let newIndex: string;
-    if (currentIndex >= 0 && currentIndex < sortedPages.length - 1) {
-      // Insert between current and next page
-      const curr = sortedPages[currentIndex].index;
-      const next = sortedPages[currentIndex + 1].index;
-      newIndex =
-        curr.slice(0, -1) +
-        String.fromCharCode(curr.charCodeAt(curr.length - 1) + 1);
-      // Use a midpoint string if possible
-      if (newIndex >= next) {
-        newIndex = curr + "V";
-      }
-    } else {
-      // Append at end
-      const last = sortedPages[sortedPages.length - 1]?.index || "a0";
-      newIndex = last + "V";
-    }
-
-    editor.createPage({
-      id: newPageId,
-      name: `Page ${pages.length + 1}`,
-      index: newIndex as any,
-    });
-    editor.setCurrentPage(newPageId);
-    requestAnimationFrame(() => editor.zoomToFit());
+    addPage();
   };
 
-  const deletePage = (id: string, e: React.MouseEvent) => {
+  const onDeletePage = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (pages.length <= 1) return;
-    const pageId = id as any;
-    editor.deletePage(pageId);
-    delete thumbnailCache[id];
+    deletePage(id);
   };
 
   const deleteCurrentPage = () => {
-    if (pages.length <= 1) return;
-    editor.deletePage(currentPageId);
-    delete thumbnailCache[currentPageId];
+    deletePage(currentPageId);
   };
 
-  const duplicatePage = async () => {
+  const onDuplicatePage = async () => {
     captureThumbnail();
-
-    // Gather shapes and their data before switching pages
-    const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-    const shapeData = shapeIds.map((id) => editor.getShape(id)).filter(Boolean);
-
-    const newPageId = PageRecordType.createId();
-
-    // Calculate index to insert right after current page
-    const currentIdx = sortedPages.findIndex((p) => p.id === currentPageId);
-    let newIndex: string;
-    if (currentIdx >= 0 && currentIdx < sortedPages.length - 1) {
-      // Append 'V' to current index to place between current and next
-      newIndex = sortedPages[currentIdx].index + "V";
-    } else {
-      const last = sortedPages[sortedPages.length - 1]?.index || "a0";
-      newIndex = last + "V";
-    }
-
-    editor.createPage({
-      id: newPageId,
-      name: `Page ${pages.length + 1}`,
-      index: newIndex as any,
-    });
-
-    editor.setCurrentPage(newPageId);
-
-    // Recreate each shape on the new page with a fresh ID
-    for (const shape of shapeData) {
-      if (!shape) continue;
-      const { id: _oldId, parentId: _oldParent, ...rest } = shape as any;
-      editor.createShape({
-        ...rest,
-        parentId: newPageId as any,
-      });
-    }
-
-    requestAnimationFrame(() => {
-      const bounds = editor.getCurrentPageBounds();
-      if (bounds) {
-        editor.zoomToBounds(bounds, { inset: 0 });
-      } else {
-        editor.zoomToFit();
-      }
-    });
+    duplicatePage();
   };
 
   const selectPage = (id: string) => {
@@ -233,191 +169,14 @@ export function Sidebar({
     [sortedPages, editor],
   );
 
-  const handleExportImage = async () => {
+  const onExportImage = () => {
     setShowExportMenu(false);
-    const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-    if (shapeIds.length === 0) return alert("Page is empty");
-
-    setIsExporting(true);
-    setExportProgress("Generating image...");
-
-    try {
-      const svg = await editor.getSvg(shapeIds);
-      if (!svg) throw new Error("Could not generate SVG");
-
-      const imageString = await new Promise<string>((resolve, reject) => {
-        const svgString = new XMLSerializer().serializeToString(svg);
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        const img = new Image();
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/png"));
-        };
-        img.onerror = reject;
-        img.src =
-          "data:image/svg+xml;base64," +
-          btoa(unescape(encodeURIComponent(svgString)));
-      });
-
-      const downloadLink = document.createElement("a");
-      downloadLink.href = imageString;
-      downloadLink.download = `page-${currentPageId}.png`;
-      downloadLink.click();
-    } catch (e) {
-      console.error(e);
-      alert("Export failed");
-    } finally {
-      setIsExporting(false);
-      setExportProgress("");
-    }
+    handleExportImage();
   };
 
-  const handleExportPdf = async () => {
+  const onExportPdf = () => {
     setShowExportMenu(false);
-    if (!pages.length) return;
-
-    setIsExporting(true);
-    setExportProgress("Initializing PDF export...");
-
-    // Save current page to restore later
-    const originalPageId = editor.getCurrentPageId();
-
-    try {
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "px",
-        format: [1920, 1080], // Default standard 16:9
-        compress: true,
-      });
-
-      for (let i = 0; i < sortedPages.length; i++) {
-        const page = sortedPages[i];
-        setExportProgress(
-          `Processing page ${i + 1} of ${sortedPages.length}...`,
-        );
-
-        // Switch to page to ensure assets load/render
-        editor.setCurrentPage(page.id);
-
-        // Wait a bit for rendering
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-        // If empty page, just add a blank white slide
-        if (shapeIds.length === 0) {
-          if (i > 0) doc.addPage([1920, 1080], "landscape");
-          continue;
-        }
-
-        // Detect Theme: Check Tldraw's internal state or DOM
-        // Tldraw keeps theme in local storage or editor instance
-        // We'll check the DOM class which Tldraw uses (.tl-theme__dark)
-        const isDarkMode =
-          document.documentElement.classList.contains("dark") ||
-          document.documentElement.classList.contains("tl-theme__dark") ||
-          document.body.classList.contains("tl-theme__dark") ||
-          editor.user.getIsDarkMode();
-
-        const svg = await editor.getSvg(shapeIds, {
-          scale: 1,
-          background: false,
-          padding: 0, // No padding for full coverage
-          darkMode: isDarkMode, // Hint to Tldraw to render dark mode colors
-        });
-
-        if (svg) {
-          const { dataUrl } = await new Promise<{ dataUrl: string }>(
-            (resolve, reject) => {
-              const svgString = new XMLSerializer().serializeToString(svg);
-              const canvas = document.createElement("canvas");
-              const targetWidth = 1920;
-              const targetHeight = 1080;
-
-              // Set canvas to fixed standard size
-              canvas.width = targetWidth;
-              canvas.height = targetHeight;
-
-              const ctx = canvas.getContext("2d");
-              if (!ctx) return reject("No context");
-
-              // Set Background Color
-              // Tldraw Dark Mode background is usually #212529
-              ctx.fillStyle = isDarkMode ? "#212529" : "#ffffff";
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-              const img = new Image();
-              img.onload = () => {
-                // Calculate dimensions to fit within standard canvas
-                const svgWidth = parseFloat(
-                  svg.getAttribute("width") || "1920",
-                );
-                const svgHeight = parseFloat(
-                  svg.getAttribute("height") || "1080",
-                );
-
-                // Scale to fit (contain), allowing upscale
-                const padding = 0; // Full bleed
-                const availableWidth = targetWidth - padding * 2;
-                const availableHeight = targetHeight - padding * 2;
-
-                const scale = Math.min(
-                  availableWidth / svgWidth,
-                  availableHeight / svgHeight,
-                );
-
-                const destWidth = svgWidth * scale;
-                const destHeight = svgHeight * scale;
-
-                // Center content
-                const destX = (targetWidth - destWidth) / 2;
-                const destY = (targetHeight - destHeight) / 2;
-
-                ctx.drawImage(
-                  img,
-                  0,
-                  0,
-                  svgWidth,
-                  svgHeight,
-                  destX,
-                  destY,
-                  destWidth,
-                  destHeight,
-                );
-
-                resolve({
-                  dataUrl: canvas.toDataURL("image/jpeg", 0.8),
-                });
-              };
-              img.onerror = reject;
-              img.src =
-                "data:image/svg+xml;base64," +
-                btoa(unescape(encodeURIComponent(svgString)));
-            },
-          );
-
-          // Handle PDF Pages (Standard 1920x1080)
-          if (i > 0) doc.addPage([1920, 1080], "landscape");
-          else {
-            // First page is already created by default with correct dimensions
-          }
-
-          doc.addImage(dataUrl, "JPEG", 0, 0, 1920, 1080);
-        }
-      }
-
-      doc.save("presentation.pdf");
-    } catch (e) {
-      console.error("PDF Export Error", e);
-      alert("PDF Export failed: " + e);
-    } finally {
-      // Restore original state
-      editor.setCurrentPage(originalPageId);
-      setIsExporting(false);
-      setExportProgress("");
-    }
+    handleExportPdf();
   };
 
   return (
@@ -447,6 +206,14 @@ export function Sidebar({
             </h2>
             <div className="flex gap-1 items-center">
               <button
+                onClick={onShowAllSlides}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                title="Show All Slides (Grid View)"
+              >
+                <LayoutGrid size={14} />
+              </button>
+              
+              <button
                 onClick={onImport}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                 title="Import PDF/PPT"
@@ -465,13 +232,13 @@ export function Sidebar({
                 {showExportMenu && (
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-[100000] overflow-hidden">
                     <button
-                      onClick={handleExportImage}
+                      onClick={onExportImage}
                       className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
                     >
                       <span>Image (Current Page)</span>
                     </button>
                     <button
-                      onClick={handleExportPdf}
+                      onClick={onExportPdf}
                       className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700"
                     >
                       <span>PDF (All Pages)</span>
@@ -481,14 +248,14 @@ export function Sidebar({
               </div>
 
               <button
-                onClick={addPage}
+                onClick={onAddPage}
                 className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors"
                 title="Add Page"
               >
                 <Plus size={14} />
               </button>
               <button
-                onClick={duplicatePage}
+                onClick={onDuplicatePage}
                 className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500 transition-colors"
                 title="Duplicate Page"
               >
@@ -515,19 +282,18 @@ export function Sidebar({
           <div
             className="sidebar-pages flex-1 overflow-y-auto p-2 space-y-2"
             style={{
-              direction: "rtl",
               scrollbarWidth: "thin",
               scrollbarColor: "rgba(34, 197, 94, 0.5) transparent",
             }}
           >
-            <div style={{ direction: "ltr" }}>
+            <div>
             {sortedPages.map((page, i) => (
               <PageItem
                 key={page.id}
                 page={page}
                 isSelected={currentPageId === page.id}
                 onClick={() => selectPage(page.id)}
-                onDelete={deletePage}
+                onDelete={onDeletePage}
                 index={i}
                 isDragging={draggedId === page.id}
                 isDropTarget={dropTargetIndex === i}
@@ -561,12 +327,6 @@ export function Sidebar({
           </div>
         </div>
       </div>
-
-      <LoadingOverlay
-        isVisible={isExporting}
-        message="Exporting..."
-        subMessage={exportProgress}
-      />
     </>
   );
 }
