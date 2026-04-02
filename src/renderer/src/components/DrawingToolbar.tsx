@@ -795,8 +795,8 @@ function EraserCursorOverlay({ size, active }: { size: number; active: boolean }
 /* ------------------------------------------------------------------ */
 
 const SELECT_GROUP: ToolDef[] = [
-  { id: 'select', label: 'Select', icon: MousePointer2 },
   { id: 'lasso', label: 'Lasso Select', icon: Lasso },
+  { id: 'select', label: 'Select', icon: MousePointer2 },
   { id: 'hand', label: 'Hand', icon: Hand },
 ]
 

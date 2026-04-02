@@ -66,9 +66,16 @@ class LassoDragging extends StateNode {
 		// Highlight selected shapes so user can see them without switching tool
 		if (selectedIds.length > 0) {
 			this.editor.setHintingShapes(selectedIds)
+			// Automatically switch to select tool so the user can move/transform selected shapes
+            // Only if NOT holding shift (if holding shift, assume they want to lasso more)
+            if (!this.editor.inputs.shiftKey) {
+			    this.editor.setCurrentTool('select')
+            } else {
+                this.parent.transition('idle')
+            }
+		} else {
+			this.parent.transition('idle')
 		}
-
-		this.parent.transition('idle')
 	}
 
 	private cancel() {
@@ -88,14 +95,19 @@ class LassoDragging extends StateNode {
 		for (const shape of shapes) {
 			if (!shape) continue
 			
-			// For simplicity, check if the shape's center is inside the polygon
-            // A more robust implementation would check bounding box intersection
 			const bounds = this.editor.getShapePageBounds(shape)
             if (!bounds) continue
 
-			const center = { x: bounds.midX, y: bounds.midY }
+            // Check if any corner or the center is inside the polygon
+            const pointsToCheck = [
+                { x: bounds.minX, y: bounds.minY },
+                { x: bounds.maxX, y: bounds.minY },
+                { x: bounds.minX, y: bounds.maxY },
+                { x: bounds.maxX, y: bounds.maxY },
+                { x: bounds.midX, y: bounds.midY },
+            ]
 			
-			if (this.isPointInPolygon(center, this.points)) {
+			if (pointsToCheck.some(p => this.isPointInPolygon(p, this.points))) {
 				console.log('Selected shape:', shape.id, shape.type)
 				shapesToSelect.push(shape.id)
 			}
@@ -144,6 +156,17 @@ class LassoIdle extends StateNode {
 
 	override onPointerDown: TLEventHandlers['onPointerDown'] = (info) => {
 		console.log('LassoIdle: onPointerDown')
+        
+        // If clicking on a selected shape, switch to select tool so it can be moved
+        const { currentPagePoint } = this.editor.inputs
+        const shapeAtPoint = this.editor.getShapeAtPoint(currentPagePoint)
+        if (shapeAtPoint && this.editor.getSelectedShapeIds().includes(shapeAtPoint.id)) {
+            this.editor.setCurrentTool('select')
+            // Transition immediately to the pointer down state of the select tool if possible
+            // but usually just switching tool is enough for the next move
+            return
+        }
+
 		this.parent.transition('dragging', info)
 	}
 }
