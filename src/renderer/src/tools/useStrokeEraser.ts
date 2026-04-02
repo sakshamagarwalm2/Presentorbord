@@ -35,16 +35,50 @@ export function useStrokeEraser(
         margin: eraserSize,
         hitInside: true,
       })
+
+      if (shapes.length === 0) {
+          // Log occasionally to avoid spam, but enough to see it's working
+          if (Math.random() < 0.1) {
+              console.log(`[StrokeEraser] Searching at point`, pagePoint, `(Margin: ${eraserSize}) - No shapes found.`)
+          }
+          return;
+      }
+
       if (shapes.length > 0) {
+        // Detailed info about what was found
+        const foundDetails = shapes.map(s => {
+            const isCustom = s.type === 'custom-draw';
+            const isSuper = s.type === 'super-pen';
+            let details = `[${s.type}]`;
+            if (isCustom) details += ` pen:${s.meta?.brushType || 'standard'}`;
+            if (isSuper) details += ` mode:${(s as any).props?.mode}`;
+            return details;
+        });
+        
+        console.log(`[StrokeEraser] Found ${shapes.length} shapes:`, foundDetails.join(', '), pagePoint)
+        
         // Filter out locked shapes and non-erasable shapes (like images used as slide backgrounds)
         const erasable = shapes.filter((s) => {
-          if (editor.isShapeOrAncestorLocked(s)) return false
-          // Don't erase page-level images (slide backgrounds)
-          if (s.type === 'image' && s.parentId === editor.getCurrentPageId()) return false
-          return true
+          const isLocked = editor.isShapeOrAncestorLocked(s)
+          const isBackground = s.type === 'image' && s.parentId === editor.getCurrentPageId()
+          
+          if (isLocked) console.log(`[StrokeEraser] SKIPPING: Shape ${s.id} is LOCKED.`)
+          if (isBackground) console.log(`[StrokeEraser] SKIPPING: Shape ${s.id} is SLIDE BACKGROUND.`)
+          
+          return !isLocked && !isBackground
         })
+
         if (erasable.length > 0) {
+          const deleteDetails = erasable.map(s => {
+             if (s.type === 'custom-draw') return `CustomDraw(${s.meta?.brushType || 'pen'})`;
+             if (s.type === 'super-pen') return `SuperPen(${(s as any).props?.mode})`;
+             return s.type;
+          });
+          
+          console.log(`[StrokeEraser] ERASING:`, deleteDetails.join(', '))
           editor.deleteShapes(erasable.map((s) => s.id))
+        } else {
+          console.log(`[StrokeEraser] RESULT: No erasable shapes at this point after filtering.`)
         }
       }
     },
@@ -54,12 +88,15 @@ export function useStrokeEraser(
   useEffect(() => {
     if (!active || !editor) return
 
+    console.log(`[StrokeEraser] Activated with size ${eraserSize}`)
+
     const container = document.querySelector('.tl-container') as HTMLElement
     if (!container) return
 
     const onPointerDown = (e: PointerEvent) => {
       // Only respond to pen and mouse, not touch (touch is handled by palm eraser)
       if (e.pointerType === 'touch') return
+      console.log(`[StrokeEraser] Pointer Down: ${e.pointerType} at (${e.clientX}, ${e.clientY})`)
       isPointerDownRef.current = true
       eraseAtPoint(e.clientX, e.clientY)
     }

@@ -21,7 +21,6 @@ import {
   Code,
   Code2,
   AppWindow,
-  Monitor,
   Navigation2,
   MoreHorizontal,
   Ruler,
@@ -38,7 +37,6 @@ interface ToolsSidebarProps {
   onImportClick: () => void;
   onOpenProject: () => void;
   onSaveProject: () => void;
-  onDesktopModeToggle: () => void;
   showNavPanel: boolean;
   onToggleNavPanel: () => void;
   showRecentColors: boolean;
@@ -59,7 +57,6 @@ export function ToolsSidebar({
   onImportClick,
   onOpenProject,
   onSaveProject,
-  onDesktopModeToggle,
   showNavPanel,
   onToggleNavPanel,
   showRecentColors,
@@ -209,11 +206,6 @@ export function ToolsSidebar({
           {/* Tools */}
           <div className="flex flex-col gap-3 w-full px-2">
             <ToolButton icon={FileUp} label="Import" onClick={onImportClick} />
-            <ToolButton
-              icon={Monitor}
-              label="Desktop"
-              onClick={onDesktopModeToggle}
-            />
 
             {/* Math Group */}
             <div className="relative">

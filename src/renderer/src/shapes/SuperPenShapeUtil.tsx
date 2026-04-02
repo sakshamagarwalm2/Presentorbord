@@ -4,6 +4,8 @@ import {
   TLBaseShape,
   SvgExportContext,
   Circle2d,
+  Polyline2d,
+  Vec,
 } from 'tldraw'
 import { getStroke } from 'perfect-freehand'
 
@@ -185,9 +187,11 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
     const pts = shape.props.points
     if (!pts || pts.length < 2) {
       const p = pts?.[0] ?? { x: 0, y: 0 }
-      return new Circle2d({ x: p.x - 2, y: p.y - 2, radius: 2, isFilled: true })
+      return new Circle2d({ x: p.x, y: p.y, radius: 2, isFilled: true })
     }
-    return new Circle2d({ x: 0, y: 0, radius: 1, isFilled: false })
+    return new Polyline2d({
+      points: pts.map((p) => new Vec(p.x, p.y)),
+    })
   }
 
   override component(shape: TSuperPenShape) {

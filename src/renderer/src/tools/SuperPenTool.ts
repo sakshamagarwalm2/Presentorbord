@@ -128,6 +128,8 @@ class Drawing extends StateNode {
     const opacity = this.getCurrentOpacity()
     const dash = this.getCurrentDash()
 
+    console.log(`[Drawing] Super Pen Stroke Started: Mode=${mode}, Size=${size}, Opacity=${opacity}`)
+
     this.editor.createShape<TSuperPenShape>({
       id: this.shapeId,
       type: 'super-pen',

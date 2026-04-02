@@ -31,9 +31,9 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     frame: false,
-    transparent: true,
+    transparent: false,
     fullscreen: true,
-    hasShadow: false,
+    hasShadow: true,
     icon: path.join(__dirname, "../../src/assets/presentor.ico"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),

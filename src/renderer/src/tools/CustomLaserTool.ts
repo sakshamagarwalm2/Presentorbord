@@ -11,6 +11,7 @@ class CustomLasering extends StateNode {
   scribbleId = 'id'
 
   override onEnter = () => {
+    console.log('[Drawing] Laser Pointer active (Scribble Mode)')
     const scribble = this.editor.scribbles.addScribble({
       color: 'laser',
       opacity: 0.7,

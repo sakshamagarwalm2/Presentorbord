@@ -36,7 +36,6 @@ import {
   Unlock,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
-import { usePalmEraser } from '../tools/usePalmEraser'
 import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
 
@@ -79,10 +78,10 @@ interface ToolDef {
 }
 
 const PEN_GROUP: ToolDef[] = [
-  { id: 'draw', label: 'Draw', icon: DrawIcon },
   { id: 'super-pen', label: 'Pen', icon: PenIcon, type: 'super-pen' },
   { id: 'super-marker', label: 'Marker', icon: MarkerIcon, type: 'super-pen', brushType: 'marker' },
   { id: 'super-brush', label: 'Brush', icon: BrushIcon, type: 'super-pen', brushType: 'brush' },
+  { id: 'draw', label: 'Pencil', icon: DrawIcon },
   { id: 'highlight', label: 'Highlighter', icon: HighlighterIcon, type: 'highlighter' },
   { id: 'custom-laser', label: 'Laser', icon: LaserIcon, type: 'laser' },
 ]
@@ -151,7 +150,7 @@ function PenGroupButton({
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(PEN_GROUP[0])
   const flyoutRef = useRef<HTMLDivElement>(null)
-  
+
   const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
@@ -173,16 +172,16 @@ function PenGroupButton({
     const brushType = window.currentBrushTypeSignal?.get() || 'normal'
 
     const match = PEN_GROUP.find((t) => {
-        if (t.type === 'super-pen') {
-            return activeTool === 'super-pen' && (t.brushType || 'pen') === brushType
-        }
-        if (t.type === 'brush') {
-            return activeTool === 'draw' && isBrush && brushType === t.brushType
-        }
-        if (t.id === 'draw') {
-            return activeTool === 'draw' && !isBrush
-        }
-        return t.id === activeTool
+      if (t.type === 'super-pen') {
+        return activeTool === 'super-pen' && (t.brushType || 'pen') === brushType
+      }
+      if (t.type === 'brush') {
+        return activeTool === 'draw' && isBrush && brushType === t.brushType
+      }
+      if (t.id === 'draw') {
+        return activeTool === 'draw' && !isBrush
+      }
+      return t.id === activeTool
     })
     if (match) setSelectedTool(match)
   }, [activeTool])
@@ -192,7 +191,7 @@ function PenGroupButton({
 
   const handleSelect = (tool: ToolDef) => {
     setSelectedTool(tool)
-    
+
     if (tool.type === 'super-pen') {
       // Update super-pen mode on the tool instance
       const superPenTool = (editor as any).root?.children?.['super-pen']
@@ -261,17 +260,17 @@ function PenGroupButton({
             const isBrush = !!(window.currentIsBrushSignal?.get())
             // @ts-ignore
             const brushType = window.currentBrushTypeSignal?.get() || 'normal'
-            
+
             let isActive = false
             if (tool.type === 'super-pen') {
               isActive = activeTool === 'super-pen' && (tool.brushType || 'pen') === brushType
             } else if (tool.type === 'brush') {
-                // @ts-ignore
-                isActive = activeTool === 'draw' && isBrush && brushType === tool.brushType
+              // @ts-ignore
+              isActive = activeTool === 'draw' && isBrush && brushType === tool.brushType
             } else {
-                isActive = activeTool === tool.id
+              isActive = activeTool === tool.id
             }
-            
+
             return (
               <button
                 key={tool.id}
@@ -320,7 +319,7 @@ function EraserGroupButton({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
-  
+
   const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
@@ -476,7 +475,7 @@ function ShapeGroupButton({
   const [isOpen, setIsOpen] = useState(false)
   const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[1]) // default: Rectangle
   const flyoutRef = useRef<HTMLDivElement>(null)
-  
+
   const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
@@ -607,7 +606,7 @@ function MoreOptionsButton({
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
-  
+
   const theme = activeTheme || COLOR_THEMES['blue']
 
   useEffect(() => {
@@ -671,28 +670,28 @@ function MoreOptionsButton({
           {/* Action items */}
           <button
             onClick={() => { onAction('delete'); setIsOpen(false) }}
-                  className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
           >
             <Trash2 size={16} />
             Delete
           </button>
           <button
             onClick={() => { onAction('duplicate'); setIsOpen(false) }}
-                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Copy size={16} />
-             Duplicate
+            Duplicate
           </button>
           <button
             onClick={() => { onAction('lock'); setIsOpen(false) }}
-                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Lock size={16} />
             Lock Selected
           </button>
           <button
             onClick={() => { onAction('unlock-all'); setIsOpen(false) }}
-                className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             <Unlock size={16} />
             Unlock All
@@ -820,7 +819,7 @@ function SelectGroupButton({
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
   const flyoutRef = useRef<HTMLDivElement>(null)
-  
+
   const theme = activeTheme || COLOR_THEMES['blue']
 
   // Close flyout on outside click
@@ -904,7 +903,7 @@ function SelectGroupButton({
               </button>
             )
           })}
-          
+
           {/* Divider */}
           <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
 
@@ -913,8 +912,8 @@ function SelectGroupButton({
             onClick={() => { onToggleLock(); setIsOpen(false) }}
             className={`
               flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
-              ${isCameraLocked 
-                ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30' 
+              ${isCameraLocked
+                ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'
                 : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
               }
             `}
@@ -947,19 +946,19 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
 
   useEffect(() => {
     const handleGlobalPointerDown = (e: PointerEvent) => {
-        if (!stylePanelVisible) return
+      if (!stylePanelVisible) return
 
-        // Check if click is inside panel
-        if (stylePanelRef.current && stylePanelRef.current.contains(e.target as Node)) {
-            return
-        }
-        // Check if click is inside toggle button wrapper
-        if (paletteButtonRef.current && paletteButtonRef.current.contains(e.target as Node)) {
-             return
-        }
+      // Check if click is inside panel
+      if (stylePanelRef.current && stylePanelRef.current.contains(e.target as Node)) {
+        return
+      }
+      // Check if click is inside toggle button wrapper
+      if (paletteButtonRef.current && paletteButtonRef.current.contains(e.target as Node)) {
+        return
+      }
 
-        // Otherwise close
-        setStylePanelVisible(false)
+      // Otherwise close
+      setStylePanelVisible(false)
     }
 
     window.addEventListener('pointerdown', handleGlobalPointerDown, { capture: true })
@@ -977,10 +976,6 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
 
   // Activate stroke eraser hook
   useStrokeEraser(editor, isStrokeEraserActive, eraserSize)
-  // Activate palm eraser hook (always enabled)
-  usePalmEraser(editor, true, eraserSize)
-
-
 
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
@@ -998,20 +993,20 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
         editor.updateShapes(editor.getSelectedShapes().map(shape => ({ ...shape, isLocked: true })))
         break
       case 'unlock-all':
-         const currentPageId = editor.getCurrentPageId()
-         const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
-         const shapesToUnlock = shapeIds
-            .map(id => editor.getShape(id))
-            .filter(s => s && s.isLocked) as any[] // type assertion to strict Shape
-         
-         if (shapesToUnlock.length > 0) {
-             editor.updateShapes(shapesToUnlock.map(shape => ({ 
-                 id: shape.id,
-                 type: shape.type,
-                 isLocked: false 
-             })))
-         }
-         break
+        const currentPageId = editor.getCurrentPageId()
+        const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
+        const shapesToUnlock = shapeIds
+          .map(id => editor.getShape(id))
+          .filter(s => s && s.isLocked) as any[] // type assertion to strict Shape
+
+        if (shapesToUnlock.length > 0) {
+          editor.updateShapes(shapesToUnlock.map(shape => ({
+            id: shape.id,
+            type: shape.type,
+            isLocked: false
+          })))
+        }
+        break
     }
   }
 
@@ -1022,9 +1017,9 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
       const shape = editor.getShape(id)
       return shape && shape.type !== 'image'
     })
-    
+
     if (shapesToDelete.length > 0) {
-        editor.deleteShapes(shapesToDelete)
+      editor.deleteShapes(shapesToDelete)
     }
   }
 
@@ -1050,24 +1045,24 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
     if (!COLOR_THEMES[currentColor]) return
 
     setRecentColors(prev => {
-        // Remove if exists
-        const next = prev.filter(c => c !== currentColor)
-        // Add to front
-        next.unshift(currentColor)
-        // Keep max 3
-        return next.slice(0, 3)
+      // Remove if exists
+      const next = prev.filter(c => c !== currentColor)
+      // Add to front
+      next.unshift(currentColor)
+      // Keep max 3
+      return next.slice(0, 3)
     })
   }, [currentColor])
 
   const handleRecentColorClick = (color: string) => {
-      // @ts-ignore - color string is valid but type definition is strict union
-      editor.setStyleForNextShapes(DefaultColorStyle, color)
-      // If we have selected shapes, update them too
-      const selectedShapeIds = editor.getSelectedShapeIds()
-      if (selectedShapeIds.length > 0) {
-          // @ts-ignore
-          editor.setStyleForSelectedShapes(DefaultColorStyle, color)
-      }
+    // @ts-ignore - color string is valid but type definition is strict union
+    editor.setStyleForNextShapes(DefaultColorStyle, color)
+    // If we have selected shapes, update them too
+    const selectedShapeIds = editor.getSelectedShapeIds()
+    if (selectedShapeIds.length > 0) {
+      // @ts-ignore
+      editor.setStyleForSelectedShapes(DefaultColorStyle, color)
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -1085,7 +1080,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
       setHasClipboardContent(!!content)
     }
     checkClipboard()
-    
+
     // Listen for storage events (cross-tab) and window focus
     window.addEventListener('storage', checkClipboard)
     window.addEventListener('focus', checkClipboard)
@@ -1099,25 +1094,25 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
     const shapes = editor.getSelectedShapes()
     // Filter out images (and potential PDF backgrounds)
     const annotations = shapes.filter(s => s.type !== 'image' && s.type !== 'video')
-    
+
     if (annotations.length === 0) return
 
     // Calculate offset from current viewport center to preserve "position in window"
     const viewportCenter = editor.getViewportScreenCenter()
-    
+
     const clipboardData = annotations.map((s: any) => ({
-        ...s,
-        meta: {
-            ...s.meta,
-            // Store the offset from center at the time of copy
-            clipOffsetX: s.x - viewportCenter.x,
-            clipOffsetY: s.y - viewportCenter.y
-        }
+      ...s,
+      meta: {
+        ...s.meta,
+        // Store the offset from center at the time of copy
+        clipOffsetX: s.x - viewportCenter.x,
+        clipOffsetY: s.y - viewportCenter.y
+      }
     }))
 
     localStorage.setItem('annotation-clipboard', JSON.stringify(clipboardData))
     setHasClipboardContent(true)
-    
+
     // Show feedback
     setShowCopyFeedback(true)
     setTimeout(() => setShowCopyFeedback(false), 2000)
@@ -1140,15 +1135,15 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
         let y = s.y
 
         if (typeof s.meta?.clipOffsetX === 'number' && typeof s.meta?.clipOffsetY === 'number') {
-            x = viewportCenter.x + s.meta.clipOffsetX
-            y = viewportCenter.y + s.meta.clipOffsetY
+          x = viewportCenter.x + s.meta.clipOffsetX
+          y = viewportCenter.y + s.meta.clipOffsetY
         } else {
-             // Fallback for old clipboard data (though we just added it, good practice)
+          // Fallback for old clipboard data (though we just added it, good practice)
         }
 
         // Remove the meta offsets before creating
         const { clipOffsetX, clipOffsetY, ...meta } = s.meta || {}
-        
+
         return {
           ...s,
           id: createShapeId(),
@@ -1161,7 +1156,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
 
       editor.createShapes(newShapes)
       editor.setSelectedShapes(newShapes.map((s: any) => s.id))
-      
+
     } catch (e) {
       console.error('Failed to paste annotations', e)
     }
@@ -1173,75 +1168,75 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
       <EraserCursorOverlay size={eraserSize} active={isStrokeEraserActive} />
 
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto">
-        
+
         {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
         {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                {recentColors.map(color => {
-                    const theme = COLOR_THEMES[color]
-                    const isActive = currentColor === color
-                    return (
-                        <button
-                            key={color}
-                            onClick={() => handleRecentColorClick(color)}
-                            className={`
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            {recentColors.map(color => {
+              const theme = COLOR_THEMES[color]
+              const isActive = currentColor === color
+              return (
+                <button
+                  key={color}
+                  onClick={() => handleRecentColorClick(color)}
+                  className={`
                                 w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
                                 ${theme?.bg.split(' ')[0]} 
                                 ${isActive ? 'scale-125' : 'hover:scale-125'}
                                 transition-all duration-200
                             `}
-                            title={`Use ${color}`}
-                        />
-                    )
-                })}
-            </div>
+                  title={`Use ${color}`}
+                />
+              )
+            })}
+          </div>
         )}
 
         <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
-          
+
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
           <div className="flex items-center gap-1 mr-1">
             {selectedShapeIds.length > 0 ? (
-                // Show COPY if something is selected
-                <button
-                    onClick={handleCopyAnnotations}
-                    disabled={showCopyFeedback}
-                    className={`
+              // Show COPY if something is selected
+              <button
+                onClick={handleCopyAnnotations}
+                disabled={showCopyFeedback}
+                className={`
                         w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200
-                        ${showCopyFeedback 
-                            ? 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30' 
-                            : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
-                        }
+                        ${showCopyFeedback
+                    ? 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30'
+                    : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
+                  }
                     `}
-                    title={showCopyFeedback ? "Copied!" : "Copy Annotations"}
-                >
-                    {showCopyFeedback ? <Check size={18} /> : <Copy size={18} />}
-                </button>
+                title={showCopyFeedback ? "Copied!" : "Copy Annotations"}
+              >
+                {showCopyFeedback ? <Check size={18} /> : <Copy size={18} />}
+              </button>
             ) : (
-                // Show PASTE if nothing is selected (disabled if clipboard empty)
-                <button
-                    onClick={handlePasteAnnotations}
-                    disabled={!hasClipboardContent}
-                    className={`
+              // Show PASTE if nothing is selected (disabled if clipboard empty)
+              <button
+                onClick={handlePasteAnnotations}
+                disabled={!hasClipboardContent}
+                className={`
                         w-10 h-10 flex items-center justify-center rounded-xl transition-all
-                        ${hasClipboardContent 
-                            ? 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400' 
-                            : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                        }
+                        ${hasClipboardContent
+                    ? 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
+                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
+                  }
                     `}
-                    title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
-                >
-                    <Clipboard size={18} />
-                </button>
+                title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
+              >
+                <Clipboard size={18} />
+              </button>
             )}
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
           </div>
 
           {/* Select Group Button (Select / Lasso / Hand / Lock) */}
-          <SelectGroupButton 
-            activeTool={activeTool} 
-            onSelect={selectTool} 
-            activeTheme={activeColorTheme} 
+          <SelectGroupButton
+            activeTool={activeTool}
+            onSelect={selectTool}
+            activeTheme={activeColorTheme}
             isCameraLocked={isCameraLocked}
             onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
           />
@@ -1263,16 +1258,16 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
           >
             <Redo2 size={18} />
           </button>
-          
+
           {/* Divider */}
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* Palette toggle */}
           <div ref={paletteButtonRef} className="flex">
             <PaletteButton
-                isVisible={stylePanelVisible}
-                onToggle={() => setStylePanelVisible((v) => !v)}
-                activeTheme={activeColorTheme}
+              isVisible={stylePanelVisible}
+              onToggle={() => setStylePanelVisible((v) => !v)}
+              activeTheme={activeColorTheme}
             />
           </div>
 
@@ -1309,7 +1304,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
 
         {/* Custom Style Panel */}
         <div ref={stylePanelRef} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
-            <StylePanel isVisible={stylePanelVisible} />
+          <StylePanel isVisible={stylePanelVisible} />
         </div>
       </div>
     </>

@@ -1,6 +1,6 @@
 # Presentorbord
 
-![Version](https://img.shields.io/badge/version-v2.2.0-blue)
+![Version](https://img.shields.io/badge/version-v2.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Presentorbord Banner](src/assets/presentorbanaer.jpg)
 
@@ -13,7 +13,6 @@ An educational whiteboard application built with Electron, React, Vite, and [tld
 - **Custom Educational Tools**: Includes specialized tools like a Protractor, Graph Axes, and a Custom Laser pointer for interactive teaching.
 - **Subject Modes**: Specialized modes (e.g., "Math" mode) that automatically provide relevant tools to the user.
 - **Advanced Locking Mechanism**: Lock the camera/viewport to prevent accidental panning, set specific elements as background, and easily manage locked shapes.
-- **Desktop Mode**: A transparent background overlay mode for dynamic screen sharing and desktop integration.
 - **Cross-Platform**: Built on Electron for compatibility across platforms (Note: PPTX conversion depends on Windows PowerPoint APIs).
 
 ## 🛠️ Tech Stack

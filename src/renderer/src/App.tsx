@@ -342,7 +342,10 @@ function AppContent() {
           const opacity = currentOpacitySignal.get();
           const isBrush = currentIsBrushSignal.get();
           const brushType = currentBrushTypeSignal.get();
-          window.api.log(`[Pen] Converting to custom-draw: thickness ${thickness}, opacity ${opacity}, isBrush ${isBrush}, type ${brushType}`);
+          
+          const toolName = isBrush ? `Brush (${brushType})` : "Standard Pen/Pencil";
+          window.api.log(`[Drawing] New Stroke Created: ${toolName} | Thickness: ${thickness} | Opacity: ${opacity}`);
+          
           return {
             ...shape,
             type: "custom-draw",
@@ -355,6 +358,16 @@ function AppContent() {
             },
           };
         }
+        
+        if (shape.type === "super-pen") {
+            const props = (shape as any).props;
+            window.api.log(`[Drawing] New Super Pen Created: ${props.mode} | Size: ${props.size} | Opacity: ${props.opacity}`);
+        }
+
+        if (shape.type === "custom-laser") {
+            window.api.log(`[Drawing] New Laser Pointer active`);
+        }
+
         return shape;
       },
     );
@@ -771,16 +784,11 @@ function AppContent() {
     }
   };
 
-  const [isDesktopMode, setIsDesktopMode] = useState(false);
   const [showNavPanel, setShowNavPanel] = useState(true);
   const [navPosition, setNavPosition] = useState<"left" | "right">("right");
   const [showRecentColors, setShowRecentColors] = useState(true);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
-
-  const toggleDesktopMode = () => {
-    setIsDesktopMode(!isDesktopMode);
-  };
 
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
 
@@ -832,17 +840,6 @@ function AppContent() {
 
   return (
     <>
-      {/* Transparent background override style */}
-      {isDesktopMode && (
-        <style>{`
-                    .tldraw__editor { background: transparent !important; }
-                    .tl-background { background: transparent !important; }
-                    .tl-canvas { background: transparent !important; }
-                    html, body { background: transparent !important; }
-                    #root { background: transparent !important; }
-                `}</style>
-      )}
-
       <Sidebar
         onImport={handleImportClick}
         isOpen={leftSidebarOpen}
@@ -852,7 +849,6 @@ function AppContent() {
         onImportClick={handleImportClick}
         onOpenProject={handleOpenProject}
         onSaveProject={handleSaveProject}
-        onDesktopModeToggle={toggleDesktopMode}
         showNavPanel={showNavPanel}
         onToggleNavPanel={() => setShowNavPanel(!showNavPanel)}
         showRecentColors={showRecentColors}
