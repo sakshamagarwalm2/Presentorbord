@@ -136,7 +136,7 @@ export function Sidebar({
   const selectPage = (id: string) => {
     captureThumbnail();
     const pageId = id as any;
-    editor.setCurrentPage(pageId);
+    editor.run(() => editor.setCurrentPage(pageId), { history: 'ignore' });
     requestAnimationFrame(() => fitSlideToViewport(editor));
   };
 

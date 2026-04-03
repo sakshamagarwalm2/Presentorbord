@@ -73,6 +73,7 @@ class Drawing extends StateNode {
   private livePoints: SuperPenPoint[] = []
   private rawUpdateHandler: ((e: PointerEvent) => void) | null = null
   private isDrawing = false
+  private historyMarkId: string | null = null
 
   private getCurrentColor(): string {
     const colorValue = this.editor.getStyleForNextShape(DefaultColorStyle)
@@ -103,6 +104,9 @@ class Drawing extends StateNode {
     this.livePoints = []
     this.shapeId = createShapeId()
     this.isDrawing = true
+
+    // Mark history stopping point so the stroke is a single undo unit
+    this.historyMarkId = (this.editor as any).markHistoryStoppingPoint?.() as string
 
     const pagePoint = this.editor.inputs.currentPagePoint
     
@@ -256,6 +260,11 @@ class Drawing extends StateNode {
           isComplete: true,
         },
       })
+    }
+
+    // Squash all stroke updates into a single undo unit
+    if (this.historyMarkId) {
+      (this.editor as any).history?.squashToMark?.(this.historyMarkId)
     }
 
     this.parent.transition('idle')

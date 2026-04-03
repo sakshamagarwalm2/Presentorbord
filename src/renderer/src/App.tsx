@@ -606,38 +606,40 @@ function AppContent() {
       URL.revokeObjectURL(blobUrl);
 
       const assetId = AssetRecordType.createId();
-      editor.batch(() => {
-        editor.createAssets([{
-          id: assetId,
-          typeName: "asset",
-          type: "image",
-          meta: {},
-          props: {
-            name: file.name,
-            src: dataUrl,
-            w: displayW,
-            h: displayH,
-            mimeType: file.type || "image/png",
-            isAnimated: false,
-          },
-        }]);
+      editor.run(() => {
+        editor.batch(() => {
+          editor.createAssets([{
+            id: assetId,
+            typeName: "asset",
+            type: "image",
+            meta: {},
+            props: {
+              name: file.name,
+              src: dataUrl,
+              w: displayW,
+              h: displayH,
+              mimeType: file.type || "image/png",
+              isAnimated: false,
+            },
+          }]);
 
-        const viewportCenter = editor.getViewportScreenCenter();
-        editor.createShape({
-          type: "image",
-          x: viewportCenter.x - displayW / 2,
-          y: viewportCenter.y - displayH / 2,
-          isLocked: true,
-          props: {
-            assetId,
-            w: displayW,
-            h: displayH,
-          },
-          meta: {},
+          const viewportCenter = editor.getViewportScreenCenter();
+          editor.createShape({
+            type: "image",
+            x: viewportCenter.x - displayW / 2,
+            y: viewportCenter.y - displayH / 2,
+            isLocked: true,
+            props: {
+              assetId,
+              w: displayW,
+              h: displayH,
+            },
+            meta: {},
+          });
+          
+          editor.setCameraOptions({ isLocked: true });
         });
-        
-        editor.setCameraOptions({ isLocked: true });
-      });
+      }, { history: 'ignore' });
 
       window.api.log(`[Image Import] Imported ${file.name} (${naturalW}x${naturalH}) at ${displayW}x${displayH}`);
     } catch (error: any) {
@@ -706,36 +708,38 @@ function AppContent() {
 
       if (importMode === 'replace') {
         setImportProgress("Clearing existing slides...");
-        editor.batch(() => {
-          const existingPages = editor.getPages();
-          const firstPageId = existingPages[0]?.id;
+        editor.run(() => {
+          editor.batch(() => {
+            const existingPages = editor.getPages();
+            const firstPageId = existingPages[0]?.id;
 
-          if (firstPageId) {
-            editor.setCurrentPage(firstPageId);
-            const shapeIds = editor.getSortedChildIdsForParent(firstPageId);
-            if (shapeIds.length > 0) {
-              for (const id of shapeIds) {
-                const shape = editor.getShape(id);
-                if (shape && shape.isLocked) {
-                  editor.updateShape({ id: shape.id, type: shape.type, isLocked: false });
+            if (firstPageId) {
+              editor.setCurrentPage(firstPageId);
+              const shapeIds = editor.getSortedChildIdsForParent(firstPageId);
+              if (shapeIds.length > 0) {
+                for (const id of shapeIds) {
+                  const shape = editor.getShape(id);
+                  if (shape && shape.isLocked) {
+                    editor.updateShape({ id: shape.id, type: shape.type, isLocked: false });
+                  }
                 }
+                editor.deleteShapes(shapeIds);
               }
-              editor.deleteShapes(shapeIds);
+              editor.renamePage(firstPageId, "Slide 1");
             }
-            editor.renamePage(firstPageId, "Slide 1");
-          }
 
-          for (let i = existingPages.length - 1; i >= 0; i--) {
-            if (existingPages[i].id !== firstPageId) {
-              editor.deletePage(existingPages[i].id);
+            for (let i = existingPages.length - 1; i >= 0; i--) {
+              if (existingPages[i].id !== firstPageId) {
+                editor.deletePage(existingPages[i].id);
+              }
             }
-          }
 
-          const existingAssets = editor.getAssets();
-          if (existingAssets.length > 0) {
-            editor.deleteAssets(existingAssets.map((a) => a.id));
-          }
-        });
+            const existingAssets = editor.getAssets();
+            if (existingAssets.length > 0) {
+              editor.deleteAssets(existingAssets.map((a) => a.id));
+            }
+          });
+        }, { history: 'ignore' });
       }
 
       const existingPages = editor.getPages();
@@ -757,99 +761,99 @@ function AppContent() {
 
       const newPageIds: string[] = [];
 
-      editor.batch(() => {
-        if (importMode === 'replace' && firstExistingPageId) {
-          editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
-          editor.renamePage(firstExistingPageId, "Slide 1");
-          newPageIds.push(firstExistingPageId);
-          
-          for (let i = 1; i < pageCount; i++) {
-            const newPageId = PageRecordType.createId();
-            editor.createPage({
-              id: newPageId,
-              name: `Slide ${i + 1}`,
-              index: pageIndices[i],
-            });
-            newPageIds.push(newPageId);
+      await editor.run(async () => {
+        editor.batch(() => {
+          if (importMode === 'replace' && firstExistingPageId) {
+            editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
+            editor.renamePage(firstExistingPageId, "Slide 1");
+            newPageIds.push(firstExistingPageId);
+            
+            for (let i = 1; i < pageCount; i++) {
+              const newPageId = PageRecordType.createId();
+              editor.createPage({
+                id: newPageId,
+                name: `Slide ${i + 1}`,
+                index: pageIndices[i],
+              });
+              newPageIds.push(newPageId);
+            }
+          } else {
+            for (let i = 0; i < pageCount; i++) {
+              const newPageId = PageRecordType.createId();
+              editor.createPage({
+                id: newPageId,
+                name: `Slide ${sortedExisting.length + i + 1}`,
+                index: pageIndices[i],
+              });
+              newPageIds.push(newPageId);
+            }
           }
-        } else {
-          for (let i = 0; i < pageCount; i++) {
-            const newPageId = PageRecordType.createId();
-            editor.createPage({
-              id: newPageId,
-              name: `Slide ${sortedExisting.length + i + 1}`,
-              index: pageIndices[i],
+        });
+
+        for (let i = 0; i < slideImages.length; i++) {
+          const { url, w, h } = slideImages[i];
+          const pageId = newPageIds[i];
+
+          if (!url) {
+            window.api.log(`[Import] Skipping empty slide ${i + 1}`);
+            continue;
+          }
+
+          try {
+            editor.batch(() => {
+              const assetId = AssetRecordType.createId();
+              editor.createAssets([{
+                id: assetId,
+                typeName: "asset",
+                type: "image",
+                meta: {},
+                props: {
+                  name: `slide-${i + 1}`,
+                  src: url,
+                  w,
+                  h,
+                  mimeType: "image/jpeg",
+                  isAnimated: false,
+                },
+              }]);
+
+              editor.createShape({
+                type: "image",
+                parentId: pageId as any,
+                x: 0,
+                y: 0,
+                isLocked: true,
+                props: {
+                  assetId,
+                  w,
+                  h,
+                },
+                meta: {
+                  isPageBackground: true,
+                },
+              });
             });
-            newPageIds.push(newPageId);
+          } catch (renderError) {
+            window.api.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
+          }
+
+          if (i % 5 === 0) {
+            setImportProgress(`Adding slides ${i + 1}-${Math.min(i + 5, pageCount)} of ${pageCount}...`);
+            await new Promise(resolve => requestAnimationFrame(resolve));
           }
         }
-      });
 
-      for (let i = 0; i < slideImages.length; i++) {
-        const { url, w, h } = slideImages[i];
-        const pageId = newPageIds[i];
-
-        if (!url) {
-          window.api.log(`[Import] Skipping empty slide ${i + 1}`);
-          continue;
+        const firstImportedPageId = newPageIds[0];
+        if (firstImportedPageId) {
+          editor.setCurrentPage(firstImportedPageId as any);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              fitSlideToViewport(editor);
+              editor.setCameraOptions({ isLocked: true });
+            })
+          );
         }
-
-        try {
-          editor.batch(() => {
-            const assetId = AssetRecordType.createId();
-            editor.createAssets([{
-              id: assetId,
-              typeName: "asset",
-              type: "image",
-              meta: {},
-              props: {
-                name: `slide-${i + 1}`,
-                src: url,
-                w,
-                h,
-                mimeType: "image/jpeg",
-                isAnimated: false,
-              },
-            }]);
-
-            editor.createShape({
-              type: "image",
-              parentId: pageId as any,
-              x: 0,
-              y: 0,
-              isLocked: true,
-              props: {
-                assetId,
-                w,
-                h,
-              },
-              meta: {
-                isPageBackground: true,
-              },
-            });
-          });
-        } catch (renderError) {
-          window.api.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
-        }
-
-        if (i % 5 === 0) {
-          setImportProgress(`Adding slides ${i + 1}-${Math.min(i + 5, pageCount)} of ${pageCount}...`);
-          await new Promise(resolve => requestAnimationFrame(resolve));
-        }
-      }
-
-      window.api.log(`[Import] Complete: ${newPageIds.length} new slides`);
-
-      const firstImportedPageId = newPageIds[0];
-      if (firstImportedPageId) {
-        editor.setCurrentPage(firstImportedPageId as any);
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            fitSlideToViewport(editor);
-            editor.setCameraOptions({ isLocked: true });
-          })
-        );
-      }
+      }, { history: 'ignore' });
 
       window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
@@ -891,19 +895,23 @@ function AppContent() {
       newIndex = last + "V";
     }
 
-    editor.createPage({
-      id: newPageId,
-      name: `Page ${pages.length + 1}`,
-      index: newIndex as any,
-    });
-    editor.setCurrentPage(newPageId);
+    editor.run(() => {
+      editor.createPage({
+        id: newPageId,
+        name: `Page ${pages.length + 1}`,
+        index: newIndex as any,
+      });
+      editor.setCurrentPage(newPageId);
+    }, { history: 'ignore' });
     requestAnimationFrame(() => editor.zoomToFit());
   }, [editor]);
 
   const deletePage = useCallback((id: string) => {
     const pages = editor.getPages();
     if (pages.length <= 1) return;
-    editor.deletePage(id as any);
+    editor.run(() => {
+      editor.deletePage(id as any);
+    }, { history: 'ignore' });
     const thumbnailCache = (window as any).thumbnailCache;
     if (thumbnailCache) delete thumbnailCache[id];
   }, [editor]);
@@ -928,22 +936,24 @@ function AppContent() {
       newIndex = last + "V";
     }
 
-    editor.createPage({
-      id: newPageId,
-      name: `Page ${pages.length + 1}`,
-      index: newIndex as any,
-    });
-
-    editor.setCurrentPage(newPageId);
-
-    for (const shape of shapeData) {
-      if (!shape) continue;
-      const { id: _oldId, parentId: _oldParent, ...rest } = shape as any;
-      editor.createShape({
-        ...rest,
-        parentId: newPageId as any,
+    editor.run(() => {
+      editor.createPage({
+        id: newPageId,
+        name: `Page ${pages.length + 1}`,
+        index: newIndex as any,
       });
-    }
+
+      editor.setCurrentPage(newPageId);
+
+      for (const shape of shapeData) {
+        if (!shape) continue;
+        const { id: _oldId, parentId: _oldParent, ...rest } = shape as any;
+        editor.createShape({
+          ...rest,
+          parentId: newPageId as any,
+        });
+      }
+    }, { history: 'ignore' });
 
     requestAnimationFrame(() =>
       requestAnimationFrame(() => fitSlideToViewport(editor))
@@ -960,15 +970,17 @@ function AppContent() {
     reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, movingPage);
 
-    editor.batch(() => {
-      for (let i = 0; i < reordered.length; i++) {
-        const original = sortedPages[i];
-        const moved = reordered[i];
-        if (original.id !== moved.id) {
-          editor.updatePage({ id: moved.id, index: original.index });
+    editor.run(() => {
+      editor.batch(() => {
+        for (let i = 0; i < reordered.length; i++) {
+          const original = sortedPages[i];
+          const moved = reordered[i];
+          if (original.id !== moved.id) {
+            editor.updatePage({ id: moved.id, index: original.index });
+          }
         }
-      }
-    });
+      });
+    }, { history: 'ignore' });
   }, [editor]);
 
   const handleExportImage = useCallback(async (targetPageId?: string) => {
@@ -1306,7 +1318,9 @@ function AppContent() {
         isVisible={isAllSlidesGridVisible}
         onClose={() => setIsAllSlidesGridVisible(false)}
         onSelectPage={(id) => {
-          editor.setCurrentPage(id as any);
+          editor.run(() => {
+            editor.setCurrentPage(id as any);
+          }, { history: 'ignore' });
           requestAnimationFrame(() =>
             requestAnimationFrame(() => fitSlideToViewport(editor))
           );

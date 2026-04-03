@@ -59,7 +59,7 @@ export function NavigationPanel({
   const handleNextPage = () => {
     const pages = editor.getPages();
     if (currentPageIndex < pages.length - 1) {
-      editor.setCurrentPage(pages[currentPageIndex + 1].id);
+      editor.run(() => editor.setCurrentPage(pages[currentPageIndex + 1].id), { history: 'ignore' });
       requestAnimationFrame(() => animateSlideToViewport(editor));
     }
   };
@@ -67,7 +67,7 @@ export function NavigationPanel({
   const handlePrevPage = () => {
     const pages = editor.getPages();
     if (currentPageIndex > 0) {
-      editor.setCurrentPage(pages[currentPageIndex - 1].id);
+      editor.run(() => editor.setCurrentPage(pages[currentPageIndex - 1].id), { history: 'ignore' });
       requestAnimationFrame(() => animateSlideToViewport(editor));
     }
   };
