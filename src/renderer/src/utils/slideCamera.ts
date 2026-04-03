@@ -3,6 +3,10 @@ import type { Editor } from 'tldraw';
 import { SLIDE_WIDTH, SLIDE_HEIGHT } from '../constants/slideConstants';
 
 export function fitSlideToViewport(editor: Editor): void {
+  if (!editor) return;
+  const bounds = editor.getViewportScreenBounds();
+  if (!bounds || bounds.w === 0 || bounds.h === 0) return;
+
   editor.zoomToBounds(
     { x: 0, y: 0, w: SLIDE_WIDTH, h: SLIDE_HEIGHT },
     {
@@ -13,6 +17,10 @@ export function fitSlideToViewport(editor: Editor): void {
 }
 
 export function animateSlideToViewport(editor: Editor): void {
+  if (!editor) return;
+  const bounds = editor.getViewportScreenBounds();
+  if (!bounds || bounds.w === 0 || bounds.h === 0) return;
+
   editor.zoomToBounds(
     { x: 0, y: 0, w: SLIDE_WIDTH, h: SLIDE_HEIGHT },
     {

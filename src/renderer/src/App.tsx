@@ -40,6 +40,7 @@ import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
 import { SuperPenTool } from "./tools/SuperPenTool";
 import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
+import { LineTool } from "./tools/LineTool";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
 const customShapeUtils = [
@@ -58,6 +59,7 @@ const customTools = [
   LassoTool,
   SuperPenTool,
   PrecisionEraserTool,
+  LineTool,
 ];
 import {
   currentThicknessSignal,
@@ -841,10 +843,13 @@ function AppContent() {
       const firstImportedPageId = newPageIds[0];
       if (firstImportedPageId) {
         editor.setCurrentPage(firstImportedPageId as any);
-        requestAnimationFrame(() => fitSlideToViewport(editor));
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            fitSlideToViewport(editor);
+            editor.setCameraOptions({ isLocked: true });
+          })
+        );
       }
-      
-      editor.setCameraOptions({ isLocked: true });
 
       window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
@@ -940,7 +945,9 @@ function AppContent() {
       });
     }
 
-    requestAnimationFrame(() => fitSlideToViewport(editor));
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => fitSlideToViewport(editor))
+    );
   }, [editor]);
   const handleMovePage = useCallback((fromId: string, toIndex: number) => {
     const pages = editor.getPages();
@@ -1054,7 +1061,7 @@ function AppContent() {
             const ctx = canvas.getContext("2d");
             if (!ctx) return reject("No context");
 
-            ctx.fillStyle = isDarkMode ? "#212529" : "#ffffff";
+            ctx.fillStyle = "#000000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             const img = new Image();
@@ -1132,6 +1139,30 @@ function AppContent() {
       document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
+  // ResizeObserver to re-fit slides when window resizes
+  useEffect(() => {
+    if (!editor) return;
+
+    const container = document.querySelector('.tldraw__editor');
+    if (!container) return;
+
+    let debounce: ReturnType<typeof setTimeout>;
+
+    const observer = new ResizeObserver(() => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        requestAnimationFrame(() => fitSlideToViewport(editor));
+      }, 150);
+    });
+
+    observer.observe(container);
+
+    return () => {
+      clearTimeout(debounce);
+      observer.disconnect();
+    };
+  }, [editor]);
+
   return (
     <>
       <Sidebar
@@ -1159,7 +1190,7 @@ function AppContent() {
         onAddProtractor={addProtractor}
         onAddCompass={addCompass}
       />
-      <DrawingToolbar showRecentColors={showRecentColors} onImageClick={handleImportClick} />
+      <DrawingToolbar showRecentColors={showRecentColors} onImageClick={handleImportClick} onAddPage={addPage} />
       <NavigationPanel isVisible={showNavPanel} position={navPosition} />
       {showNavPanel && (
         <div
@@ -1276,7 +1307,9 @@ function AppContent() {
         onClose={() => setIsAllSlidesGridVisible(false)}
         onSelectPage={(id) => {
           editor.setCurrentPage(id as any);
-          requestAnimationFrame(() => fitSlideToViewport(editor));
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => fitSlideToViewport(editor))
+          );
         }}
         onAddPage={addPage}
         onDuplicatePage={duplicatePage}

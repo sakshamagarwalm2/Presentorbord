@@ -26,14 +26,15 @@ import {
   Redo2,
   Trash2,
   Copy,
-  Scissors,
   BarChart2,
   Crosshair,
   Clipboard,
-  Check,
   Lasso,
   Lock,
   Unlock,
+  Layers,
+  Plus,
+  Minus,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
@@ -118,6 +119,7 @@ interface ShapeDef {
 
 const SHAPE_GROUP: ShapeDef[] = [
   { id: 'arrow', label: 'Arrow', icon: ArrowUpRight },
+  { id: 'custom-line', label: 'Line', icon: Minus },
   { id: 'graph-axes-1', label: '1st Quad', icon: BarChart2 },
   { id: 'graph-axes-4', label: '4 Quad', icon: Crosshair },
   { id: 'geo', geoType: 'rectangle', label: 'Rectangle', icon: Square },
@@ -474,7 +476,7 @@ function ShapeGroupButton({
   activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[1]) // default: Rectangle
+  const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[0]) // default: Arrow
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
@@ -934,7 +936,7 @@ function SelectGroupButton({
   )
 }
 
-export function DrawingToolbar({ showRecentColors = true, onImageClick }: { showRecentColors?: boolean; onImageClick?: () => void }) {
+export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPage }: { showRecentColors?: boolean; onImageClick?: () => void; onAddPage?: () => void }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
@@ -1086,6 +1088,8 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick }: { show
   const selectedShapeIds = useValue('selected shapes', () => editor.getSelectedShapeIds(), [editor])
   const [hasClipboardContent, setHasClipboardContent] = useState(false)
   const [showCopyFeedback, setShowCopyFeedback] = useState(false)
+  const [showCopyPasteDropdown, setShowCopyPasteDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Check clipboard on mount and focus
   useEffect(() => {
@@ -1102,6 +1106,17 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick }: { show
       window.removeEventListener('storage', checkClipboard)
       window.removeEventListener('focus', checkClipboard)
     }
+  }, [])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowCopyPasteDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const handleCopyAnnotations = () => {
@@ -1209,39 +1224,59 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick }: { show
         <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
-          <div className="flex items-center gap-1 mr-1">
-            {selectedShapeIds.length > 0 ? (
-              // Show COPY if something is selected
-              <button
-                onClick={handleCopyAnnotations}
-                disabled={showCopyFeedback}
-                className={`
-                        w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200
-                        ${showCopyFeedback
-                    ? 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30'
-                    : 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
-                  }
-                    `}
-                title={showCopyFeedback ? "Copied!" : "Copy Annotations"}
-              >
-                {showCopyFeedback ? <Check size={18} /> : <Copy size={18} />}
-              </button>
-            ) : (
-              // Show PASTE if nothing is selected (disabled if clipboard empty)
-              <button
-                onClick={handlePasteAnnotations}
-                disabled={!hasClipboardContent}
-                className={`
-                        w-10 h-10 flex items-center justify-center rounded-xl transition-all
-                        ${hasClipboardContent
-                    ? 'text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
-                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
-                  }
-                    `}
-                title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
-              >
-                <Clipboard size={18} />
-              </button>
+          <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowCopyPasteDropdown(!showCopyPasteDropdown)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+              title="Copy / Paste"
+            >
+              <div className="flex items-center gap-1">
+                <Layers size={18} />
+                <ChevronDown size={12} />
+              </div>
+            </button>
+            
+            {showCopyPasteDropdown && (
+              <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
+                {selectedShapeIds.length > 0 ? (
+                  <button
+                    onClick={() => {
+                      handleCopyAnnotations()
+                      setShowCopyPasteDropdown(false)
+                    }}
+                    disabled={showCopyFeedback}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                    title="Copy Annotations"
+                  >
+                    <Copy size={16} />
+                    {showCopyFeedback ? "Copied!" : "Copy"}
+                  </button>
+                ) : null}
+                <button
+                  onClick={() => {
+                    handlePasteAnnotations()
+                    setShowCopyPasteDropdown(false)
+                  }}
+                  disabled={!hasClipboardContent}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${hasClipboardContent ? 'text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                  title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
+                >
+                  <Clipboard size={16} />
+                  Paste
+                </button>
+                <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                <button
+                  onClick={() => {
+                    if (onAddPage) onAddPage()
+                    setShowCopyPasteDropdown(false)
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                  title="Add New Page"
+                >
+                  <Plus size={16} />
+                  Add Page
+                </button>
+              </div>
             )}
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
           </div>

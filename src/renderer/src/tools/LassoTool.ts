@@ -4,32 +4,26 @@ class LassoDragging extends StateNode {
 	static override id = 'dragging'
 
 	private points: { x: number; y: number }[] = []
-	private scribbleId = 'lasso-scribble'
+	private scribbleId: string = ''
 
 	override onEnter = () => {
 		console.log('LassoDragging: onEnter')
-        // Clear any previous hinting
         this.editor.setHintingShapes([])
 
 		this.points = []
 		const { x, y } = this.editor.inputs.currentPagePoint
 		this.points.push({ x, y })
 
-		try {
-			// Start a temporary scribble for visual feedback
-			const scribble = this.editor.scribbles.addScribble({
-				color: 'accent', 
-				opacity: 1,
-				size: 2,
-				delay: 0, // No delay, persist until stopped
-				shrink: 0,
-				taper: false,
-			})
-			this.scribbleId = scribble.id
-			this.editor.scribbles.addPoint(this.scribbleId, x, y)
-		} catch (e) {
-			console.error('Error starting lasso scribble:', e)
-		}
+		const scribble = this.editor.scribbles.addScribble({
+			color: 'accent', 
+			opacity: 1,
+			size: 2,
+			delay: 0,
+			shrink: 0,
+			taper: false,
+		})
+		this.scribbleId = scribble.id as string
+		this.editor.scribbles.addPoint(this.scribbleId, x, y)
 	}
 
 	override onPointerMove = () => {
@@ -49,25 +43,24 @@ class LassoDragging extends StateNode {
 
 	private complete() {
 		// Stop the scribble
-		(this.editor.scribbles as any).stop(this.scribbleId) 
+		if (this.scribbleId) {
+			(this.editor.scribbles as any).stop(this.scribbleId)
+			this.scribbleId = ''
+		}
 		
 		let selectedIds: TLShapeId[] = []
 		if (this.points.length > 2) {
 			selectedIds = this.selectShapesInPolygon()
 		} else {
 			console.log('Lasso selection cancelled: Not enough points')
-            // If cancelled/cleared, ensure we clear visible selection
             if (!this.editor.inputs.shiftKey) {
                 this.editor.setSelectedShapes([])
                 this.editor.setHintingShapes([])
             }
 		}
 
-		// Highlight selected shapes so user can see them without switching tool
 		if (selectedIds.length > 0) {
 			this.editor.setHintingShapes(selectedIds)
-			// Automatically switch to select tool so the user can move/transform selected shapes
-            // Only if NOT holding shift (if holding shift, assume they want to lasso more)
             if (!this.editor.inputs.shiftKey) {
 			    this.editor.setCurrentTool('select')
             } else {
@@ -79,7 +72,10 @@ class LassoDragging extends StateNode {
 	}
 
 	private cancel() {
-		(this.editor.scribbles as any).stop(this.scribbleId)
+		if (this.scribbleId) {
+			(this.editor.scribbles as any).stop(this.scribbleId)
+			this.scribbleId = ''
+		}
 		this.parent.transition('idle')
 	}
 
