@@ -599,11 +599,13 @@ function MoreOptionsButton({
   onSelect,
   onAction,
   activeTheme,
+  onImageClick,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   onAction: (action: string) => void
   activeTheme?: ColorTheme
+  onImageClick?: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
@@ -648,7 +650,11 @@ function MoreOptionsButton({
               <button
                 key={tool.id}
                 onClick={() => {
-                  onSelect(tool.id)
+                  if (tool.id === 'asset' && onImageClick) {
+                    onImageClick()
+                  } else {
+                    onSelect(tool.id)
+                  }
                   setIsOpen(false)
                 }}
                 className={`
@@ -928,7 +934,7 @@ function SelectGroupButton({
   )
 }
 
-export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?: boolean }) {
+export function DrawingToolbar({ showRecentColors = true, onImageClick }: { showRecentColors?: boolean; onImageClick?: () => void }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
@@ -1045,7 +1051,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
   const canRedo = useValue('canRedo', () => editor.getCanRedo(), [editor])
 
   // Recent Colors State
-  const [recentColors, setRecentColors] = useState<string[]>(['black', 'red', 'blue'])
+  const [recentColors, setRecentColors] = useState<string[]>(['white', 'yellow', 'blue'])
 
   // Update recent colors when current color changes
   useEffect(() => {
@@ -1310,7 +1316,7 @@ export function DrawingToolbar({ showRecentColors = true }: { showRecentColors?:
           <div className="w-px h-6 bg-gray-200 mx-0.5" />
 
           {/* More options */}
-          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} />
+          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} onImageClick={onImageClick} />
         </div>
 
         {/* Custom Style Panel */}

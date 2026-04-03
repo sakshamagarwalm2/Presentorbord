@@ -248,26 +248,8 @@ ipcMain.handle("convert-ppt-to-pdf", async (_, pptPath: string) => {
 
 ipcMain.handle(
   "convert-ppt-buffer-to-pdf",
-  async (_, fileBytes: number[], fileName: string) => {
-    const ext = path.extname(fileName);
-    const baseName = path.basename(fileName, ext);
-    const tempPptPath = path.join(os.tmpdir(), `${baseName}-${Date.now()}${ext}`);
-    const pdfPath = path.join(os.tmpdir(), `${baseName}-${Date.now()}.pdf`);
-
-    let tempFilesToClean: string[] = [];
-
-    try {
-      fs.writeFileSync(tempPptPath, Buffer.from(fileBytes));
-      tempFilesToClean.push(tempPptPath);
-
-      const resultPath = await convertPptToPdf(tempPptPath, pdfPath);
-      tempFilesToClean.push(tempPptPath);
-      return resultPath;
-    } finally {
-      for (const f of tempFilesToClean) {
-        try { fs.unlinkSync(f); } catch (_) {}
-      }
-    }
+  async () => {
+    throw new Error("PPTX conversion is now handled in the renderer process using JSZip. This IPC handler is deprecated.");
   },
 );
 

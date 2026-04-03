@@ -1,10 +1,10 @@
 import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
 import { Check, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
-import { 
-  currentThicknessSignal, 
-  currentOpacitySignal, 
-  currentIsBrushSignal 
+import {
+  currentThicknessSignal,
+  currentOpacitySignal,
+  currentIsBrushSignal
 } from '../store/styleSignals'
 
 /* ------------------------------------------------------------------ */
@@ -39,12 +39,12 @@ const FILL_ICONS: Record<string, React.FC<any>> = {
   solid: () => <div className="w-4 h-4 border-2 border-current rounded-sm bg-current" />,
   pattern: () => (
     <div className="w-4 h-4 border-2 border-current rounded-sm relative overflow-hidden">
-        <div className="absolute inset-0 bg-current/20 flex flex-wrap gap-0.5 p-0.5">
-            <div className="w-0.5 h-0.5 bg-current rounded-full" />
-            <div className="w-0.5 h-0.5 bg-current rounded-full" />
-            <div className="w-0.5 h-0.5 bg-current rounded-full" />
-            <div className="w-0.5 h-0.5 bg-current rounded-full" />
-        </div>
+      <div className="absolute inset-0 bg-current/20 flex flex-wrap gap-0.5 p-0.5">
+        <div className="w-0.5 h-0.5 bg-current rounded-full" />
+        <div className="w-0.5 h-0.5 bg-current rounded-full" />
+        <div className="w-0.5 h-0.5 bg-current rounded-full" />
+        <div className="w-0.5 h-0.5 bg-current rounded-full" />
+      </div>
     </div>
   ),
 }
@@ -67,7 +67,7 @@ const OPACITIES = [0.1, 0.25, 0.5, 0.75, 1]
 export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const editor = useEditor()
   const [showCustomThickness, setShowCustomThickness] = useState(false)
-  
+
   const currentColor = useValue('color', () => {
     const shared = editor.getSharedStyles().get(DefaultColorStyle)
     if (shared && shared.type === 'shared') return shared.value
@@ -101,7 +101,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     }
     return currentIsBrushSignal.get()
   }, [editor])
-  
+
   // Opacity handling
   const currentOpacity = useValue('opacity', () => {
     const selected = editor.getSelectedShapes() as any[]
@@ -127,26 +127,26 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
 
   const handleDashChange = (dash: string) => {
     if (dash === 'brush') {
-       // Toggle brush mode via meta instead of dash style to avoid validation errors
-       const nextBrush = !currentIsBrush
-       editor.updateShapes(editor.getSelectedShapes().map(s => ({
-         id: s.id,
-         type: s.type,
-         meta: { ...s.meta, isBrush: nextBrush }
-       })))
-       currentIsBrushSignal.set(nextBrush)
-       return
+      // Toggle brush mode via meta instead of dash style to avoid validation errors
+      const nextBrush = !currentIsBrush
+      editor.updateShapes(editor.getSelectedShapes().map(s => ({
+        id: s.id,
+        type: s.type,
+        meta: { ...s.meta, isBrush: nextBrush }
+      })))
+      currentIsBrushSignal.set(nextBrush)
+      return
     }
 
     // Normal dash styles
     editor.setStyleForSelectedShapes(DefaultDashStyle, dash as any)
     editor.setStyleForNextShapes(DefaultDashStyle, dash as any)
-    
+
     // Disable brush if a normal dash is picked
     editor.updateShapes(editor.getSelectedShapes().map(s => ({
-        id: s.id,
-        type: s.type,
-        meta: { ...s.meta, isBrush: false }
+      id: s.id,
+      type: s.type,
+      meta: { ...s.meta, isBrush: false }
     })))
     currentIsBrushSignal.set(false)
   }
@@ -179,173 +179,173 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
 
   return (
     <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 w-[260px] flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
-      
+
       {/* Colors Grid */}
       <div>
-         <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Color</p>
-         <div className="grid grid-cols-7 gap-1.5">
-           {DefaultColorStyle.values.map(color => {
-             const cTheme = COLOR_THEMES[color]
-             const isActive = currentColor === color
-             return (
-               <button
-                 key={color}
-                 onClick={() => handleColorChange(color)}
-                 className={`
+        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Color</p>
+        <div className="grid grid-cols-7 gap-1.5">
+          {DefaultColorStyle.values.map(color => {
+            const cTheme = COLOR_THEMES[color]
+            const isActive = currentColor === color
+            return (
+              <button
+                key={color}
+                onClick={() => handleColorChange(color)}
+                className={`
                     w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200
                     ${cTheme.bg}
                     ${isActive ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900 scale-110' : 'hover:scale-105'}
                  `}
-                 title={color}
-               >
-                 {isActive && <Check size={12} className={color === 'white' || color === 'yellow' || color.startsWith('light') ? 'text-black' : 'text-white'} />}
-               </button>
-             )
-           })}
-         </div>
+                title={color}
+              >
+                {isActive && <Check size={12} className={color === 'white' || color === 'yellow' || color.startsWith('light') ? 'text-black' : 'text-white'} />}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="flex gap-4">
-          {/* Fill */}
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Fill</p>
-            <div className="grid grid-cols-4 gap-1">
-                {DefaultFillStyle.values.map(fill => {
-                    const Icon = FILL_ICONS[fill] || FILL_ICONS['none']
-                    const isActive = currentFill === fill
-                    return (
-                        <button
-                            key={fill}
-                            onClick={() => handleFillChange(fill)}
-                            className={`
+        {/* Fill */}
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Fill</p>
+          <div className="grid grid-cols-4 gap-1">
+            {DefaultFillStyle.values.map(fill => {
+              const Icon = FILL_ICONS[fill] || FILL_ICONS['none']
+              const isActive = currentFill === fill
+              return (
+                <button
+                  key={fill}
+                  onClick={() => handleFillChange(fill)}
+                  className={`
                                 aspect-square rounded-lg flex items-center justify-center transition-all
-                                ${isActive 
-                                    ? `${theme.bg} shadow-sm` 
-                                    : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                                }
+                                ${isActive
+                      ? `${theme.bg} shadow-sm`
+                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                    }
                             `}
-                            title={fill}
-                        >
-                            <Icon />
-                        </button>
-                    )
-                })}
-            </div>
+                  title={fill}
+                >
+                  <Icon />
+                </button>
+              )
+            })}
           </div>
+        </div>
 
-          {/* Dash */}
-          <div className="flex-1">
-            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Dash</p>
-            <div className="grid grid-cols-4 gap-1">
-                {/* We map the normal dash styles plus our custom brush toggle */}
-                {[...DefaultDashStyle.values, 'brush'].map(dash => {
-                    const Icon = DASH_ICONS[dash] || DASH_ICONS['draw']
-                    const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
-                    return (
-                        <button
-                            key={dash}
-                            onClick={() => handleDashChange(dash)}
-                            className={`
+        {/* Dash */}
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Dash</p>
+          <div className="grid grid-cols-4 gap-1">
+            {/* We map the normal dash styles plus our custom brush toggle */}
+            {[...DefaultDashStyle.values, 'brush'].map(dash => {
+              const Icon = DASH_ICONS[dash] || DASH_ICONS['draw']
+              const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
+              return (
+                <button
+                  key={dash}
+                  onClick={() => handleDashChange(dash)}
+                  className={`
                                 aspect-square rounded-lg flex items-center justify-center transition-all
-                                ${isActive 
-                                    ? `${theme.bg} shadow-sm` 
-                                    : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                                }
+                                ${isActive
+                      ? `${theme.bg} shadow-sm`
+                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                    }
                             `}
-                            title={dash}
-                        >
-                            <Icon />
-                        </button>
-                    )
-                })}
-            </div>
+                  title={dash}
+                >
+                  <Icon />
+                </button>
+              )
+            })}
           </div>
+        </div>
       </div>
 
       {/* Thickness Slider */}
       <div>
-         <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-                <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Thickness</p>
-                <div 
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-zinc-900 dark:bg-zinc-100 shadow-inner"
-                    title="Thickness Preview"
-                >
-                    <div 
-                        className="rounded-full bg-white dark:bg-black"
-                        style={{ 
-                            width: Math.max(1.5, currentThickness / 2.5), 
-                            height: Math.max(1.5, currentThickness / 2.5),
-                            opacity: currentOpacity
-                        }}
-                    />
-                </div>
-            </div>
-            <p className="text-[10px] font-medium text-gray-500">{Math.round(currentThickness)}px</p>
-         </div>
-         
-         <div className="flex items-center gap-1 mb-2">
-            {[1, 2, 4, 6, 8, 12].map(t => (
-              <button 
-                key={t}
-                onClick={() => handleThicknessChange(t)}
-                className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${currentThickness === t ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-              >
-                {t}
-              </button>
-            ))}
-            <button 
-              onClick={() => setShowCustomThickness(!showCustomThickness)}
-              className={`p-1.5 rounded-lg transition-all ${showCustomThickness ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-              title="Custom Thickness"
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Thickness</p>
+            <div
+              className="w-4 h-4 rounded-lg flex items-center justify-center bg-zinc-900 dark:bg-zinc-100 shadow-inner"
+              title="Thickness Preview"
             >
-              <SlidersHorizontal size={14} />
-            </button>
-         </div>
-
-         {showCustomThickness && (
-           <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-              <input 
-                type="range"
-                min="1"
-                max="30"
-                step="1"
-                value={currentThickness}
-                onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
-                className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+              <div
+                className="rounded-full bg-white dark:bg-black"
+                style={{
+                  width: Math.max(1.5, currentThickness / 2.5),
+                  height: Math.max(1.5, currentThickness / 2.5),
+                  opacity: currentOpacity
+                }}
               />
-              <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
-                  <span>1px</span>
-                  <span>15px</span>
-                  <span>30px</span>
-              </div>
-           </div>
-         )}
+            </div>
+          </div>
+          <p className="text-[10px] font-medium text-gray-500">{Math.round(currentThickness)}px</p>
+        </div>
+
+        <div className="flex items-center gap-1 mb-2">
+          {[1, 2, 3, 4, 8, 12].map(t => (
+            <button
+              key={t}
+              onClick={() => handleThicknessChange(t)}
+              className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${currentThickness === t ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            >
+              {t}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowCustomThickness(!showCustomThickness)}
+            className={`p-1.5 rounded-lg transition-all ${showCustomThickness ? `${theme.bg} shadow-sm` : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            title="Custom Thickness"
+          >
+            <SlidersHorizontal size={14} />
+          </button>
+        </div>
+
+        {showCustomThickness && (
+          <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+            <input
+              type="range"
+              min="1"
+              max="30"
+              step="1"
+              value={currentThickness}
+              onChange={(e) => handleThicknessChange(parseInt(e.target.value))}
+              className="w-full accent-blue-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+            />
+            <div className="flex justify-between mt-1 text-[8px] text-gray-400 px-1">
+              <span>1px</span>
+              <span>15px</span>
+              <span>30px</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Opacity Buttons */}
       <div>
-         <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Opacity</p>
-         <div className="flex gap-1">
-             {OPACITIES.map(op => {
-                 const isActive = Math.abs(currentOpacity - op) < 0.05
-                 return (
-                     <button
-                        key={op}
-                        onClick={() => handleOpacityChange(op)}
-                        className={`
+        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Opacity</p>
+        <div className="flex gap-1">
+          {OPACITIES.map(op => {
+            const isActive = Math.abs(currentOpacity - op) < 0.05
+            return (
+              <button
+                key={op}
+                onClick={() => handleOpacityChange(op)}
+                className={`
                             flex-1 py-1.5 rounded-lg text-xs font-medium transition-all
-                            ${isActive 
-                                ? `${theme.bg} shadow-sm` 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                            }
+                            ${isActive
+                    ? `${theme.bg} shadow-sm`
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+                  }
                         `}
-                     >
-                         {Math.round(op * 100)}%
-                     </button>
-                 )
-             })}
-         </div>
+              >
+                {Math.round(op * 100)}%
+              </button>
+            )
+          })}
+        </div>
       </div>
 
     </div>

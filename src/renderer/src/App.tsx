@@ -625,7 +625,7 @@ function AppContent() {
           type: "image",
           x: viewportCenter.x - displayW / 2,
           y: viewportCenter.y - displayH / 2,
-          isLocked: false,
+          isLocked: true,
           props: {
             assetId,
             w: displayW,
@@ -633,6 +633,8 @@ function AppContent() {
           },
           meta: {},
         });
+        
+        editor.setCameraOptions({ isLocked: true });
       });
 
       window.api.log(`[Image Import] Imported ${file.name} (${naturalW}x${naturalH}) at ${displayW}x${displayH}`);
@@ -651,13 +653,22 @@ function AppContent() {
     setImportProgress("Reading file...");
 
     try {
-      let pdfData: Uint8Array | null = null;
+      const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
+      const isPptx = file.name.endsWith(".pptx") || file.name.endsWith(".ppt");
+
+      if (!isPdf && !isPptx) {
+        alert("Unsupported file format. Please use PDF or PPTX files.");
+        return;
+      }
 
       setImportProgress(`Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
 
-      if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+      let slideImages: { url: string; w: number; h: number }[] = [];
+      let pageCount = 0;
+
+      if (isPdf) {
         const arrayBuffer = await file.arrayBuffer();
-        pdfData = new Uint8Array(arrayBuffer);
+        const pdfData = new Uint8Array(arrayBuffer);
         window.api.log(`PDF file read: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
 
         if (window.electron?.ipcRenderer) {
@@ -665,32 +676,31 @@ function AppContent() {
             await window.electron.ipcRenderer.invoke("save-imported-file", pdfData, file.name);
           } catch (_) { /* non-critical */ }
         }
-      } else if (file.name.endsWith(".ppt") || file.name.endsWith(".pptx")) {
-        if (!window.electron?.ipcRenderer) {
-          alert("PPTX import requires Electron app");
-          return;
+
+        setImportProgress("Loading PDF engine...");
+        const { loadPdf, renderPageToSlideDataUrl } = await import("./utils/pdfUtils");
+        const pdf = await loadPdf(pdfData, { verbose: true, timeout: 120000 });
+        pageCount = pdf.numPages;
+        window.api.log(`[Import] Parsed ${pageCount} PDF pages`);
+
+        for (let i = 1; i <= pageCount; i++) {
+          setImportProgress(`Rendering slide ${i} of ${pageCount}...`);
+          const slide = await renderPageToSlideDataUrl(pdf, i);
+          slideImages.push(slide);
         }
-        setImportProgress("Converting PPT to PDF...");
-        const fileArrayBuffer = await file.arrayBuffer();
-        const fileBytes = new Uint8Array(fileArrayBuffer);
-        const pdfPath = await window.electron.ipcRenderer.invoke(
-          "convert-ppt-buffer-to-pdf",
-          fileBytes,
-          file.name,
-        );
-        setImportProgress("Reading converted PDF...");
-        const pdfBuffer = await window.electron.ipcRenderer.invoke("read-pdf-file", pdfPath);
-        pdfData = new Uint8Array(pdfBuffer);
-        window.api.log(`PPTX converted: ${(pdfData.length / 1024 / 1024).toFixed(1)}MB`);
+      } else {
+        setImportProgress("Extracting PPTX slides...");
+        const { extractPptxSlides } = await import("./utils/pptxUtils");
+        const arrayBuffer = await file.arrayBuffer();
+        slideImages = await extractPptxSlides(arrayBuffer);
+        pageCount = slideImages.length;
+        window.api.log(`[Import] Extracted ${pageCount} PPTX slides`);
       }
 
-      if (!pdfData) return;
-
-      setImportProgress("Loading PDF engine...");
-      const { loadPdf, renderPageToSlideDataUrl } = await import("./utils/pdfUtils");
-      const pdf = await loadPdf(pdfData, { verbose: true, timeout: 120000 });
-      const pageCount = pdf.numPages;
-      window.api.log(`[Import] Parsed ${pageCount} pages`);
+      if (pageCount === 0) {
+        alert("No slides found in the file.");
+        return;
+      }
 
       if (importMode === 'replace') {
         setImportProgress("Clearing existing slides...");
@@ -773,62 +783,57 @@ function AppContent() {
         }
       });
 
-      const pages = editor.getPages().sort((a, b) => (a.index > b.index ? 1 : -1));
-      const CHUNK_SIZE = 5;
+      for (let i = 0; i < slideImages.length; i++) {
+        const { url, w, h } = slideImages[i];
+        const pageId = newPageIds[i];
 
-      for (let i = 0; i < newPageIds.length; i += CHUNK_SIZE) {
-        const end = Math.min(i + CHUNK_SIZE, newPageIds.length);
-        setImportProgress(`Rendering slides ${i + 1}-${end} of ${newPageIds.length}...`);
-
-        for (let j = i; j < end; j++) {
-          const pdfPageNum = j + 1;
-          const pageId = newPageIds[j];
-          const page = pages.find(p => p.id === pageId);
-
-          if (!page) continue;
-
-          try {
-            const { url, w, h } = await renderPageToSlideDataUrl(pdf, pdfPageNum);
-
-            editor.batch(() => {
-              const assetId = AssetRecordType.createId();
-              editor.createAssets([{
-                id: assetId,
-                typeName: "asset",
-                type: "image",
-                meta: {},
-                props: {
-                  name: `slide-${pdfPageNum}`,
-                  src: url,
-                  w,
-                  h,
-                  mimeType: "image/jpeg",
-                  isAnimated: false,
-                },
-              }]);
-
-              editor.createShape({
-                type: "image",
-                parentId: pageId as any,
-                x: 0,
-                y: 0,
-                isLocked: true,
-                props: {
-                  assetId,
-                  w,
-                  h,
-                },
-                meta: {
-                  isPageBackground: true,
-                },
-              });
-            });
-          } catch (renderError) {
-            window.api.log(`[Import] ERROR on PDF page ${pdfPageNum}: ${renderError}`);
-          }
+        if (!url) {
+          window.api.log(`[Import] Skipping empty slide ${i + 1}`);
+          continue;
         }
 
-        await new Promise(resolve => requestAnimationFrame(resolve));
+        try {
+          editor.batch(() => {
+            const assetId = AssetRecordType.createId();
+            editor.createAssets([{
+              id: assetId,
+              typeName: "asset",
+              type: "image",
+              meta: {},
+              props: {
+                name: `slide-${i + 1}`,
+                src: url,
+                w,
+                h,
+                mimeType: "image/jpeg",
+                isAnimated: false,
+              },
+            }]);
+
+            editor.createShape({
+              type: "image",
+              parentId: pageId as any,
+              x: 0,
+              y: 0,
+              isLocked: true,
+              props: {
+                assetId,
+                w,
+                h,
+              },
+              meta: {
+                isPageBackground: true,
+              },
+            });
+          });
+        } catch (renderError) {
+          window.api.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
+        }
+
+        if (i % 5 === 0) {
+          setImportProgress(`Adding slides ${i + 1}-${Math.min(i + 5, pageCount)} of ${pageCount}...`);
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
       }
 
       window.api.log(`[Import] Complete: ${newPageIds.length} new slides`);
@@ -838,6 +843,8 @@ function AppContent() {
         editor.setCurrentPage(firstImportedPageId as any);
         requestAnimationFrame(() => fitSlideToViewport(editor));
       }
+      
+      editor.setCameraOptions({ isLocked: true });
 
       window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
@@ -1152,7 +1159,7 @@ function AppContent() {
         onAddProtractor={addProtractor}
         onAddCompass={addCompass}
       />
-      <DrawingToolbar showRecentColors={showRecentColors} />
+      <DrawingToolbar showRecentColors={showRecentColors} onImageClick={handleImportClick} />
       <NavigationPanel isVisible={showNavPanel} position={navPosition} />
       {showNavPanel && (
         <div
