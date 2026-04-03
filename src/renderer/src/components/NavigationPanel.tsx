@@ -1,6 +1,7 @@
 import { useEditor } from "@tldraw/tldraw";
 import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { animateSlideToViewport } from "../utils/slideCamera";
 
 export function NavigationPanel({
   isVisible,
@@ -59,14 +60,7 @@ export function NavigationPanel({
     const pages = editor.getPages();
     if (currentPageIndex < pages.length - 1) {
       editor.setCurrentPage(pages[currentPageIndex + 1].id);
-      requestAnimationFrame(() => {
-        const bounds = editor.getCurrentPageBounds();
-        if (bounds) {
-          editor.zoomToBounds(bounds, { inset: 0 });
-        } else {
-          editor.zoomToFit();
-        }
-      });
+      requestAnimationFrame(() => animateSlideToViewport(editor));
     }
   };
 
@@ -74,14 +68,7 @@ export function NavigationPanel({
     const pages = editor.getPages();
     if (currentPageIndex > 0) {
       editor.setCurrentPage(pages[currentPageIndex - 1].id);
-      requestAnimationFrame(() => {
-        const bounds = editor.getCurrentPageBounds();
-        if (bounds) {
-          editor.zoomToBounds(bounds, { inset: 0 });
-        } else {
-          editor.zoomToFit();
-        }
-      });
+      requestAnimationFrame(() => animateSlideToViewport(editor));
     }
   };
 

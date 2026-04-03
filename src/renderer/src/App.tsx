@@ -8,10 +8,10 @@ import {
   TLUiOverrides,
   getIndexAbove,
   ZERO_INDEX_KEY,
-  atom,
   DefaultColorStyle,
 } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
+import { fitSlideToViewport } from "./utils/slideCamera";
 
 import { useSubjectMode } from "./store/useSubjectMode";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -529,194 +529,266 @@ function AppContent() {
     if (projectInputRef.current) projectInputRef.current.value = "";
   };
 
+  const [importModeDialogVisible, setImportModeDialogVisible] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+
+  const handleImportModeReplace = () => {
+    setImportModeDialogVisible(false);
+    const file = pendingImportFile;
+    setPendingImportFile(null);
+    if (file) handleSlideImport(file, 'replace');
+  };
+
+  const handleImportModeAppend = () => {
+    setImportModeDialogVisible(false);
+    const file = pendingImportFile;
+    setPendingImportFile(null);
+    if (file) handleSlideImport(file, 'append');
+  };
+
+  const handleImportModeCancel = () => {
+    setImportModeDialogVisible(false);
+    setPendingImportFile(null);
+  };
+
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Confirm before replacing existing project
-    if (hasExistingContent()) {
-      const confirmed = await showConfirmDialog();
-      if (!confirmed) {
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
-      }
+    const isSlideFile =
+      file.type === "application/pdf" ||
+      file.name.endsWith(".pdf") ||
+      file.name.endsWith(".ppt") ||
+      file.name.endsWith(".pptx");
+
+    if (isSlideFile) {
+      setPendingImportFile(file);
+      setImportModeDialogVisible(true);
+    } else {
+      await handleImageImport(file);
     }
 
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleImageImport = async (file: File) => {
+    setIsImporting(true);
+    setImportProgress(`Importing image: ${file.name}`);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: file.type });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = blobUrl;
+      });
+
+      const naturalW = img.width;
+      const naturalH = img.height;
+      const maxW = 800;
+      const displayW = Math.min(naturalW, maxW);
+      const displayH = (naturalH / naturalW) * displayW;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = displayW;
+      canvas.height = displayH;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, displayW, displayH);
+      const dataUrl = canvas.toDataURL(file.type || "image/png");
+
+      URL.revokeObjectURL(blobUrl);
+
+      const assetId = AssetRecordType.createId();
+      editor.batch(() => {
+        editor.createAssets([{
+          id: assetId,
+          typeName: "asset",
+          type: "image",
+          meta: {},
+          props: {
+            name: file.name,
+            src: dataUrl,
+            w: displayW,
+            h: displayH,
+            mimeType: file.type || "image/png",
+            isAnimated: false,
+          },
+        }]);
+
+        const viewportCenter = editor.getViewportScreenCenter();
+        editor.createShape({
+          type: "image",
+          x: viewportCenter.x - displayW / 2,
+          y: viewportCenter.y - displayH / 2,
+          isLocked: false,
+          props: {
+            assetId,
+            w: displayW,
+            h: displayH,
+          },
+          meta: {},
+        });
+      });
+
+      window.api.log(`[Image Import] Imported ${file.name} (${naturalW}x${naturalH}) at ${displayW}x${displayH}`);
+    } catch (error: any) {
+      window.api.log(`[Image Import] Failed: ${error?.message || error}`);
+      alert("Image import failed: " + (error?.message || error));
+    } finally {
+      setIsImporting(false);
+      setImportProgress("");
+    }
+  };
+
+  const handleSlideImport = async (file: File, importMode: 'replace' | 'append') => {
     const importStartTime = performance.now();
     setIsImporting(true);
     setImportProgress("Reading file...");
-    try {
-      let pdfData: string | Uint8Array = "";
 
-      setImportProgress(
-        `Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`,
-      );
+    try {
+      let pdfData: Uint8Array | null = null;
+
+      setImportProgress(`Reading ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
 
       if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-        const readStartTime = performance.now();
-        setImportProgress("Converting file to buffer...");
         const arrayBuffer = await file.arrayBuffer();
         pdfData = new Uint8Array(arrayBuffer);
-        window.api.log(`File read and converted to buffer in ${(performance.now() - readStartTime).toFixed(2)}ms`);
+        window.api.log(`PDF file read: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
 
-        // Save to library
-        // @ts-ignore
-        if (window.electron && window.electron.ipcRenderer) {
-          const saveStartTime = performance.now();
-          setImportProgress("Saving to library...");
+        if (window.electron?.ipcRenderer) {
           try {
-            // Convert to regular array ONLY for saving to avoid IPC cloning issues if needed, 
-            // but Uint8Array is usually supported in modern Electron IPC.
-            // @ts-ignore
-            await window.electron.ipcRenderer.invoke(
-              "save-imported-file",
-              pdfData,
-              file.name,
-            );
-            window.api.log(`File saved to library in ${(performance.now() - saveStartTime).toFixed(2)}ms`);
-          } catch (err) {
-            window.api.log(`Failed to save file: ${err}`);
-          }
+            await window.electron.ipcRenderer.invoke("save-imported-file", pdfData, file.name);
+          } catch (_) { /* non-critical */ }
         }
-
-        setImportProgress(
-          `File loaded (${pdfData.length} bytes). Parsing PDF...`,
-        );
       } else if (file.name.endsWith(".ppt") || file.name.endsWith(".pptx")) {
-        // ... (PPT logic already has some logs, but we can wrap it if needed)
-        const pptStartTime = performance.now();
-        // @ts-ignore
-        if (window.electron && window.electron.ipcRenderer) {
-          setImportProgress(
-            "Converting PPT to PDF (this may take a moment)...",
-          );
-
-          const fileArrayBuffer = await file.arrayBuffer();
-          const fileBytes = new Uint8Array(fileArrayBuffer);
-          // @ts-ignore
-          const pdfPath = await window.electron.ipcRenderer.invoke(
-            "convert-ppt-buffer-to-pdf",
-            fileBytes,
-            file.name,
-          );
-
-          setImportProgress("Reading converted PDF...");
-          // @ts-ignore
-          const pdfBuffer = await window.electron.ipcRenderer.invoke(
-            "read-pdf-file",
-            pdfPath,
-          );
-          pdfData = new Uint8Array(pdfBuffer);
-          window.api.log(`PPT converted and read in ${(performance.now() - pptStartTime).toFixed(2)}ms`);
-        } else {
-          alert("PPT conversion only supported in Electron app");
-          setIsImporting(false);
+        if (!window.electron?.ipcRenderer) {
+          alert("PPTX import requires Electron app");
           return;
         }
+        setImportProgress("Converting PPT to PDF...");
+        const fileArrayBuffer = await file.arrayBuffer();
+        const fileBytes = new Uint8Array(fileArrayBuffer);
+        const pdfPath = await window.electron.ipcRenderer.invoke(
+          "convert-ppt-buffer-to-pdf",
+          fileBytes,
+          file.name,
+        );
+        setImportProgress("Reading converted PDF...");
+        const pdfBuffer = await window.electron.ipcRenderer.invoke("read-pdf-file", pdfPath);
+        pdfData = new Uint8Array(pdfBuffer);
+        window.api.log(`PPTX converted: ${(pdfData.length / 1024 / 1024).toFixed(1)}MB`);
       }
 
-      const parseStartTime = performance.now();
+      if (!pdfData) return;
+
       setImportProgress("Loading PDF engine...");
-      // Import the new utility
-      const { loadPdf, renderPageToBlobUrl } = await import("./utils/pdfUtils");
+      const { loadPdf, renderPageToSlideDataUrl } = await import("./utils/pdfUtils");
       const pdf = await loadPdf(pdfData, { verbose: true, timeout: 120000 });
-      window.api.log(`PDF engine parsed document in ${(performance.now() - parseStartTime).toFixed(2)}ms`);
-
-      // --- Clear existing project ---
-      const clearStartTime = performance.now();
-      setImportProgress("Clearing existing project...");
-
-      editor.batch(() => {
-        const existingPages = editor.getPages();
-        const firstExistingPageId = existingPages[0]?.id;
-
-        if (firstExistingPageId) {
-          editor.setCurrentPage(firstExistingPageId);
-        }
-
-        for (const page of existingPages) {
-          if (page.id !== firstExistingPageId) {
-            editor.deletePage(page.id);
-          }
-        }
-
-        if (firstExistingPageId) {
-          const shapeIds = editor.getSortedChildIdsForParent(firstExistingPageId);
-          if (shapeIds.length > 0) {
-            for (const id of shapeIds) {
-              const shape = editor.getShape(id);
-              if (shape && shape.isLocked) {
-                editor.updateShape({
-                  id: shape.id,
-                  type: shape.type,
-                  isLocked: false,
-                });
-              }
-            }
-            editor.deleteShapes(shapeIds);
-          }
-          editor.renamePage(firstExistingPageId, "Slide 1");
-        }
-
-        const existingAssets = editor.getAssets();
-        if (existingAssets.length > 0) {
-          editor.deleteAssets(existingAssets.map((a) => a.id));
-        }
-      });
-
-      window.api.log(`Cleared existing project in ${(performance.now() - clearStartTime).toFixed(2)}ms`);
-
-      const firstExistingPageId = editor.getPages()[0]?.id;
-      const SCALE = 0.5;
       const pageCount = pdf.numPages;
+      window.api.log(`[Import] Parsed ${pageCount} pages`);
 
-      function generatePageIndices(count: number): any[] {
+      if (importMode === 'replace') {
+        setImportProgress("Clearing existing slides...");
+        editor.batch(() => {
+          const existingPages = editor.getPages();
+          const firstPageId = existingPages[0]?.id;
+
+          if (firstPageId) {
+            editor.setCurrentPage(firstPageId);
+            const shapeIds = editor.getSortedChildIdsForParent(firstPageId);
+            if (shapeIds.length > 0) {
+              for (const id of shapeIds) {
+                const shape = editor.getShape(id);
+                if (shape && shape.isLocked) {
+                  editor.updateShape({ id: shape.id, type: shape.type, isLocked: false });
+                }
+              }
+              editor.deleteShapes(shapeIds);
+            }
+            editor.renamePage(firstPageId, "Slide 1");
+          }
+
+          for (let i = existingPages.length - 1; i >= 0; i--) {
+            if (existingPages[i].id !== firstPageId) {
+              editor.deletePage(existingPages[i].id);
+            }
+          }
+
+          const existingAssets = editor.getAssets();
+          if (existingAssets.length > 0) {
+            editor.deleteAssets(existingAssets.map((a) => a.id));
+          }
+        });
+      }
+
+      const existingPages = editor.getPages();
+      const sortedExisting = [...existingPages].sort((a, b) => (a.index > b.index ? 1 : -1));
+      const firstExistingPageId = existingPages[0]?.id;
+      const lastExistingPage = sortedExisting[sortedExisting.length - 1];
+
+      function generatePageIndices(count: number, startAfter?: string): any[] {
         const indices: any[] = [];
-        let currentIndex: any = ZERO_INDEX_KEY;
+        let currentIndex: any = startAfter || ZERO_INDEX_KEY;
         for (let i = 0; i < count; i++) {
-          indices.push(currentIndex);
           currentIndex = getIndexAbove(currentIndex);
+          indices.push(currentIndex);
         }
         return indices;
       }
 
-      const pageIndices = generatePageIndices(pageCount);
-      window.api.log(`Starting import of ${pageCount} pages...`);
+      const pageIndices = generatePageIndices(pageCount, lastExistingPage?.index);
 
-      // Create all pages synchronously (this is fast)
+      const newPageIds: string[] = [];
+
       editor.batch(() => {
-        for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-          if (pageNum > 1) {
+        if (importMode === 'replace' && firstExistingPageId) {
+          editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
+          editor.renamePage(firstExistingPageId, "Slide 1");
+          newPageIds.push(firstExistingPageId);
+          
+          for (let i = 1; i < pageCount; i++) {
             const newPageId = PageRecordType.createId();
             editor.createPage({
               id: newPageId,
-              name: `Slide ${pageNum}`,
-              index: pageIndices[pageNum - 1],
+              name: `Slide ${i + 1}`,
+              index: pageIndices[i],
             });
-          } else if (firstExistingPageId) {
-            editor.updatePage({ id: firstExistingPageId, index: pageIndices[0] });
+            newPageIds.push(newPageId);
+          }
+        } else {
+          for (let i = 0; i < pageCount; i++) {
+            const newPageId = PageRecordType.createId();
+            editor.createPage({
+              id: newPageId,
+              name: `Slide ${sortedExisting.length + i + 1}`,
+              index: pageIndices[i],
+            });
+            newPageIds.push(newPageId);
           }
         }
       });
 
-      // Now add images in chunks to keep UI responsive
       const pages = editor.getPages().sort((a, b) => (a.index > b.index ? 1 : -1));
-      window.api.log(`[Import] Pages created: ${pages.length} (expected ${pageCount})`);
       const CHUNK_SIZE = 5;
 
-      for (let i = 0; i < pages.length; i += CHUNK_SIZE) {
-        const end = Math.min(i + CHUNK_SIZE, pages.length);
-        setImportProgress(`Rendering slides ${i + 1}-${end} of ${pageCount}...`);
+      for (let i = 0; i < newPageIds.length; i += CHUNK_SIZE) {
+        const end = Math.min(i + CHUNK_SIZE, newPageIds.length);
+        setImportProgress(`Rendering slides ${i + 1}-${end} of ${newPageIds.length}...`);
 
-        // Process a chunk
         for (let j = i; j < end; j++) {
-          const pageNum = j + 1;
-          const pageId = pages[j].id;
+          const pdfPageNum = j + 1;
+          const pageId = newPageIds[j];
+          const page = pages.find(p => p.id === pageId);
+
+          if (!page) continue;
 
           try {
-            const { url, w, h } = await renderPageToBlobUrl(pdf, pageNum, { scale: SCALE, format: "jpeg", quality: 0.7 });
+            const { url, w, h } = await renderPageToSlideDataUrl(pdf, pdfPageNum);
 
             editor.batch(() => {
               const assetId = AssetRecordType.createId();
@@ -726,7 +798,7 @@ function AppContent() {
                 type: "image",
                 meta: {},
                 props: {
-                  name: `slide-${pageNum}.jpg`,
+                  name: `slide-${pdfPageNum}`,
                   src: url,
                   w,
                   h,
@@ -737,12 +809,12 @@ function AppContent() {
 
               editor.createShape({
                 type: "image",
-                parentId: pageId,
+                parentId: pageId as any,
                 x: 0,
                 y: 0,
                 isLocked: true,
                 props: {
-                  assetId: assetId,
+                  assetId,
                   w,
                   h,
                 },
@@ -752,39 +824,28 @@ function AppContent() {
               });
             });
           } catch (renderError) {
-            window.api.log(`[Import] ERROR on page ${pageNum}: ${renderError}`);
+            window.api.log(`[Import] ERROR on PDF page ${pdfPageNum}: ${renderError}`);
           }
         }
 
-        // Yield to browser to update UI
         await new Promise(resolve => requestAnimationFrame(resolve));
       }
 
-      window.api.log(`Import complete. Pages with images: ${editor.getPages().length} of ${pdf.numPages}`);
+      window.api.log(`[Import] Complete: ${newPageIds.length} new slides`);
 
-      // Center viewport on the first slide
-      const newFirstPageId = editor.getPages()[0]?.id;
-      if (newFirstPageId) {
-        editor.setCurrentPage(newFirstPageId);
-        requestAnimationFrame(() => {
-          const bounds = editor.getCurrentPageBounds();
-          if (bounds) {
-            editor.zoomToBounds(bounds, { inset: 0 });
-          } else {
-            editor.zoomToFit();
-          }
-        });
+      const firstImportedPageId = newPageIds[0];
+      if (firstImportedPageId) {
+        editor.setCurrentPage(firstImportedPageId as any);
+        requestAnimationFrame(() => fitSlideToViewport(editor));
       }
 
-      const totalTime = performance.now() - importStartTime;
-      window.api.log(`[Import] Completed in ${(totalTime / 1000).toFixed(2)}s`);
+      window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
-      window.api.log(`[Import] Import failed: ${error?.message || error}`);
+      window.api.log(`[Import] Failed: ${error?.message || error}`);
       alert("Import failed: " + (error?.message || error));
     } finally {
       setIsImporting(false);
       setImportProgress("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -872,13 +933,8 @@ function AppContent() {
       });
     }
 
-    requestAnimationFrame(() => {
-      const bounds = editor.getCurrentPageBounds();
-      if (bounds) editor.zoomToBounds(bounds, { inset: 0 });
-      else editor.zoomToFit();
-    });
+    requestAnimationFrame(() => fitSlideToViewport(editor));
   }, [editor]);
-
   const handleMovePage = useCallback((fromId: string, toIndex: number) => {
     const pages = editor.getPages();
     const sortedPages = pages.sort((a, b) => (a.index > b.index ? 1 : -1));
@@ -1117,7 +1173,7 @@ function AppContent() {
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept=".pdf,.ppt,.pptx"
+        accept=".pdf,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg"
         onChange={handleFileChange}
       />
 
@@ -1133,6 +1189,60 @@ function AppContent() {
         message={isImporting ? "Importing File" : "Exporting..."}
         subMessage={importProgress || exportProgress || "Please wait..."}
       />
+      {importModeDialogVisible && (
+        <div className="fixed inset-0 z-[100010] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleImportModeCancel} />
+          <div className="relative bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-3xl shadow-2xl p-8 w-[440px] border border-gray-200/50 dark:border-gray-700/50 animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Import Slides
+            </h3>
+            <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
+              How would you like to import these slides?
+            </p>
+            <div className="flex flex-col gap-4">
+              <button
+                onClick={handleImportModeReplace}
+                className="group w-full px-6 py-5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl font-semibold transition-all duration-200 text-left shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-lg">Replace All</div>
+                    <div className="text-sm font-normal opacity-80 mt-1">Delete existing slides and start fresh</div>
+                  </div>
+                  <svg className="w-6 h-6 opacity-70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </div>
+              </button>
+              <button
+                onClick={handleImportModeAppend}
+                className="group w-full px-6 py-5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-semibold transition-all duration-200 text-left shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-lg">Append</div>
+                    <div className="text-sm font-normal opacity-80 mt-1">Add after existing slides</div>
+                  </div>
+                  <svg className="w-6 h-6 opacity-70 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </button>
+              <button
+                onClick={handleImportModeCancel}
+                className="w-full px-6 py-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium transition-colors text-center mt-2"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog
         isVisible={confirmDialogVisible}
         onConfirm={handleConfirm}
@@ -1157,14 +1267,27 @@ function AppContent() {
       <AllSlidesGrid
         isVisible={isAllSlidesGridVisible}
         onClose={() => setIsAllSlidesGridVisible(false)}
-        onSelectPage={(id) => editor.setCurrentPage(id as any)}
-        pages={editor.getPages()}
-        currentPageId={editor.getCurrentPageId()}
+        onSelectPage={(id) => {
+          editor.setCurrentPage(id as any);
+          requestAnimationFrame(() => fitSlideToViewport(editor));
+        }}
         onAddPage={addPage}
         onDuplicatePage={duplicatePage}
         onDeletePage={deletePage}
+        onDeleteMultiple={(ids) => {
+          const pages = editor.getPages();
+          
+          for (const id of ids) {
+            if (pages.length > 1) {
+              deletePage(id);
+            }
+          }
+        }}
         onMovePage={handleMovePage}
-        onImport={handleImportClick}
+        onImport={() => {
+          setIsAllSlidesGridVisible(false);
+          setTimeout(() => handleImportClick(), 100);
+        }}
         onExportImage={handleExportImage}
         onExportPdf={handleExportPdf}
       />

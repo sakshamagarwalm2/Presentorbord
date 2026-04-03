@@ -3,14 +3,12 @@ import path from "path";
 import { join } from "path";
 import { pathToFileURL } from "url";
 import { logger } from "./logger";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import fs from "fs";
 import os from "os";
 
-// Log app startup
 logger.log("Application is starting...");
 
-// Register scheme as privileged to support fetch, CSP bypass, and standard behavior
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "local-asset",
@@ -46,7 +44,6 @@ function createWindow(): void {
     mainWindow.show();
   });
 
-  // Allow F12 to toggle DevTools in development
   mainWindow.webContents.on("before-input-event", (event, input) => {
     if (input.key === "F12") {
       mainWindow.webContents.toggleDevTools();
@@ -60,8 +57,6 @@ function createWindow(): void {
     return { action: "deny" };
   });
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (process.env["ELECTRON_RENDERER_URL"]) {
     logger.log(`Loading renderer from URL: ${process.env["ELECTRON_RENDERER_URL"]}`);
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
@@ -72,7 +67,6 @@ function createWindow(): void {
   }
 }
 
-// Log all IPC handle calls
 const originalHandle = ipcMain.handle.bind(ipcMain);
 ipcMain.handle = (channel: string, listener: (...args: any[]) => any) => {
   return originalHandle(channel, async (event, ...args) => {
@@ -87,11 +81,10 @@ ipcMain.handle = (channel: string, listener: (...args: any[]) => any) => {
   });
 };
 
-// Log all IPC on calls
 const originalOn = ipcMain.on.bind(ipcMain);
 ipcMain.on = (channel: string, listener: (...args: any[]) => any) => {
   return originalOn(channel, (event, ...args) => {
-    if (channel !== 'log-message') { // Avoid infinite loop if logger uses ipcMain.on
+    if (channel !== 'log-message') {
         logger.log(`IPC On: ${channel}`, ...args);
     }
     return listener(event, ...args);
@@ -100,7 +93,6 @@ ipcMain.on = (channel: string, listener: (...args: any[]) => any) => {
 
 app.whenReady().then(() => {
   logger.log("App ready.");
-  // Handle local-asset scheme
   protocol.handle("local-asset", (request) => {
     let filePath = request.url.slice("local-asset://".length);
     filePath = decodeURIComponent(filePath);
@@ -121,90 +113,161 @@ app.on("window-all-closed", () => {
   }
 });
 
-ipcMain.handle("convert-ppt-to-pdf", async (_, pptPath: string) => {
-  // ... (existing code, now wrapped in logged handle)
-  const pdfPath = path.join(
-    os.tmpdir(),
-    `${path.basename(pptPath, path.extname(pptPath))}-${Date.now()}.pdf`,
-  );
+function getLibreOfficePath(): string | null {
+  const platform = process.platform;
+  if (platform === "win32") {
+    const candidate = "C:\\Program Files\\LibreOffice\\program\\soffice.exe";
+    if (fs.existsSync(candidate)) return candidate;
+    const candidate86 = "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe";
+    if (fs.existsSync(candidate86)) return candidate86;
+  } else if (platform === "darwin") {
+    const candidate = "/Applications/LibreOffice.app/Contents/MacOS/soffice";
+    if (fs.existsSync(candidate)) return candidate;
+  } else {
+    const candidate = "/usr/bin/libreoffice";
+    if (fs.existsSync(candidate)) return candidate;
+    const candidateAlt = "/usr/bin/soffice";
+    if (fs.existsSync(candidateAlt)) return candidateAlt;
+  }
+  return null;
+}
 
-  const psScript = `
-    $pptPath = "${pptPath}"
-    $pdfPath = "${pdfPath}"
-    $ppt = New-Object -ComObject PowerPoint.Application
-    $presentation = $ppt.Presentations.Open($pptPath)
-    $presentation.SaveAs($pdfPath, 32)
-    $presentation.Close()
-    $ppt.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ppt) | Out-Null
-  `;
-
-  // Save script to a temp file to avoid quoting issues
-  const scriptPath = path.join(os.tmpdir(), `convert-${Date.now()}.ps1`);
-  fs.writeFileSync(scriptPath, psScript);
-
+function convertWithLibreOffice(inputPath: string, outputDir: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    const libreExe = getLibreOfficePath();
+    if (!libreExe) {
+      return reject(new Error("LibreOffice not found"));
+    }
+
+    logger.log(`[LibreOffice] Converting: ${inputPath}`);
+    const child = spawn(libreExe, [
+      "--headless",
+      "--convert-to", "pdf",
+      "--outdir", outputDir,
+      inputPath,
+    ]);
+
+    let stderr = "";
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.on("close", (code) => {
+      if (code !== 0) {
+        return reject(new Error(`LibreOffice exited with code ${code}: ${stderr}`));
+      }
+      const pdfName = path.basename(inputPath, path.extname(inputPath)) + ".pdf";
+      const pdfPath = path.join(outputDir, pdfName);
+      if (fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 0) {
+        logger.log(`[LibreOffice] Success: ${pdfPath}`);
+        resolve(pdfPath);
+      } else {
+        reject(new Error("LibreOffice produced no output PDF"));
+      }
+    });
+    child.on("error", (err) => {
+      reject(new Error(`LibreOffice spawn failed: ${err.message}`));
+    });
+  });
+}
+
+function convertWithPowerPoint(tempPptPath: string, pdfPath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const psScript = `
+      $pptPath = "${tempPptPath.replace(/\\/g, "\\\\")}"
+      $pdfPath = "${pdfPath.replace(/\\/g, "\\\\")}"
+      try {
+        $ppt = New-Object -ComObject PowerPoint.Application
+        $ppt.Visible = [Microsoft.Office.Core.MsoTriState]::msoFalse
+        $presentation = $ppt.Presentations.Open($pptPath, $false, $false, $false)
+        $presentation.SaveAs($pdfPath, 32)
+        $presentation.Close()
+        $ppt.Quit()
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ppt) | Out-Null
+      } catch {
+        Write-Error $_.Exception.Message
+        exit 1
+      }
+    `;
+
+    const scriptPath = path.join(os.tmpdir(), `convert-${Date.now()}.ps1`);
+    fs.writeFileSync(scriptPath, psScript, { encoding: "utf8" });
+
     exec(
       `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`,
       (error) => {
-        fs.unlinkSync(scriptPath); // Clean up script
+        try { fs.unlinkSync(scriptPath); } catch (_) {}
         if (error) {
           reject(error);
         } else {
-          resolve(pdfPath);
+          resolve();
         }
       },
     );
   });
+}
+
+async function convertPptToPdf(inputPath: string, pdfPath: string): Promise<string> {
+  const tmpDir = os.tmpdir();
+
+  if (process.platform === "win32") {
+    try {
+      logger.log("[PPTX] Attempting PowerPoint conversion...");
+      await convertWithPowerPoint(inputPath, pdfPath);
+      if (fs.existsSync(pdfPath) && fs.statSync(pdfPath).size > 0) {
+        logger.log("[PPTX] PowerPoint conversion succeeded");
+        return pdfPath;
+      }
+    } catch (pptError) {
+      logger.log(`[PPTX] PowerPoint failed: ${pptError}. Trying LibreOffice...`);
+    }
+  }
+
+  const librePath = getLibreOfficePath();
+  if (librePath) {
+    try {
+      logger.log("[PPTX] Attempting LibreOffice conversion...");
+      return await convertWithLibreOffice(inputPath, tmpDir);
+    } catch (loError) {
+      logger.log(`[PPTX] LibreOffice failed: ${loError}`);
+    }
+  } else {
+    logger.log("[PPTX] LibreOffice not found on this system");
+  }
+
+  throw new Error(
+    "Could not convert PPTX. On Windows, install PowerPoint or LibreOffice. " +
+    "On Mac/Linux, install LibreOffice from https://www.libreoffice.org"
+  );
+}
+
+ipcMain.handle("convert-ppt-to-pdf", async (_, pptPath: string) => {
+  const pdfPath = path.join(
+    os.tmpdir(),
+    `${path.basename(pptPath, path.extname(pptPath))}-${Date.now()}.pdf`,
+  );
+  return await convertPptToPdf(pptPath, pdfPath);
 });
 
-// New handler: receive PPT bytes from renderer, save to temp, convert, return PDF path
 ipcMain.handle(
   "convert-ppt-buffer-to-pdf",
   async (_, fileBytes: number[], fileName: string) => {
     const ext = path.extname(fileName);
     const baseName = path.basename(fileName, ext);
-    const tempPptPath = path.join(
-      os.tmpdir(),
-      `${baseName}-${Date.now()}${ext}`,
-    );
+    const tempPptPath = path.join(os.tmpdir(), `${baseName}-${Date.now()}${ext}`);
     const pdfPath = path.join(os.tmpdir(), `${baseName}-${Date.now()}.pdf`);
 
-    // Write the PPT bytes to a temp file
-    fs.writeFileSync(tempPptPath, Buffer.from(fileBytes));
+    let tempFilesToClean: string[] = [];
 
-    const psScript = `
-    $pptPath = "${tempPptPath}"
-    $pdfPath = "${pdfPath}"
-    $ppt = New-Object -ComObject PowerPoint.Application
-    $presentation = $ppt.Presentations.Open($pptPath)
-    $presentation.SaveAs($pdfPath, 32)
-    $presentation.Close()
-    $ppt.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($ppt) | Out-Null
-  `;
+    try {
+      fs.writeFileSync(tempPptPath, Buffer.from(fileBytes));
+      tempFilesToClean.push(tempPptPath);
 
-    const scriptPath = path.join(os.tmpdir(), `convert-${Date.now()}.ps1`);
-    fs.writeFileSync(scriptPath, psScript);
-
-    return new Promise((resolve, reject) => {
-      exec(
-        `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`,
-        (error) => {
-          try {
-            fs.unlinkSync(scriptPath);
-          } catch (_) {}
-          try {
-            fs.unlinkSync(tempPptPath);
-          } catch (_) {}
-          if (error) {
-            reject(error);
-          } else {
-            resolve(pdfPath);
-          }
-        },
-      );
-    });
+      const resultPath = await convertPptToPdf(tempPptPath, pdfPath);
+      tempFilesToClean.push(tempPptPath);
+      return resultPath;
+    } finally {
+      for (const f of tempFilesToClean) {
+        try { fs.unlinkSync(f); } catch (_) {}
+      }
+    }
   },
 );
 
@@ -231,18 +294,15 @@ ipcMain.handle("open-system-calculator", () => {
 
 ipcMain.handle("read-pdf-file", async (_, filePath: string) => {
   const buffer = fs.readFileSync(filePath);
-  // Return Uint8Array directly for better performance over IPC
   return new Uint8Array(buffer);
 });
 
-// Save imported files to a dedicated app data folder
 ipcMain.handle(
   "save-imported-file",
   async (_, fileBytes: Uint8Array, fileName: string) => {
     const appDataPath = app.getPath("userData");
     const importsDir = path.join(appDataPath, "imported-files");
 
-    // Create the directory if it doesn't exist
     if (!fs.existsSync(importsDir)) {
       fs.mkdirSync(importsDir, { recursive: true });
     }
@@ -253,8 +313,6 @@ ipcMain.handle(
   },
 );
 
-// Get the imports directory path
-
 ipcMain.handle("get-imports-dir", async () => {
   const appDataPath = app.getPath("userData");
   const importsDir = path.join(appDataPath, "imported-files");
@@ -264,30 +322,25 @@ ipcMain.handle("get-imports-dir", async () => {
   return importsDir;
 });
 
-// Minimize the app
 ipcMain.handle("minimize-app", () => {
   const win = BrowserWindow.getFocusedWindow();
   if (win) win.minimize();
 });
 
-// Close the app
 ipcMain.handle("close-app", () => {
   app.quit();
 });
 
-// Forward renderer logs to the terminal
 ipcMain.on("console-log", (_, ...args) => {
   console.log("[Renderer UI]:", ...args);
 });
 
-// Save base64/buffer image to disk and return an asset URL
 ipcMain.handle(
   "save-slide-cache",
   async (_, fileBytes: number[], fileName: string) => {
     const appDataPath = app.getPath("userData");
     const cacheDir = path.join(appDataPath, "pdf-cache");
 
-    // Create the directory if it doesn't exist
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir, { recursive: true });
     }
@@ -295,7 +348,6 @@ ipcMain.handle(
     const filePath = path.join(cacheDir, `${Date.now()}-${fileName}`);
     fs.writeFileSync(filePath, Buffer.from(fileBytes));
 
-    // Return custom protocol URL for renderer
     return `local-asset://${filePath.replace(/\\/g, "/")}`;
   },
 );

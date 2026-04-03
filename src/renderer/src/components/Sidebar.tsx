@@ -1,4 +1,4 @@
-import { useEditor, useValue, PageRecordType } from "@tldraw/tldraw";
+import { useEditor, useValue } from "@tldraw/tldraw";
 import {
   Plus,
   Trash2,
@@ -13,8 +13,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { jsPDF } from "jspdf";
-import { LoadingOverlay } from "./LoadingOverlay";
+import { fitSlideToViewport } from "../utils/slideCamera";
 
 // Global thumbnail cache so it persists across re-renders
 const thumbnailCache: Record<string, string> = {};
@@ -135,17 +134,10 @@ export function Sidebar({
   };
 
   const selectPage = (id: string) => {
-    captureThumbnail(); // capture current before switching
+    captureThumbnail();
     const pageId = id as any;
     editor.setCurrentPage(pageId);
-    requestAnimationFrame(() => {
-      const bounds = editor.getCurrentPageBounds();
-      if (bounds) {
-        editor.zoomToBounds(bounds, { inset: 0 });
-      } else {
-        editor.zoomToFit();
-      }
-    });
+    requestAnimationFrame(() => fitSlideToViewport(editor));
   };
 
   const handleDrop = useCallback(

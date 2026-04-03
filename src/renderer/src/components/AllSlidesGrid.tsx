@@ -1,8 +1,7 @@
 import { useEditor, useValue } from "@tldraw/tldraw";
-import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown } from "lucide-react";
+import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown, Check } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 
-// Access the same thumbnail cache as Sidebar
 const thumbnailCache = (window as any).thumbnailCache || {};
 
 export function AllSlidesGrid({
@@ -12,6 +11,7 @@ export function AllSlidesGrid({
   onAddPage,
   onDuplicatePage,
   onDeletePage,
+  onDeleteMultiple,
   onMovePage,
   onImport,
   onExportImage,
@@ -23,6 +23,7 @@ export function AllSlidesGrid({
   onAddPage: () => void;
   onDuplicatePage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
+  onDeleteMultiple: (pageIds: string[]) => void;
   onMovePage: (fromId: string, toIndex: number) => void;
   onImport: () => void;
   onExportImage: (pageId: string) => void;
@@ -30,26 +31,30 @@ export function AllSlidesGrid({
 }) {
   const editor = useEditor();
   
-  // Reactive observation of pages and current page
   const pages = useValue("pages", () => editor.getPages(), [editor]);
   const currentPageId = useValue("currentPageId", () => editor.getCurrentPageId(), [editor]);
   
   const gridRef = useRef<HTMLDivElement>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportBtnRef = useRef<HTMLDivElement>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isVisible) {
-        onClose();
+        if (isSelectionMode) {
+          setIsSelectionMode(false);
+          setSelectedIds(new Set());
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isVisible, onClose]);
+  }, [isVisible, isSelectionMode, onClose]);
 
-  // Close export menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportBtnRef.current && !exportBtnRef.current.contains(event.target as Node)) {
@@ -64,6 +69,43 @@ export function AllSlidesGrid({
 
   const sortedPages = [...pages].sort((a, b) => (a.index > b.index ? 1 : -1));
 
+  const toggleSelection = (pageId: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(pageId)) {
+      newSelected.delete(pageId);
+    } else {
+      newSelected.add(pageId);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(sortedPages.map(p => p.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    if (confirm(`Delete ${selectedIds.size} selected slide(s)?`)) {
+      onDeleteMultiple(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setIsSelectionMode(false);
+    }
+  };
+
+  const enterSelectionMode = () => {
+    setIsSelectionMode(true);
+    setSelectedIds(new Set());
+  };
+
+  const exitSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
   return (
     <div className="fixed inset-0 z-[100005] flex flex-col bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-md animate-in fade-in duration-300">
       {/* Header */}
@@ -74,92 +116,132 @@ export function AllSlidesGrid({
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">All Slides</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{pages.length} Slides in total</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {isSelectionMode 
+                ? `${selectedIds.size} selected` 
+                : `${pages.length} Slides in total`}
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Action Buttons - Reusing Sidebar Style */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onImport}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
-              title="Import PDF/PPT"
-            >
-              <Upload size={18} />
-            </button>
-            
-            <div className="relative" ref={exportBtnRef}>
+          {isSelectionMode ? (
+            <>
               <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
-                title="Export"
+                onClick={selectAll}
+                className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
               >
-                <Download size={18} />
+                Select All
               </button>
-              
-              {showExportMenu && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[100010] overflow-hidden animate-in zoom-in-95 duration-200 origin-top-right">
+              <button
+                onClick={deselectAll}
+                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Deselect
+              </button>
+              <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedIds.size > 0
+                    ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                <Trash2 size={16} />
+                Delete ({selectedIds.size})
+              </button>
+              <button
+                onClick={exitSelectionMode}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={enterSelectionMode}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+                  title="Select Multiple Slides"
+                >
+                  <Check size={16} />
+                  Select
+                </button>
+                <button
+                  onClick={onImport}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                  title="Import PDF/PPT"
+                >
+                  <Upload size={18} />
+                </button>
+                
+                <div className="relative" ref={exportBtnRef}>
                   <button
-                    onClick={() => { onExportImage(currentPageId); setShowExportMenu(false); }}
-                    className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3"
+                    onClick={() => setShowExportMenu(!showExportMenu)}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                    title="Export"
                   >
-                    <FileImage size={16} className="text-blue-500" />
-                    <span>Image (Current Page)</span>
+                    <Download size={18} />
                   </button>
-                  <button
-                    onClick={() => { onExportPdf(); setShowExportMenu(false); }}
-                    className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3 border-t border-gray-100 dark:border-gray-700"
-                  >
-                    <FileText size={16} className="text-red-500" />
-                    <span>Full Presentation (PDF)</span>
-                  </button>
+                  
+                  {showExportMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[100010] overflow-hidden animate-in zoom-in-95 duration-200 origin-top-right">
+                      <button
+                        onClick={() => { onExportImage(currentPageId); setShowExportMenu(false); }}
+                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3"
+                      >
+                        <FileImage size={16} className="text-blue-500" />
+                        <span>Image (Current Page)</span>
+                      </button>
+                      <button
+                        onClick={() => { onExportPdf(); setShowExportMenu(false); }}
+                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3 border-t border-gray-100 dark:border-gray-700"
+                      >
+                        <FileText size={16} className="text-red-500" />
+                        <span>Full Presentation (PDF)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <button
-              onClick={() => {
-                console.log("Grid: Adding page");
-                onAddPage();
-              }}
-              className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
-              title="Add Page"
-            >
-              <Plus size={18} />
-            </button>
-            <button
-              onClick={() => {
-                console.log("Grid: Duplicating current page", currentPageId);
-                onDuplicatePage(currentPageId);
-              }}
-              className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
-              title="Duplicate Page"
-            >
-              <Copy size={18} />
-            </button>
-            <button
-              onClick={() => {
-                console.log("Grid: Deleting current page", currentPageId);
-                onDeletePage(currentPageId);
-              }}
-              disabled={pages.length <= 1}
-              className={`p-2 rounded-lg transition-colors ${pages.length <= 1 ? "text-gray-300 dark:text-gray-600 cursor-not-allowed" : "hover:bg-red-50 text-red-500 dark:hover:bg-red-900/30"}`}
-              title="Delete Page"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
+                <button
+                  onClick={() => onAddPage()}
+                  className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
+                  title="Add Page"
+                >
+                  <Plus size={18} />
+                </button>
+                <button
+                  onClick={() => onDuplicatePage(currentPageId)}
+                  className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
+                  title="Duplicate Page"
+                >
+                  <Copy size={18} />
+                </button>
+                <button
+                  onClick={() => onDeletePage(currentPageId)}
+                  disabled={pages.length <= 1}
+                  className={`p-2 rounded-lg transition-colors ${pages.length <= 1 ? "text-gray-300 dark:text-gray-600 cursor-not-allowed" : "hover:bg-red-50 text-red-500 dark:hover:bg-red-900/30"}`}
+                  title="Delete Page"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 mx-2" />
+              <div className="w-px h-6 bg-gray-200 dark:bg-gray-800 mx-2" />
 
-          <button
-            onClick={onClose}
-            className="p-2.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-all text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 active:scale-95"
-            title="Close Grid View"
-          >
-            <X size={24} />
-          </button>
+              <button
+                onClick={onClose}
+                className="p-2.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-all text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 active:scale-95"
+                title="Close Grid View"
+              >
+                <X size={24} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -175,10 +257,17 @@ export function AllSlidesGrid({
               page={page}
               index={index}
               isSelected={currentPageId === page.id}
+              isSelectionMode={isSelectionMode}
+              isItemSelected={selectedIds.has(page.id)}
               onClick={() => {
-                onSelectPage(page.id);
-                onClose();
+                if (isSelectionMode) {
+                  toggleSelection(page.id);
+                } else {
+                  onSelectPage(page.id);
+                  onClose();
+                }
               }}
+              onToggleSelect={() => toggleSelection(page.id)}
               onDuplicate={() => onDuplicatePage(page.id)}
               onDelete={() => onDeletePage(page.id)}
               onMoveUp={() => onMovePage(page.id, index - 1)}
@@ -198,7 +287,10 @@ function GridItem({
   page,
   index,
   isSelected,
+  isSelectionMode,
+  isItemSelected,
   onClick,
+  onToggleSelect,
   onDuplicate,
   onDelete,
   onMoveUp,
@@ -210,7 +302,10 @@ function GridItem({
   page: any;
   index: number;
   isSelected: boolean;
+  isSelectionMode: boolean;
+  isItemSelected: boolean;
   onClick: () => void;
+  onToggleSelect: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onMoveUp: () => void;
@@ -221,7 +316,6 @@ function GridItem({
 }) {
   const editor = useEditor();
 
-  // Find an image asset thumbnail (for PDF pages)
   const imageAssetSrc = useValue(
     `grid-thumbnail-${page.id}`,
     () => {
@@ -243,15 +337,19 @@ function GridItem({
 
   return (
     <div
-      className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200`}
+      className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200 ${isSelectionMode ? "cursor-pointer" : ""}`}
       style={{ animationDelay: `${index * 20}ms` }}
     >
       <div
         onClick={onClick}
-        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer
-          ${isSelected 
-            ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl" 
-            : "border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:scale-105 hover:shadow-lg dark:hover:border-blue-600"
+        className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
+          ${isSelectionMode 
+            ? isItemSelected
+              ? "border-blue-500 ring-4 ring-blue-500/30 scale-105 z-10 shadow-xl"
+              : "border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:scale-105"
+            : isSelected 
+              ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl" 
+              : "border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:scale-105 hover:shadow-lg dark:hover:border-blue-600"
           }
         `}
       >
@@ -270,63 +368,70 @@ function GridItem({
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/5 transition-colors" />
         
-        {/* Actions Toolbar (Top right on hover) - Reusing Sidebar Styling */}
-        <div className="absolute top-2 right-2 flex gap-1 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 z-20">
-          {!isFirst && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-              className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
-              title="Move Up"
-            >
-              <ChevronUp size={12} />
-            </button>
-          )}
-          {!isLast && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-              className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
-              title="Move Down"
-            >
-              <ChevronDown size={12} />
-            </button>
-          )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-            className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
-            title="Duplicate Slide"
+        {/* Selection Checkbox */}
+        {isSelectionMode && (
+          <div 
+            onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+            className={`absolute top-2 left-2 w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer z-20
+              ${isItemSelected 
+                ? "bg-blue-500 text-white" 
+                : "bg-white/90 dark:bg-gray-800/90 border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400"
+              }`}
           >
-            <Copy size={12} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            disabled={!canDelete}
-            className={`p-1 rounded bg-red-500/70 text-white hover:bg-red-600 shadow-lg backdrop-blur 
-              ${!canDelete ? "opacity-30 cursor-not-allowed" : ""}`}
-            title="Delete Slide"
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
+            {isItemSelected && <Check size={14} strokeWidth={3} />}
+          </div>
+        )}
+
+        {/* Actions Toolbar (Top right on hover) */}
+        {!isSelectionMode && (
+          <div className="absolute top-2 right-2 flex gap-1 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 z-20">
+            {!isFirst && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+                className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
+                title="Move Up"
+              >
+                <ChevronUp size={12} />
+              </button>
+            )}
+            {!isLast && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+                className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
+                title="Move Down"
+              >
+                <ChevronDown size={12} />
+              </button>
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
+              title="Duplicate Slide"
+            >
+              <Copy size={12} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              disabled={!canDelete}
+              className={`p-1 rounded bg-red-500/70 text-white hover:bg-red-600 shadow-lg backdrop-blur 
+                ${!canDelete ? "opacity-30 cursor-not-allowed" : ""}`}
+              title="Delete Slide"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
 
         {/* Slide Number Badge */}
         <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-md text-xs font-bold shadow-sm transition-colors z-10
-          ${isSelected ? "bg-blue-500 text-white" : "bg-black/60 text-white group-hover:bg-blue-500"}
+          ${isSelected && !isSelectionMode ? "bg-blue-500 text-white" : "bg-black/60 text-white group-hover:bg-blue-500"}
         `}>
-          Slide {index + 1}
+          {index + 1}
         </div>
-
-        {/* Selected Checkmark */}
-        {isSelected && (
-          <div className="absolute top-2 left-2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-900 animate-in zoom-in-50 duration-300">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </div>
-        )}
       </div>
       
       <span className={`text-center text-xs font-medium transition-colors truncate px-1
-        ${isSelected ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500"}
+        ${isSelected && !isSelectionMode ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500"}
       `}>
         {page.name || `Slide ${index + 1}`}
       </span>
