@@ -5,9 +5,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Sigma,
-  FileUp,
   Settings,
-  Palette,
+  Bookmark,
   Grid,
   Moon,
   Plus,
@@ -35,7 +34,6 @@ import { useEditor, createShapeId } from "@tldraw/tldraw";
 import { getEmbedDef } from "../utils/embedUtils";
 
 interface ToolsSidebarProps {
-  onImportClick: () => void;
   onOpenProject: () => void;
   onSaveProject: () => void;
   showNavPanel: boolean;
@@ -55,7 +53,6 @@ interface Bookmark {
 }
 
 export function ToolsSidebar({
-  onImportClick,
   onOpenProject,
   onSaveProject,
   showNavPanel,
@@ -206,7 +203,6 @@ export function ToolsSidebar({
 
           {/* Tools */}
           <div className="flex flex-col gap-3 w-full px-2">
-            <ToolButton icon={FileUp} label="Import" onClick={onImportClick} />
 
             {/* Math Group */}
             <div className="relative">
@@ -381,7 +377,7 @@ export function ToolsSidebar({
             {/* Customize / Bookmarks Group */}
             <div className="relative">
               <ToolButton
-                icon={Palette}
+                icon={Bookmark}
                 label="Customize"
                 isActive={showCustomize}
                 onClick={() => {
