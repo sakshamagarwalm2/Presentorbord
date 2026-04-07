@@ -1,7 +1,7 @@
 import { useEditor } from "@tldraw/tldraw";
-import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Maximize } from "lucide-react";
 import { useEffect, useState } from "react";
-import { animateSlideToViewport } from "../utils/slideCamera";
+import { animateSlideToViewport, fitSlideToViewport } from "../utils/slideCamera";
 
 export function NavigationPanel({
   isVisible,
@@ -54,6 +54,10 @@ export function NavigationPanel({
     const currentZoom = editor.getZoomLevel();
     const newZoom = Math.max(currentZoom - 0.05, 0.1); // -5%, min 10%
     editor.setCamera({ ...editor.getCamera(), z: newZoom });
+  };
+
+  const handleFitToScreen = () => {
+    requestAnimationFrame(() => animateSlideToViewport(editor));
   };
 
   const handleNextPage = () => {
@@ -119,6 +123,14 @@ export function NavigationPanel({
           title="Zoom In (+5%)"
         >
           <ZoomIn size={20} />
+        </button>
+
+        <button
+          onClick={handleFitToScreen}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          title="Fit to Screen"
+        >
+          <Maximize size={20} />
         </button>
       </div>
 

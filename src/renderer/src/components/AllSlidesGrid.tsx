@@ -1,6 +1,7 @@
 import { useEditor, useValue } from "@tldraw/tldraw";
-import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown, Check } from "lucide-react";
+import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown, Check, Maximize } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
+import { fitAllSlidesToViewport } from "../utils/slideCamera";
 
 const thumbnailCache = (window as any).thumbnailCache || {};
 
@@ -106,6 +107,10 @@ export function AllSlidesGrid({
     setSelectedIds(new Set());
   };
 
+  const handleFitAll = () => {
+    fitAllSlidesToViewport(editor);
+  };
+
   return (
     <div className="fixed inset-0 z-[100005] flex flex-col bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-md animate-in fade-in duration-300">
       {/* Header */}
@@ -170,6 +175,15 @@ export function AllSlidesGrid({
                   <Check size={16} />
                   Select
                 </button>
+
+                <button
+                  onClick={handleFitAll}
+                  className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                  title="Fit All Slides to Screen"
+                >
+                  <Maximize size={18} />
+                </button>
+
                 <button
                   onClick={onImport}
                   className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"

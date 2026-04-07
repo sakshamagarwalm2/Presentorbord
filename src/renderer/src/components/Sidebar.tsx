@@ -11,9 +11,10 @@ import {
   ChevronUp,
   ChevronDown,
   LayoutGrid,
+  Maximize,
 } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { fitSlideToViewport } from "../utils/slideCamera";
+import { fitSlideToViewport, fitAllSlidesToViewport } from "../utils/slideCamera";
 
 // Global thumbnail cache so it persists across re-renders
 const thumbnailCache: Record<string, string> = {};
@@ -140,6 +141,10 @@ export function Sidebar({
     requestAnimationFrame(() => fitSlideToViewport(editor));
   };
 
+  const handleFitAll = () => {
+    fitAllSlidesToViewport(editor);
+  };
+
   const handleDrop = useCallback(
     (fromId: string, toIndex: number) => {
       const fromIndex = sortedPages.findIndex((p) => p.id === fromId);
@@ -203,6 +208,14 @@ export function Sidebar({
                 title="Show All Slides (Grid View)"
               >
                 <LayoutGrid size={14} />
+              </button>
+
+              <button
+                onClick={handleFitAll}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                title="Fit All Slides to Screen"
+              >
+                <Maximize size={14} />
               </button>
               
               <button

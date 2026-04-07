@@ -11,7 +11,7 @@ import {
   DefaultColorStyle,
 } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
-import { fitSlideToViewport } from "./utils/slideCamera";
+import { fitSlideToViewport, animateSlideToViewport } from "./utils/slideCamera";
 
 import { useSubjectMode } from "./store/useSubjectMode";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -1150,6 +1150,42 @@ function AppContent() {
     return () =>
       document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
+
+  // Keyboard listener for presentation remotes (PageUp/PageDown)
+  useEffect(() => {
+    const handlePresentationKeys = (e: KeyboardEvent) => {
+      // Don't navigate if user is typing in an input
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+
+      const pages = editor.getPages();
+      const sortedPages = [...pages].sort((a, b) => (a.index > b.index ? 1 : -1));
+      const currentPageId = editor.getCurrentPageId();
+      const currentIndex = sortedPages.findIndex((p) => p.id === currentPageId);
+
+      if (e.key === "PageDown" || e.key === "ArrowRight") {
+        if (currentIndex < sortedPages.length - 1) {
+          e.preventDefault();
+          editor.run(() => editor.setCurrentPage(sortedPages[currentIndex + 1].id), { history: 'ignore' });
+          requestAnimationFrame(() => animateSlideToViewport(editor));
+        }
+      } else if (e.key === "PageUp" || e.key === "ArrowLeft") {
+        if (currentIndex > 0) {
+          e.preventDefault();
+          editor.run(() => editor.setCurrentPage(sortedPages[currentIndex - 1].id), { history: 'ignore' });
+          requestAnimationFrame(() => animateSlideToViewport(editor));
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handlePresentationKeys);
+    return () => window.removeEventListener("keydown", handlePresentationKeys);
+  }, [editor]);
 
   // ResizeObserver to re-fit slides when window resizes
   useEffect(() => {

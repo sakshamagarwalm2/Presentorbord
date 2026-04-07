@@ -29,3 +29,23 @@ export function animateSlideToViewport(editor: Editor): void {
     }
   );
 }
+
+/**
+ * Resets the camera for all pages to fit the slide dimensions.
+ */
+export function fitAllSlidesToViewport(editor: Editor): void {
+  if (!editor) return;
+  
+  const pages = editor.getPages();
+  const originalPageId = editor.getCurrentPageId();
+  
+  // We use a batch to update everything at once
+  editor.run(() => {
+    for (const page of pages) {
+      editor.setCurrentPage(page.id);
+      fitSlideToViewport(editor);
+    }
+    // Switch back to the original page
+    editor.setCurrentPage(originalPageId);
+  }, { history: 'ignore' });
+}
