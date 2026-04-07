@@ -530,13 +530,13 @@ export function ToolsSidebar({
               border: '1px solid rgba(255,255,255,0.1)'
             }}>
                <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>
-                🚀 <strong>Funded by Learn&Share</strong>
+                🚀 <strong>Funded by <a href="https://www.youtube.com/@LearnandShareeducation" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', borderBottom: '1px dashed #60a5fa' }}>Learn&Share</a></strong>
               </p>
             </div>
             <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
               Built with ❤️ using Electron, React, and tldraw.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               <a
                 href="https://github.com/sakshamagarwalm2/Presentorbord"
                 target="_blank"
@@ -546,7 +546,7 @@ export function ToolsSidebar({
                   alignItems: "center",
                   gap: 8,
                   padding: "8px 16px",
-                  background: "#3b82f6",
+                  background: "#334155",
                   color: "white",
                   borderRadius: 8,
                   textDecoration: "none",
@@ -554,7 +554,27 @@ export function ToolsSidebar({
                   fontWeight: 600,
                 }}
               >
-                ⭐ Support & Contribute on GitHub
+                GitHub
+              </a>
+              <a
+                href="https://www.youtube.com/@LearnandShareeducation"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 16px",
+                  background: "#ef4444",
+                  color: "white",
+                  borderRadius: 8,
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                <Youtube size={18} />
+                YouTube Channel
               </a>
               <button
                 onClick={() => setShowAbout(false)}

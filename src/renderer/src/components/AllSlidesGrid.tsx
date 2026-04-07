@@ -41,6 +41,10 @@ export function AllSlidesGrid({
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  // Drag and drop state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isVisible) {
@@ -108,7 +112,18 @@ export function AllSlidesGrid({
   };
 
   const handleFitAll = () => {
+    console.log('[AllSlidesGrid] Fit all slides button clicked');
+    if (!editor) {
+      console.warn('[AllSlidesGrid] Editor not available in handleFitAll');
+      return;
+    }
     fitAllSlidesToViewport(editor);
+  };
+
+  const handleDrop = (fromId: string, toIndex: number) => {
+    onMovePage(fromId, toIndex);
+    setDraggedId(null);
+    setDropTargetIndex(null);
   };
 
   return (
@@ -289,6 +304,20 @@ export function AllSlidesGrid({
               canDelete={pages.length > 1}
               isFirst={index === 0}
               isLast={index === pages.length - 1}
+              // Drag and drop props
+              isDragging={draggedId === page.id}
+              isDropTarget={dropTargetIndex === index}
+              onDragStart={() => setDraggedId(page.id)}
+              onDragEnd={() => {
+                setDraggedId(null);
+                setDropTargetIndex(null);
+              }}
+              onDragOver={(idx) => setDropTargetIndex(idx)}
+              onDrop={() => {
+                if (draggedId) {
+                  handleDrop(draggedId, index);
+                }
+              }}
             />
           ))}
         </div>
@@ -312,6 +341,12 @@ function GridItem({
   canDelete,
   isFirst,
   isLast,
+  isDragging,
+  isDropTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
 }: {
   page: any;
   index: number;
@@ -327,8 +362,18 @@ function GridItem({
   canDelete: boolean;
   isFirst: boolean;
   isLast: boolean;
+  isDragging: boolean;
+  isDropTarget: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (index: number) => void;
+  onDrop: () => void;
 }) {
   const editor = useEditor();
+  const itemRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const isPointerDragging = useRef(false);
+  const startPos = useRef({ x: 0, y: 0 });
 
   const imageAssetSrc = useValue(
     `grid-thumbnail-${page.id}`,
@@ -349,13 +394,108 @@ function GridItem({
 
   const thumbnail = (thumbnailCache[page.id]) || imageAssetSrc;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isSelectionMode) return;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", page.id);
+    onDragStart();
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (isSelectionMode) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    onDragOver(index);
+  };
+
+  const handleNativeDrop = (e: React.DragEvent) => {
+    if (isSelectionMode) return;
+    e.preventDefault();
+    onDrop();
+  };
+
+  // Pointer/touch drag support
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isSelectionMode || e.pointerType === "mouse") return;
+    startPos.current = { x: e.clientX, y: e.clientY };
+    isPointerDragging.current = false;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    
+    // Reduced to 200ms for more responsive feel with stylus
+    longPressTimer.current = window.setTimeout(() => {
+      isPointerDragging.current = true;
+      onDragStart();
+    }, 200);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isSelectionMode || e.pointerType === "mouse") return;
+    if (!isPointerDragging.current) {
+      const dist = Math.hypot(e.clientX - startPos.current.x, e.clientY - startPos.current.y);
+      if (dist > 10) {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+      }
+      return;
+    }
+    
+    e.preventDefault();
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const gridItem = el?.closest("[data-grid-index]");
+    if (gridItem) {
+      const targetIndex = parseInt(gridItem.getAttribute("data-grid-index") || "0", 10);
+      onDragOver(targetIndex);
+    }
+
+    const scrollContainer = itemRef.current?.closest(".overflow-y-auto") as HTMLElement;
+    if (scrollContainer) {
+      const rect = scrollContainer.getBoundingClientRect();
+      const scrollZone = 100;
+      const scrollSpeed = 12;
+      if (e.clientY < rect.top + scrollZone) {
+        scrollContainer.scrollTop -= scrollSpeed;
+      } else if (e.clientY > rect.bottom - scrollZone) {
+        scrollContainer.scrollTop += scrollSpeed;
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isSelectionMode || e.pointerType === "mouse") return;
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (isPointerDragging.current) {
+      isPointerDragging.current = false;
+      onDrop();
+    }
+    onDragEnd();
+  };
+
   return (
     <div
-      className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200 ${isSelectionMode ? "cursor-pointer" : ""}`}
+      ref={itemRef}
+      data-grid-index={index}
+      draggable={!isSelectionMode}
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={handleDragOver}
+      onDrop={handleNativeDrop}
+      className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200 
+        ${isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
+        ${isDragging ? "opacity-40 scale-95" : ""}
+      `}
       style={{ animationDelay: `${index * 20}ms` }}
     >
       <div
         onClick={onClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
           ${isSelectionMode 
             ? isItemSelected
@@ -365,6 +505,7 @@ function GridItem({
               ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl" 
               : "border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:scale-105 hover:shadow-lg dark:hover:border-blue-600"
           }
+          ${isDropTarget && !isDragging ? "ring-4 ring-blue-400 border-blue-400" : ""}
         `}
       >
         {thumbnail ? (
@@ -402,36 +543,36 @@ function GridItem({
             {!isFirst && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
-                className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
-                title="Move Up"
+                className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]"
+                title="Move Backward"
               >
-                <ChevronUp size={12} />
+                <ChevronUp size={14} />
               </button>
             )}
             {!isLast && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
-                className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
-                title="Move Down"
+                className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]"
+                title="Move Forward"
               >
-                <ChevronDown size={12} />
+                <ChevronDown size={14} />
               </button>
             )}
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-              className="p-1 rounded bg-black/40 text-white hover:bg-black/60 shadow-lg backdrop-blur"
+              className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]"
               title="Duplicate Slide"
             >
-              <Copy size={12} />
+              <Copy size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
               disabled={!canDelete}
-              className={`p-1 rounded bg-red-500/70 text-white hover:bg-red-600 shadow-lg backdrop-blur 
+              className={`p-1.5 rounded bg-red-500/70 text-white hover:bg-red-600 shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]
                 ${!canDelete ? "opacity-30 cursor-not-allowed" : ""}`}
               title="Delete Slide"
             >
-              <Trash2 size={12} />
+              <Trash2 size={14} />
             </button>
           </div>
         )}

@@ -142,6 +142,11 @@ export function Sidebar({
   };
 
   const handleFitAll = () => {
+    console.log('[Sidebar] Fit all slides button clicked');
+    if (!editor) {
+      console.warn('[Sidebar] Editor not available in handleFitAll');
+      return;
+    }
     fitAllSlidesToViewport(editor);
   };
 
@@ -421,10 +426,11 @@ function PageItem({
     startY.current = e.clientY;
     isPointerDragging.current = false;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    // Reduced to 200ms for more responsive feel with stylus
     longPressTimer.current = window.setTimeout(() => {
       isPointerDragging.current = true;
       onDragStart();
-    }, 500);
+    }, 200);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -519,40 +525,41 @@ function PageItem({
 
       {/* Drag handle + delete on hover */}
       <div
-        className={`absolute top-1 right-1 flex gap-0.5 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+        className={`absolute top-1 right-1 flex gap-1 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       >
         {!isFirst && (
           <button
             onClick={onMoveUp}
-            className="p-0.5 rounded bg-black/40 text-white hover:bg-black/60"
+            className="p-1 rounded bg-black/50 text-white hover:bg-black/70 flex items-center justify-center min-w-[20px] min-h-[20px]"
             title="Move Up"
           >
-            <ChevronUp size={10} />
+            <ChevronUp size={14} />
           </button>
         )}
         {!isLast && (
           <button
             onClick={onMoveDown}
-            className="p-0.5 rounded bg-black/40 text-white hover:bg-black/60"
+            className="p-1 rounded bg-black/50 text-white hover:bg-black/70 flex items-center justify-center min-w-[20px] min-h-[20px]"
             title="Move Down"
           >
-            <ChevronDown size={10} />
+            <ChevronDown size={14} />
           </button>
         )}
         <div
-          className="p-0.5 rounded bg-black/40 text-white cursor-grab"
+          className="p-1 rounded bg-black/50 text-white cursor-grab flex items-center justify-center min-w-[20px] min-h-[20px]"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
-          <GripVertical size={10} />
+          <GripVertical size={14} />
         </div>
         <button
           onClick={(e) => onDelete(page.id, e)}
-          className="p-0.5 rounded bg-red-500/70 text-white hover:bg-red-500"
+          className="p-1 rounded bg-red-500/70 text-white hover:bg-red-500 flex items-center justify-center min-w-[20px] min-h-[20px]"
+          title="Delete Page"
         >
-          <Trash2 size={10} />
+          <Trash2 size={14} />
         </button>
       </div>
     </div>
