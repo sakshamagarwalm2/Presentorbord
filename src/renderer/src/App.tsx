@@ -1168,6 +1168,22 @@ function AppContent() {
       const currentPageId = editor.getCurrentPageId();
       const currentIndex = sortedPages.findIndex((p) => p.id === currentPageId);
 
+      // Top Button (often F5 or b) -> Select Super Pen
+      if (e.key === "F5" || e.key === "b" || e.key === "B") {
+        e.preventDefault();
+        editor.setCurrentTool("super-pen");
+        window.api.log("[Remote] Top Button pressed: Selecting Super Pen");
+        return;
+      }
+
+      // Bottom Button (often . or Escape or Esc) -> Select Precision Eraser
+      if (e.key === "." || e.key === "Escape" || e.key === "Esc") {
+        e.preventDefault();
+        editor.setCurrentTool("precision-eraser");
+        window.api.log("[Remote] Bottom Button pressed: Selecting Precision Eraser");
+        return;
+      }
+
       if (e.key === "PageDown" || e.key === "ArrowRight") {
         if (currentIndex < sortedPages.length - 1) {
           e.preventDefault();

@@ -59,7 +59,7 @@ function getFreehandOptions(
         streamline: 0.5, // Increased from 0.1
         easing: (t: number) => t,
         start: { taper: 0, cap: true },
-        end: { taper: 0, cap: true },
+        end: { taper: size * 0.2, cap: true, easing: (t: number) => 1 - (1 - t) * (1 - t) },
       }
 
     case 'brush':
