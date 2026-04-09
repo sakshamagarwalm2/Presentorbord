@@ -90,6 +90,7 @@ class Pointing extends StateNode {
 
 	private complete() {
 		this._cleanup()
+		this.editor.history.squashToMark('precision-erase-start')
 		this.parent.transition('idle')
 	}
 

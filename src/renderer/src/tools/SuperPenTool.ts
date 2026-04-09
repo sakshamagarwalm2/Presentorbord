@@ -106,7 +106,8 @@ class Drawing extends StateNode {
     this.isDrawing = true
 
     // Mark history stopping point so the stroke is a single undo unit
-    this.historyMarkId = (this.editor as any).markHistoryStoppingPoint?.() as string
+    this.historyMarkId = 'super-pen-stroke-' + createShapeId()
+    this.editor.mark(this.historyMarkId)
 
     const pagePoint = this.editor.inputs.currentPagePoint
     
@@ -264,7 +265,7 @@ class Drawing extends StateNode {
 
     // Squash all stroke updates into a single undo unit
     if (this.historyMarkId) {
-      (this.editor as any).history?.squashToMark?.(this.historyMarkId)
+      this.editor.history.squashToMark(this.historyMarkId)
     }
 
     this.parent.transition('idle')
@@ -288,6 +289,6 @@ class Drawing extends StateNode {
         points: [...this.livePoints],
         isComplete: false,
       },
-    })
+    }, { history: 'ignore' })
   }
 }

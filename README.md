@@ -1,6 +1,6 @@
 # Presentorbord
 
-![Version](https://img.shields.io/badge/version-v4.0.3-blue)
+![Version](https://img.shields.io/badge/version-v4.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Presentorbord Banner](src/assets/presentorbanaer.jpg)
 
