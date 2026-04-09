@@ -91,20 +91,26 @@ ipcMain.on = (channel: string, listener: (...args: any[]) => any) => {
   });
 };
 
-app.whenReady().then(() => {
-  logger.log("App ready.");
-  protocol.handle("local-asset", (request) => {
-    let filePath = request.url.slice("local-asset://".length);
-    filePath = decodeURIComponent(filePath);
-    return net.fetch(pathToFileURL(filePath).toString());
-  });
+const gotTheLock = app.requestSingleInstanceLock();
 
-  createWindow();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.whenReady().then(() => {
+    logger.log("App ready.");
+    protocol.handle("local-asset", (request) => {
+      let filePath = request.url.slice("local-asset://".length);
+      filePath = decodeURIComponent(filePath);
+      return net.fetch(pathToFileURL(filePath).toString());
+    });
 
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    createWindow();
+
+    app.on("activate", function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
   });
-});
+}
 
 app.on("window-all-closed", () => {
   logger.log("All windows closed.");

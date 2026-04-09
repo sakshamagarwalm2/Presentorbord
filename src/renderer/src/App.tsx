@@ -40,6 +40,7 @@ import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
 import { SuperPenTool } from "./tools/SuperPenTool";
 import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
+import { AreaEraserTool } from "./tools/AreaEraserTool";
 import { LineTool } from "./tools/LineTool";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
@@ -59,6 +60,7 @@ const customTools = [
   LassoTool,
   SuperPenTool,
   PrecisionEraserTool,
+  AreaEraserTool,
   LineTool,
 ];
 import {

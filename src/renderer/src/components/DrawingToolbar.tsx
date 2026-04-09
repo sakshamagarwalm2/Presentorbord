@@ -35,6 +35,8 @@ import {
   Layers,
   Plus,
   Minus,
+  Scissors,
+  Target,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
@@ -314,10 +316,10 @@ function EraserGroupButton({
   activeTheme,
 }: {
   activeTool: string
-  eraserMode: 'shape' | 'precision'
+  eraserMode: 'shape' | 'precision' | 'area'
   eraserSize: number
   onSelectTool: () => void
-  onSelectMode: (mode: 'shape' | 'precision') => void
+  onSelectMode: (mode: 'shape' | 'precision' | 'area') => void
   onSelectSize: (size: number) => void
   onClearPage: () => void
   activeTheme?: ColorTheme
@@ -338,8 +340,16 @@ function EraserGroupButton({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const isActive = activeTool === 'eraser' || activeTool === 'precision-eraser'
-  const ActiveIcon = eraserMode === 'shape' ? Eraser : Crosshair
+  const isActive = activeTool === 'eraser' || activeTool === 'precision-eraser' || activeTool === 'area-eraser'
+  
+  const getActiveIcon = () => {
+    switch (eraserMode) {
+      case 'precision': return Target
+      case 'area': return Scissors
+      default: return Eraser
+    }
+  }
+  const ActiveIcon = getActiveIcon()
 
   return (
     <div className="relative" ref={flyoutRef}>
@@ -355,7 +365,7 @@ function EraserGroupButton({
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
             }
           `}
-          title={eraserMode === 'shape' ? 'Shape Eraser' : 'Precision Eraser'}
+          title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
         >
           <ActiveIcon size={20} />
         </button>
@@ -413,8 +423,25 @@ function EraserGroupButton({
               }
             `}
           >
-            <Crosshair size={16} />
+            <Target size={16} />
             Precision Eraser
+          </button>
+
+          <button
+            onClick={() => {
+              onSelectMode('area')
+              setIsOpen(false)
+            }}
+            className={`
+              flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
+              ${eraserMode === 'area'
+                ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
+                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+              }
+            `}
+          >
+            <Scissors size={16} />
+            Area Eraser
           </button>
 
           {/* Divider */}
@@ -979,7 +1006,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   }, [stylePanelVisible])
 
   // Eraser state
-  const [eraserMode, setEraserMode] = useState<'shape' | 'precision'>('shape')
+  const [eraserMode, setEraserMode] = useState<'shape' | 'precision' | 'area'>('shape')
   const [eraserSize, setEraserSize] = useState(12)
 
   // Determine if precision eraser is currently active
@@ -1040,16 +1067,20 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const handleEraserSelect = () => {
     if (eraserMode === 'precision') {
       editor.setCurrentTool('precision-eraser')
+    } else if (eraserMode === 'area') {
+      editor.setCurrentTool('area-eraser')
     } else {
       editor.setCurrentTool('eraser')
     }
     editor.updateInstanceState({ isToolLocked: true })
   }
 
-  const handleEraserModeChange = (mode: 'shape' | 'precision') => {
+  const handleEraserModeChange = (mode: 'shape' | 'precision' | 'area') => {
     setEraserMode(mode)
     if (mode === 'precision') {
       editor.setCurrentTool('precision-eraser')
+    } else if (mode === 'area') {
+      editor.setCurrentTool('area-eraser')
     } else {
       editor.setCurrentTool('eraser')
     }
