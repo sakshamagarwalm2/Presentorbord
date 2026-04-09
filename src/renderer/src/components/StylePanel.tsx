@@ -285,7 +285,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
         </div>
 
         <div className="flex items-center gap-1 mb-2">
-          {[1, 2, 3, 4, 8, 12].map(t => (
+          {[3, 4, 5, 6, 8, 12].map(t => (
             <button
               key={t}
               onClick={() => handleThicknessChange(t)}
