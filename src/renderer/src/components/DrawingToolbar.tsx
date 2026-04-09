@@ -512,7 +512,7 @@ function ShapeGroupButton({
     } else {
       editor.setCurrentTool(shape.id)
     }
-    editor.updateInstanceState({ isToolLocked: true })
+    // DO NOT LOCK for shapes/geo - let it auto-switch back to select
     setIsOpen(false)
   }
 
@@ -523,7 +523,7 @@ function ShapeGroupButton({
     } else {
       editor.setCurrentTool(selectedShape.id)
     }
-    editor.updateInstanceState({ isToolLocked: true })
+    // DO NOT LOCK for shapes/geo - let it auto-switch back to select
   }
 
   return (
@@ -1080,6 +1080,14 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const handleRecentColorClick = (color: string) => {
     // @ts-ignore - color string is valid but type definition is strict union
     editor.setStyleForNextShapes(DefaultColorStyle, color)
+    
+    // If we are not in a drawing tool, switch to the default Pen
+    const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
+    if (!drawingTools.includes(activeTool)) {
+      editor.setCurrentTool('super-pen')
+      editor.updateInstanceState({ isToolLocked: true })
+    }
+
     // If we have selected shapes, update them too
     const selectedShapeIds = editor.getSelectedShapeIds()
     if (selectedShapeIds.length > 0) {
@@ -1173,8 +1181,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
         if (typeof s.meta?.clipOffsetX === 'number' && typeof s.meta?.clipOffsetY === 'number') {
           x = viewportCenter.x + s.meta.clipOffsetX
           y = viewportCenter.y + s.meta.clipOffsetY
-        } else {
-          // Fallback for old clipboard data (though we just added it, good practice)
         }
 
         // Remove the meta offsets before creating
@@ -1196,6 +1202,40 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     } catch (e) {
       console.error('Failed to paste annotations', e)
     }
+  }
+
+  const [duplicateCount, setDuplicateCount] = useState(0)
+
+  const handleDuplicateAnnotations = () => {
+    const selectedShapes = editor.getSelectedShapes()
+    if (selectedShapes.length === 0) return
+
+    // Calculate common bounding box
+    const selectionBounds = editor.getSelectionRotatedPageBounds()
+    if (!selectionBounds) return
+
+    const viewportCenter = editor.getViewportScreenCenter()
+    
+    // Offset each duplicate slightly to avoid perfect overlap if clicked multiple times
+    const stackOffset = duplicateCount * 10
+    setDuplicateCount(prev => prev + 1)
+
+    const offsetX = viewportCenter.x - selectionBounds.center.x + stackOffset
+    const offsetY = viewportCenter.y - selectionBounds.center.y + stackOffset
+
+    const newShapes = selectedShapes.map((s: any) => {
+      const { id: _id, parentId: _parentId, ...rest } = s
+      return {
+        ...rest,
+        id: createShapeId(),
+        parentId: editor.getCurrentPageId(),
+        x: s.x + offsetX,
+        y: s.y + offsetY,
+      }
+    })
+
+    editor.createShapes(newShapes)
+    editor.setSelectedShapes(newShapes.map((s: any) => s.id))
   }
 
   return (
@@ -1233,7 +1273,10 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
           <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
             <button
-              onClick={() => setShowCopyPasteDropdown(!showCopyPasteDropdown)}
+              onClick={() => {
+                setShowCopyPasteDropdown(!showCopyPasteDropdown)
+                setDuplicateCount(0) // reset offset when opening
+              }}
               className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
               title="Copy / Paste"
             >
@@ -1246,23 +1289,36 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             {showCopyPasteDropdown && (
               <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
                 {selectedShapeIds.length > 0 ? (
-                  <button
-                    onClick={() => {
-                      handleCopyAnnotations()
-                      setShowCopyPasteDropdown(false)
-                    }}
-                    disabled={showCopyFeedback}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                    title="Copy Annotations"
-                  >
-                    <Copy size={16} />
-                    {showCopyFeedback ? "Copied!" : "Copy"}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        handleCopyAnnotations()
+                        // No auto-close
+                      }}
+                      disabled={showCopyFeedback}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                      title="Copy Annotations"
+                    >
+                      <Copy size={16} />
+                      {showCopyFeedback ? "Copied!" : "Copy"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDuplicateAnnotations()
+                        // No auto-close
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                      title="Duplicate Selection"
+                    >
+                      <Layers size={16} />
+                      Duplicate
+                    </button>
+                  </>
                 ) : null}
                 <button
                   onClick={() => {
                     handlePasteAnnotations()
-                    setShowCopyPasteDropdown(false)
+                    // No auto-close
                   }}
                   disabled={!hasClipboardContent}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${hasClipboardContent ? 'text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
@@ -1275,7 +1331,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 <button
                   onClick={() => {
                     if (onAddPage) onAddPage()
-                    setShowCopyPasteDropdown(false)
+                    setShowCopyPasteDropdown(false) // Still close on major action like Add Page
                   }}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
                   title="Add New Page"
