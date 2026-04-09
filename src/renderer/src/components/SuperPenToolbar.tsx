@@ -31,6 +31,7 @@ export function SuperPenToolbar() {
 
   const activate = useCallback(() => {
     editor.setCurrentTool('super-pen')
+    editor.updateInstanceState({ isToolLocked: true })
   }, [editor])
 
   const updateSetting = useCallback(<K extends keyof SuperPenSettings>(

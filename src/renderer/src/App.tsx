@@ -1172,6 +1172,7 @@ function AppContent() {
       if (e.key === "F5" || e.key === "b" || e.key === "B") {
         e.preventDefault();
         editor.setCurrentTool("super-pen");
+        editor.updateInstanceState({ isToolLocked: true });
         window.api.log("[Remote] Top Button pressed: Selecting Super Pen");
         return;
       }
@@ -1180,6 +1181,7 @@ function AppContent() {
       if (e.key === "." || e.key === "Escape" || e.key === "Esc") {
         e.preventDefault();
         editor.setCurrentTool("precision-eraser");
+        editor.updateInstanceState({ isToolLocked: true });
         window.api.log("[Remote] Bottom Button pressed: Selecting Precision Eraser");
         return;
       }

@@ -204,12 +204,14 @@ function PenGroupButton({
         })
       }
       editor.setCurrentTool('super-pen')
+      editor.updateInstanceState({ isToolLocked: true })
     } else if (tool.type === 'brush') {
       // @ts-ignore
       window.currentIsBrushSignal?.set(true)
       // @ts-ignore
       window.currentBrushTypeSignal?.set(tool.brushType || 'normal')
       editor.setCurrentTool('draw')
+      editor.updateInstanceState({ isToolLocked: true })
     } else {
       // @ts-ignore
       window.currentIsBrushSignal?.set(false)
@@ -510,6 +512,7 @@ function ShapeGroupButton({
     } else {
       editor.setCurrentTool(shape.id)
     }
+    editor.updateInstanceState({ isToolLocked: true })
     setIsOpen(false)
   }
 
@@ -520,6 +523,7 @@ function ShapeGroupButton({
     } else {
       editor.setCurrentTool(selectedShape.id)
     }
+    editor.updateInstanceState({ isToolLocked: true })
   }
 
   return (
@@ -988,6 +992,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
 
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
+    editor.updateInstanceState({ isToolLocked: true })
   }
 
   const handleAction = (action: string) => {
@@ -1038,6 +1043,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     } else {
       editor.setCurrentTool('eraser')
     }
+    editor.updateInstanceState({ isToolLocked: true })
   }
 
   const handleEraserModeChange = (mode: 'shape' | 'precision') => {
@@ -1047,6 +1053,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     } else {
       editor.setCurrentTool('eraser')
     }
+    editor.updateInstanceState({ isToolLocked: true })
   }
 
   const canUndo = useValue('canUndo', () => editor.getCanUndo(), [editor])
