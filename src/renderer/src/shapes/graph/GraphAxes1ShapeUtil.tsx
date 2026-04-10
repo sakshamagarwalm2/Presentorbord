@@ -41,7 +41,7 @@ export class GraphAxes1ShapeUtil extends ShapeUtil<IGraphAxes1Shape> {
 
   override component(shape: IGraphAxes1Shape) {
     const { w, h, color } = shape.props
-    const strokeWidth = 2
+    const strokeWidth = (shape.meta?.thickness as number) || 2
     const tickLength = 6
     const arrowSize = 10
     

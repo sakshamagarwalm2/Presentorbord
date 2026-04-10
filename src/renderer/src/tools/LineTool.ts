@@ -1,4 +1,5 @@
 import { StateNode, TLEventHandlers, TLShapeId, createShapeId, getIndices } from '@tldraw/editor'
+import { currentThicknessSignal } from '../store/styleSignals'
 
 class LineDrawing extends StateNode {
 	static override id = 'drawing'
@@ -16,6 +17,9 @@ class LineDrawing extends StateNode {
 				type: 'line',
 				x: this.startPoint.x,
 				y: this.startPoint.y,
+				meta: {
+					thickness: currentThicknessSignal.get(),
+				},
 				props: {
 					points: [
 						{ x: 0, y: 0, id: createShapeId(), index: indices[0] },

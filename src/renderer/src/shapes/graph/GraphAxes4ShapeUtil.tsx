@@ -46,7 +46,7 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
     const tickSpacing = 50
     const tickLength = 8
     const arrowSize = 10
-    const strokeWidth = 2
+    const strokeWidth = (shape.meta?.thickness as number) || 2
 
     // Ticks: from center outwards
     const xTicksPositive = []

@@ -26,6 +26,7 @@ import {
   PenTool,
   Compass,
   Info,
+  PanelBottom,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
@@ -33,7 +34,24 @@ import packageJson from "../../../../package.json";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
 import { getEmbedDef } from "../utils/embedUtils";
 
+export type ToolbarLocation = "main" | "nav" | "hidden";
+
+export interface ToolbarSettings {
+  copyPaste: ToolbarLocation;
+  undoRedo: ToolbarLocation;
+  colorPalette: ToolbarLocation;
+  penTools: ToolbarLocation;
+  eraser: ToolbarLocation;
+  shapes: ToolbarLocation;
+  handTool: ToolbarLocation;
+  lockPage: ToolbarLocation;
+  addPage: ToolbarLocation;
+  zoomInOut: ToolbarLocation;
+  fitToScreen: ToolbarLocation;
+}
+
 interface ToolsSidebarProps {
+  onImportClick?: () => void;
   onOpenProject: () => void;
   onSaveProject: () => void;
   showNavPanel: boolean;
@@ -45,6 +63,8 @@ interface ToolsSidebarProps {
   onAddRuler: () => void;
   onAddProtractor: () => void;
   onAddCompass: () => void;
+  toolbarSettings?: ToolbarSettings;
+  onToolbarSettingsChange?: (settings: ToolbarSettings) => void;
 }
 
 interface Bookmark {
@@ -64,6 +84,8 @@ export function ToolsSidebar({
   onAddRuler,
   onAddProtractor,
   onAddCompass,
+  toolbarSettings,
+  onToolbarSettingsChange,
 }: ToolsSidebarProps) {
   const editor = useEditor();
   const [showAbout, setShowAbout] = useState(false);
@@ -73,6 +95,28 @@ export function ToolsSidebar({
   const [showCustomize, setShowCustomize] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
+
+  const defaultSettings: ToolbarSettings = {
+    copyPaste: "main",
+    undoRedo: "main",
+    colorPalette: "main",
+    penTools: "main",
+    eraser: "main",
+    shapes: "main",
+    handTool: "main",
+    lockPage: "main",
+    addPage: "main",
+    zoomInOut: "nav",
+    fitToScreen: "nav",
+  };
+
+  const settings = toolbarSettings || defaultSettings;
+
+  const updateSetting = (key: keyof ToolbarSettings, value: ToolbarLocation) => {
+    if (onToolbarSettingsChange) {
+      onToolbarSettingsChange({ ...settings, [key]: value });
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("tools-sidebar-bookmarks");
@@ -453,6 +497,15 @@ export function ToolsSidebar({
           </div>
         </div>
 
+        {/* Customize Button */}
+        <div className="px-2 pt-2">
+          <ToolButton
+            icon={PanelBottom}
+            label="Customize"
+            onClick={() => setShowCustomize(true)}
+          />
+        </div>
+
         {/* About Button */}
         <div className="px-2 pb-2">
           <ToolButton
@@ -594,6 +647,130 @@ export function ToolsSidebar({
           </div>
         </div>
       )}
+
+      {/* Customize Popup Overlay */}
+      {showCustomize && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowCustomize(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 650,
+              width: "95%",
+              color: "white",
+              boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+                Customize Toolbar
+              </h2>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    const defaultSettings: ToolbarSettings = {
+                      copyPaste: "main",
+                      undoRedo: "main",
+                      colorPalette: "main",
+                      penTools: "main",
+                      eraser: "main",
+                      shapes: "main",
+                      handTool: "main",
+                      lockPage: "main",
+                      addPage: "main",
+                      zoomInOut: "nav",
+                      fitToScreen: "nav",
+                    };
+                    if (onToolbarSettingsChange) {
+                      onToolbarSettingsChange(defaultSettings);
+                    }
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.1)",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    color: "white",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setShowCustomize(false)}
+                  style={{
+                    background: "#3b82f6",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 12px",
+                    color: "white",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+              Choose where each tool should appear. Toggle off to hide from toolbar.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Copy/Paste */}
+              <ToolbarOption name="Copy/Paste" settings={settings} onChange={updateSetting} />
+
+              {/* Undo/Redo */}
+              <ToolbarOption name="Undo/Redo" settings={settings} onChange={updateSetting} />
+
+              {/* Color Palette */}
+              <ToolbarOption name="Color Palette" settings={settings} onChange={updateSetting} />
+
+              {/* Pen Tools */}
+              <ToolbarOption name="Pen Tools" settings={settings} onChange={updateSetting} />
+
+              {/* Eraser */}
+              <ToolbarOption name="Eraser" settings={settings} onChange={updateSetting} />
+
+              {/* Shapes */}
+              <ToolbarOption name="Shapes" settings={settings} onChange={updateSetting} />
+
+              {/* Hand Tool */}
+              <ToolbarOption name="Hand Tool" showNavPanelOption settings={settings} onChange={updateSetting} />
+
+              {/* Lock Page */}
+              <ToolbarOption name="Lock Page" showNavPanelOption settings={settings} onChange={updateSetting} />
+
+              {/* Add Page */}
+              <ToolbarOption name="Add Page" showNavPanelOption settings={settings} onChange={updateSetting} />
+
+              {/* Zoom In/Out */}
+              <ToolbarOption name="Zoom In/Out" showNavPanelOption settings={settings} onChange={updateSetting} />
+
+              {/* Fit to Screen */}
+              <ToolbarOption name="Fit to Screen" showNavPanelOption settings={settings} onChange={updateSetting} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
@@ -620,5 +797,99 @@ function ToolButton({
         {label}
       </span>
     </button>
+  );
+}
+
+function ToolbarOption({
+  name,
+  showNavPanelOption,
+  settings,
+  onChange,
+}: {
+  name: string;
+  showNavPanelOption?: boolean;
+  settings: ToolbarSettings;
+  onChange: (key: keyof ToolbarSettings, value: ToolbarLocation) => void;
+}) {
+  const keyMap: Record<string, keyof ToolbarSettings> = {
+    "copypaste": "copyPaste",
+    "undoredo": "undoRedo",
+    "colorpalette": "colorPalette",
+    "pentools": "penTools",
+    "shapes": "shapes",
+    "handtool": "handTool",
+    "lockpage": "lockPage",
+    "addpage": "addPage",
+    "zoominout": "zoomInOut",
+    "fittoscreen": "fitToScreen",
+  };
+
+  const key = keyMap[name.toLowerCase().replace(/[\/\s]/g, "")] || "copyPaste";
+  const currentLocation = settings[key] || "main";
+
+  const handleLocationChange = (location: ToolbarLocation) => {
+    onChange(key, location);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "12px 16px",
+        background: "rgba(255,255,255,0.05)",
+        borderRadius: 12,
+        border: "1px solid rgba(255,255,255,0.1)",
+      }}
+    >
+      <span style={{ fontSize: 14, fontWeight: 500 }}>{name}</span>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={() => handleLocationChange("main")}
+          style={{
+            padding: "6px 12px",
+            borderRadius: 8,
+            border: "none",
+            fontSize: 12,
+            cursor: "pointer",
+            background: currentLocation === "main" ? "#3b82f6" : "rgba(255,255,255,0.1)",
+            color: "white",
+          }}
+        >
+          Toolbar
+        </button>
+        {showNavPanelOption && (
+          <button
+            onClick={() => handleLocationChange("nav")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              border: "none",
+              fontSize: 12,
+              cursor: "pointer",
+              background: currentLocation === "nav" ? "#3b82f6" : "rgba(255,255,255,0.1)",
+              color: "white",
+            }}
+          >
+            Nav Panel
+          </button>
+        )}
+        <button
+          onClick={() => handleLocationChange("hidden")}
+          style={{
+            padding: "6px 12px",
+            borderRadius: 8,
+            border: "none",
+            fontSize: 12,
+            cursor: "pointer",
+            background: currentLocation === "hidden" ? "#ef4444" : "rgba(255,255,255,0.1)",
+            color: "white",
+          }}
+        >
+          Hide
+        </button>
+      </div>
+    </div>
   );
 }

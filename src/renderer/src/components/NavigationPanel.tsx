@@ -1,26 +1,26 @@
 import { useEditor } from "@tldraw/tldraw";
-import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Maximize } from "lucide-react";
+import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Maximize, Plus, Hand, Lock, Unlock } from "lucide-react";
 import { useEffect, useState } from "react";
-import { animateSlideToViewport, fitSlideToViewport } from "../utils/slideCamera";
+import { animateSlideToViewport } from "../utils/slideCamera";
+import { ToolbarSettings } from "./ToolsSidebar";
 
 export function NavigationPanel({
   isVisible,
   position = "right",
+  toolbarSettings,
+  onAddPage,
 }: {
   isVisible: boolean;
   position?: "left" | "right";
+  toolbarSettings?: ToolbarSettings;
+  onAddPage?: () => void;
 }) {
-  // Get editor safely
-  let editor: any = null;
-  try {
-    editor = useEditor();
-  } catch {
-    // Handle case where editor context is missing (though unlikely in this app structure)
-  }
+  const editor = useEditor();
 
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [isCameraLocked, setIsCameraLocked] = useState(false);
 
   // Using a polling approach for simplicity as Tldraw context updates can be tricky to hook perfectly
   // for page count/index without complex listeners.
@@ -35,6 +35,7 @@ export function NavigationPanel({
       setCurrentPageIndex(index !== -1 ? index : 0);
       setTotalPages(pages.length);
       setZoomLevel(Math.round(editor.getZoomLevel() * 100));
+      setIsCameraLocked(editor.getCameraOptions().isLocked);
     };
 
     updateInfo();
@@ -109,27 +110,35 @@ export function NavigationPanel({
       </div>
 
       {/* Zoom Controls */}
-      <div className="flex items-center gap-1 pl-1">
-        <button
-          onClick={handleZoomOut}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
-          title="Zoom Out (-5%)"
-        >
-          <ZoomOut size={20} />
-        </button>
+      {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
+        <div className="flex items-center gap-1 pl-1">
+          <button
+            onClick={handleZoomOut}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+            title="Zoom Out (-5%)"
+          >
+            <ZoomOut size={20} />
+          </button>
 
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums">
-          {zoomLevel}%
-        </span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums">
+            {zoomLevel}%
+          </span>
 
-        <button
-          onClick={handleZoomIn}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
-          title="Zoom In (+5%)"
-        >
-          <ZoomIn size={20} />
-        </button>
+          <button
+            onClick={handleZoomIn}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+            title="Zoom In (+5%)"
+          >
+            <ZoomIn size={20} />
+          </button>
+        </div>
+      )}
+      {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
+        <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
+      )}
 
+      {/* Fit to Screen */}
+      {(!toolbarSettings || toolbarSettings.fitToScreen === "nav") && (
         <button
           onClick={handleFitToScreen}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
@@ -137,10 +146,47 @@ export function NavigationPanel({
         >
           <Maximize size={20} />
         </button>
-      </div>
+      )}
+
+
+      {/* Add Page Button */}
+      {toolbarSettings?.addPage === "nav" && onAddPage && (
+        <button
+          onClick={onAddPage}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          title="Add Page"
+        >
+          <Plus size={20} />
+        </button>
+      )}
 
       {/* Separator */}
       <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
+
+      {/* Hand Tool */}
+      {toolbarSettings?.handTool === "nav" && (
+        <button
+          onClick={() => {
+            editor.setCurrentTool("hand");
+            editor.updateInstanceState({ isToolLocked: true });
+          }}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          title="Hand Tool"
+        >
+          <Hand size={20} />
+        </button>
+      )}
+
+      {/* Lock Page Button */}
+      {toolbarSettings?.lockPage === "nav" && (
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+          className={`p-2 rounded-xl transition-colors ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+          title={isCameraLocked ? "Unlock Page" : "Lock Page"}
+        >
+          {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
+        </button>
+      )}
 
       {/* Minimize Button */}
       <button

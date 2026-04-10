@@ -1,5 +1,6 @@
-import { useEditor, useValue, GeoShapeGeoStyle, DefaultColorStyle, createShapeId } from '@tldraw/tldraw'
+import { useEditor, useValue, GeoShapeGeoStyle, DefaultColorStyle, DefaultSizeStyle, createShapeId } from '@tldraw/tldraw'
 import { useState, useRef, useEffect } from 'react'
+import { ToolbarSettings } from './ToolsSidebar'
 import {
   MousePointer2,
   Hand,
@@ -41,7 +42,7 @@ import {
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
-import { currentEraserSizeSignal } from '../store/styleSignals'
+import { currentEraserSizeSignal, currentThicknessSignal } from '../store/styleSignals'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -106,6 +107,13 @@ const ERASER_SIZES = [
   { label: 'M', value: 12 },
   { label: 'L', value: 24 },
   { label: 'XL', value: 40 },
+]
+
+const SHAPE_SIZES = [
+  { label: 'S', value: 4, style: 's' as const },
+  { label: 'M', value: 7, style: 'm' as const },
+  { label: 'L', value: 14, style: 'l' as const },
+  { label: 'XL', value: 24, style: 'xl' as const },
 ]
 
 /* ------------------------------------------------------------------ */
@@ -505,7 +513,8 @@ function ShapeGroupButton({
   activeTheme?: ColorTheme
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[0]) // default: Arrow
+  const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[0])
+  const [selectedSize, setSelectedSize] = useState(SHAPE_SIZES[1]) // default: M
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
@@ -616,6 +625,49 @@ function ShapeGroupButton({
                 </button>
               )
             })}
+          </div>
+          <div className="border-t border-gray-100 dark:border-gray-700 mt-2 pt-2">
+            <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1 pb-1.5">
+              Size
+            </p>
+            <div className="flex gap-1">
+              {SHAPE_SIZES.map((size) => {
+                const isActive = selectedSize.value === size.value
+                return (
+                  <button
+                    key={size.value}
+                    onClick={() => {
+                      setSelectedSize(size)
+                      currentThicknessSignal.set(size.value)
+                      editor.setStyleForNextShapes(DefaultSizeStyle, size.style)
+                      const selected = editor.getSelectedShapes()
+                      if (selected.length > 0) {
+                        editor.updateShapes(selected.map(s => {
+                          const update: any = {
+                            id: s.id,
+                            type: s.type,
+                            meta: { ...s.meta, thickness: size.value }
+                          }
+                          if (s.type === 'arrow' || s.type === 'line' || s.type === 'geo') {
+                            update.props = { ...s.props, size: size.style }
+                          }
+                          return update
+                        }))
+                      }
+                    }}
+                    className={`
+                      flex-1 flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-all
+                      ${isActive
+                        ? 'bg-blue-500 text-white'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                      }
+                    `}
+                  >
+                    {size.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -849,12 +901,14 @@ function SelectGroupButton({
   activeTheme,
   isCameraLocked,
   onToggleLock,
+  toolbarSettings,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   activeTheme?: ColorTheme
   isCameraLocked: boolean
   onToggleLock: () => void
+  toolbarSettings?: ToolbarSettings
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
@@ -878,6 +932,18 @@ function SelectGroupButton({
     const match = SELECT_GROUP.find((t) => t.id === activeTool)
     if (match) setSelectedTool(match)
   }, [activeTool])
+
+  // Filter out hand tool if it's moved to nav panel and update selected tool if needed
+  const visibleTools = toolbarSettings?.handTool === "nav" 
+    ? SELECT_GROUP.filter(t => t.id !== "hand")
+    : SELECT_GROUP;
+
+  // Update selected tool when hand is moved to nav panel
+  useEffect(() => {
+    if (toolbarSettings?.handTool === "nav" && selectedTool.id === "hand") {
+      setSelectedTool(SELECT_GROUP.find(t => t.id === "select") || SELECT_GROUP[0]);
+    }
+  }, [toolbarSettings?.handTool]);
 
   const isGroupActive = SELECT_GROUP.some((t) => t.id === activeTool)
   const Icon = selectedTool.icon
@@ -919,7 +985,7 @@ function SelectGroupButton({
       {/* Flyout */}
       {isOpen && (
         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
-          {SELECT_GROUP.map((tool) => {
+          {visibleTools.map((tool) => {
             const TIcon = tool.icon
             const isActive = activeTool === tool.id
             return (
@@ -947,27 +1013,29 @@ function SelectGroupButton({
           {/* Divider */}
           <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
 
-          {/* Action items */}
-          <button
-            onClick={() => { onToggleLock(); setIsOpen(false) }}
-            className={`
-              flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
-              ${isCameraLocked
-                ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'
-                : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-              }
-            `}
-          >
-            {isCameraLocked ? <Lock size={16} /> : <Unlock size={16} />}
-            {isCameraLocked ? "Unlock Page" : "Lock Page"}
-          </button>
+          {/* Lock Page - only show if not moved to nav panel */}
+          {(!toolbarSettings || toolbarSettings.lockPage !== "nav") && (
+            <button
+              onClick={() => { onToggleLock(); setIsOpen(false) }}
+              className={`
+                flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                ${isCameraLocked
+                  ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                }
+              `}
+            >
+              {isCameraLocked ? <Lock size={16} /> : <Unlock size={16} />}
+              {isCameraLocked ? "Unlock Page" : "Lock Page"}
+            </button>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPage }: { showRecentColors?: boolean; onImageClick?: () => void; onAddPage?: () => void }) {
+export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPage, toolbarSettings }: { showRecentColors?: boolean; onImageClick?: () => void; onAddPage?: () => void; toolbarSettings?: ToolbarSettings }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
@@ -1302,6 +1370,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
         <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
+          {(!toolbarSettings || toolbarSettings.copyPaste === "main") && (
           <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
             <button
               onClick={() => {
@@ -1374,75 +1443,111 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             )}
             <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
           </div>
+          )}
 
-          {/* Select Group Button (Select / Lasso / Hand / Lock) */}
+          {/* Select Group Button (Select / Lasso / Hand) - always show, filter hand from dropdown if in nav */}
           <SelectGroupButton
             activeTool={activeTool}
             onSelect={selectTool}
             activeTheme={activeColorTheme}
             isCameraLocked={isCameraLocked}
             onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+            toolbarSettings={toolbarSettings}
           />
+
+          {/* Lock Page only button - show when lock is in main but hand is in nav */}
+          {(toolbarSettings?.handTool === "nav" && toolbarSettings?.lockPage === "main") && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}`}
+              title={isCameraLocked ? "Unlock Page" : "Lock Page"}
+            >
+              {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
+            </button>
+          )}
 
           {/* Undo & Redo */}
-          <button
-            onClick={() => editor.undo()}
-            disabled={!canUndo}
-            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
-            title="Undo"
-          >
-            <Undo2 size={18} />
-          </button>
-          <button
-            onClick={() => editor.redo()}
-            disabled={!canRedo}
-            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
-            title="Redo"
-          >
-            <Redo2 size={18} />
-          </button>
+          {(!toolbarSettings || toolbarSettings.undoRedo === "main") && (
+          <>
+            <button
+              onClick={() => editor.undo()}
+              disabled={!canUndo}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+              title="Undo"
+            >
+              <Undo2 size={18} />
+            </button>
+            <button
+              onClick={() => editor.redo()}
+              disabled={!canRedo}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+              title="Redo"
+            >
+              <Redo2 size={18} />
+            </button>
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+          </>
+          )}
 
           {/* Palette toggle */}
-          <div ref={paletteButtonRef} className="flex">
-            <PaletteButton
-              isVisible={stylePanelVisible}
-              onToggle={() => setStylePanelVisible((v) => !v)}
-              activeTheme={activeColorTheme}
-            />
-          </div>
+          {(!toolbarSettings || toolbarSettings.colorPalette === "main") && (
+          <>
+            <div ref={paletteButtonRef} className="flex">
+              <PaletteButton
+                isVisible={stylePanelVisible}
+                onToggle={() => setStylePanelVisible((v) => !v)}
+                activeTheme={activeColorTheme}
+              />
+            </div>
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+          </>
+          )}
 
           {/* Pen group (pen / highlighter / laser) */}
-          <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} />
+          {(!toolbarSettings || toolbarSettings.penTools === "main") && (
+          <>
+            <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} />
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+          </>
+          )}
 
           {/* Eraser group (shape eraser + size) */}
-          <EraserGroupButton
-            activeTool={activeTool}
-            eraserMode={eraserMode}
-            eraserSize={eraserSize}
-            onSelectTool={handleEraserSelect}
-            onSelectMode={handleEraserModeChange}
-            onSelectSize={(s) => {
-              setEraserSize(s)
-              currentEraserSizeSignal.set(s)
-            }}
-            onClearPage={handleClearPage}
-            activeTheme={activeColorTheme}
-          />
+          {(!toolbarSettings || toolbarSettings.eraser === "main") && (
+          <>
+            <EraserGroupButton
+              activeTool={activeTool}
+              eraserMode={eraserMode}
+              eraserSize={eraserSize}
+              onSelectTool={handleEraserSelect}
+              onSelectMode={handleEraserModeChange}
+              onSelectSize={(s) => {
+                setEraserSize(s)
+                currentEraserSizeSignal.set(s)
+              }}
+              onClearPage={handleClearPage}
+              activeTheme={activeColorTheme}
+            />
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+          </>
+          )}
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
-          <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} />
+          {(!toolbarSettings || toolbarSettings.shapes === "main") && (
+          <>
+            <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} />
 
-          {/* Divider */}
-          <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+          </>
+          )}
 
           {/* More options */}
           <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} onImageClick={onImageClick} />

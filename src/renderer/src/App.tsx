@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
 import { Sidebar } from "./components/Sidebar";
-import { ToolsSidebar } from "./components/ToolsSidebar";
+import { ToolsSidebar, ToolbarSettings } from "./components/ToolsSidebar";
 import { DrawingToolbar } from "./components/DrawingToolbar";
 import { LoadingOverlay } from "./components/LoadingOverlay";
 import { NavigationPanel } from "./components/NavigationPanel";
@@ -873,6 +873,37 @@ function AppContent() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
+  const defaultToolbarSettings: ToolbarSettings = {
+    copyPaste: "main",
+    undoRedo: "main",
+    colorPalette: "main",
+    penTools: "main",
+    eraser: "main",
+    shapes: "main",
+    handTool: "main",
+    lockPage: "main",
+    addPage: "main",
+    zoomInOut: "nav",
+    fitToScreen: "nav",
+  };
+
+  const [toolbarSettings, setToolbarSettings] = useState<ToolbarSettings>(() => {
+    const saved = localStorage.getItem("toolbar-settings");
+    if (saved) {
+      try {
+        return { ...defaultToolbarSettings, ...JSON.parse(saved) };
+      } catch {
+        return defaultToolbarSettings;
+      }
+    }
+    return defaultToolbarSettings;
+  });
+
+  const handleToolbarSettingsChange = (newSettings: ToolbarSettings) => {
+    setToolbarSettings(newSettings);
+    localStorage.setItem("toolbar-settings", JSON.stringify(newSettings));
+  };
+
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
   const [isAllSlidesGridVisible, setIsAllSlidesGridVisible] = useState(false);
 
@@ -1257,9 +1288,21 @@ function AppContent() {
         onAddRuler={addRuler}
         onAddProtractor={addProtractor}
         onAddCompass={addCompass}
+        toolbarSettings={toolbarSettings}
+        onToolbarSettingsChange={handleToolbarSettingsChange}
       />
-      <DrawingToolbar showRecentColors={showRecentColors} onImageClick={handleImportClick} onAddPage={addPage} />
-      <NavigationPanel isVisible={showNavPanel} position={navPosition} />
+      <DrawingToolbar 
+        showRecentColors={showRecentColors} 
+        onImageClick={handleImportClick} 
+        onAddPage={addPage}
+        toolbarSettings={toolbarSettings}
+      />
+      <NavigationPanel 
+        isVisible={showNavPanel} 
+        position={navPosition}
+        toolbarSettings={toolbarSettings}
+        onAddPage={addPage}
+      />
       {showNavPanel && (
         <div
           className={`fixed bottom-0 ${navPosition === "right" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 p-2 z-[99999] flex items-center justify-center animate-in slide-in-from-bottom-4 fade-in duration-300`}
