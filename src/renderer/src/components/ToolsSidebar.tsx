@@ -22,9 +22,6 @@ import {
   AppWindow,
   Navigation2,
   MoreHorizontal,
-  Ruler,
-  PenTool,
-  Compass,
   Info,
   PanelBottom,
 } from "lucide-react";
@@ -46,6 +43,7 @@ export interface ToolbarSettings {
   handTool: ToolbarLocation;
   lockPage: ToolbarLocation;
   addPage: ToolbarLocation;
+  pageNav: ToolbarLocation;
   zoomInOut: ToolbarLocation;
   fitToScreen: ToolbarLocation;
 }
@@ -60,9 +58,6 @@ interface ToolsSidebarProps {
   onToggleRecentColors: () => void;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
-  onAddRuler: () => void;
-  onAddProtractor: () => void;
-  onAddCompass: () => void;
   toolbarSettings?: ToolbarSettings;
   onToolbarSettingsChange?: (settings: ToolbarSettings) => void;
 }
@@ -81,9 +76,6 @@ export function ToolsSidebar({
   onToggleRecentColors,
   isOpen,
   onToggle,
-  onAddRuler,
-  onAddProtractor,
-  onAddCompass,
   toolbarSettings,
   onToolbarSettingsChange,
 }: ToolsSidebarProps) {
@@ -93,8 +85,25 @@ export function ToolsSidebar({
   const [showSettings, setShowSettings] = useState(false);
   const [settingsView, setSettingsView] = useState<"root" | "embeds">("root");
   const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeTab, setCustomizeTab] = useState<"drawing" | "navigation">("drawing");
+  const [showBookmarks, setShowBookmarks] = useState(false);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
+
+  // Close all dropdowns
+  const closeAllDropdowns = () => {
+    setShowMathTools(false);
+    setShowSettings(false);
+    setShowCustomize(false);
+    setShowBookmarks(false);
+    setSettingsView("root");
+  };
+
+  // Open one dropdown and close others
+  const openDropdown = (dropdown: "math") => {
+    closeAllDropdowns();
+    if (dropdown === "math") setShowMathTools(true);
+  };
 
   const defaultSettings: ToolbarSettings = {
     copyPaste: "main",
@@ -217,36 +226,39 @@ export function ToolsSidebar({
     window.open("https://www.desmos.com/calculator", "_blank");
   };
 
-  return (
+return (
     <>
-      {/* Collapse toggle when sidebar is closed - Right Side */}
+      {/* Collapse toggle when sidebar is closed */}
       {!isOpen && (
         <button
           data-sidebar
           onClick={() => onToggle(true)}
-          className="absolute right-3 top-2 z-[99999] p-2 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all shadow-sm border border-gray-200/50 dark:border-gray-700/50"
+          className="absolute right-3 top-2 z-[99999] p-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 backdrop-blur-md rounded-lg hover:from-cyan-300 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/30"
           title="Expand Tools"
         >
-          <ChevronLeft size={16} className="text-gray-600 dark:text-gray-400" />
+          <ChevronLeft size={16} className="text-white drop-shadow-md" />
         </button>
       )}
 
       {/* Main Sidebar - Right Side */}
       <div
         data-sidebar
-        className={`absolute top-2 right-3 z-[99998] transform transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : "translate-x-64 opacity-0 pointer-events-none"}`}
+        className={`absolute top-2 right-3 z-[99998] transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : "translate-x-64 opacity-0 pointer-events-none"}`}
       >
-        <div className="w-16 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col items-center py-4 gap-4">
+        <div className="w-14 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col items-center py-2 gap-2">
           {/* Header / Collapse */}
-          <button
-            onClick={() => onToggle(false)}
-            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors mb-2"
-          >
-            <ChevronRight size={16} />
-          </button>
+          {isOpen && (
+            <button
+              onClick={() => onToggle(false)}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
+              title="Collapse"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
 
           {/* Tools */}
-          <div className="flex flex-col gap-3 w-full px-2">
+          <div className="flex flex-col gap-2 w-full px-1.5">
 
             {/* Math Group */}
             <div className="relative">
@@ -254,12 +266,12 @@ export function ToolsSidebar({
                 icon={Sigma}
                 label="Math"
                 isActive={showMathTools}
-                onClick={() => setShowMathTools(!showMathTools)}
+                onClick={() => showMathTools ? setShowMathTools(false) : openDropdown("math")}
               />
 
-              {/* Math Sub-menu */}
+              {/* Math Sub-menu - horizontal row right next to button */}
               {showMathTools && (
-                <div className="absolute right-full top-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 flex flex-col gap-2">
+                <div className="absolute right-full top-0 ml-3 flex items-center gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 px-1.5 py-1 z-[99999] whitespace-nowrap">
                   <ToolButton
                     icon={CalcIcon}
                     label="Calculator"
@@ -276,247 +288,84 @@ export function ToolsSidebar({
                       setShowMathTools(false);
                     }}
                   />
-                  <ToolButton
-                    icon={Ruler}
-                    label="Ruler"
-                    onClick={() => {
-                      onAddRuler();
-                      setShowMathTools(false);
-                    }}
-                  />
-                  <ToolButton
-                    icon={PenTool}
-                    label="Protractor"
-                    onClick={() => {
-                      onAddProtractor();
-                      setShowMathTools(false);
-                    }}
-                  />
-                  <ToolButton
-                    icon={Compass}
-                    label="Compass"
-                    onClick={() => {
-                      onAddCompass();
-                      setShowMathTools(false);
-                    }}
-                  />
                 </div>
               )}
             </div>
 
             <ToolButton icon={Globe} label="Browser" onClick={openBrowser} />
-          </div>
 
-          {/* Bottom Tools */}
-          <div className="mt-auto flex flex-col gap-3 w-full px-2 pb-2 border-t border-gray-200/50 dark:border-gray-700/50 pt-2">
-            {/* Settings Group */}
             <div className="relative">
-              <ToolButton
-                icon={Settings}
-                label="Settings"
-                isActive={showSettings}
-                onClick={() => {
-                  setShowSettings(!showSettings);
-                  setSettingsView("root");
-                  setShowCustomize(false);
-                  setShowMathTools(false);
-                }}
-              />
+              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} />
 
-              {/* Settings Sub-menu */}
-              {showSettings && (
-                <div className="absolute right-full bottom-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 flex flex-col gap-2 min-w-[140px]">
-                  {settingsView === "root" ? (
-                    <>
-                      <ToolButton
-                        icon={Grid}
-                        label="Grid"
-                        onClick={toggleGrid}
-                      />
-                      <ToolButton
-                        icon={Moon}
-                        label="Dark Mode"
-                        onClick={toggleDarkMode}
-                      />
-                      <ToolButton
-                        icon={AppWindow}
-                        label="Add Embed..."
-                        onClick={() => setSettingsView("embeds")}
-                      />
-                      <ToolButton
-                        icon={Navigation2}
-                        label={
-                          showNavPanel ? "Hide Navigation" : "Show Navigation"
-                        }
-                        isActive={showNavPanel}
-                        onClick={onToggleNavPanel}
-                      />
-                      <ToolButton
-                        icon={MoreHorizontal}
-                        label={showRecentColors ? "Hide Colors" : "Show Colors"}
-                        isActive={showRecentColors}
-                        onClick={onToggleRecentColors}
-                      />
-                      <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
-                      <ToolButton
-                        icon={Download}
-                        label="Save Project"
-                        onClick={onSaveProject}
-                      />
-                      <ToolButton
-                        icon={Upload}
-                        label="Open Project"
-                        onClick={onOpenProject}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <ToolButton
-                        icon={ChevronRight}
-                        label="Back"
-                        onClick={() => setSettingsView("root")}
-                      />
-                      <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
-                      <ToolButton
-                        icon={Youtube}
-                        label="YouTube"
-                        onClick={() => addEmbed("youtube", "YouTube")}
-                      />
-                      <ToolButton
-                        icon={Map}
-                        label="Google Maps"
-                        onClick={() => addEmbed("google_maps", "Google Maps")}
-                      />
-                      <ToolButton
-                        icon={Figma}
-                        label="Figma"
-                        onClick={() => addEmbed("figma", "Figma")}
-                      />
-                      <ToolButton
-                        icon={Box}
-                        label="CodeSandbox"
-                        onClick={() => addEmbed("codesandbox", "CodeSandbox")}
-                      />
-                      <ToolButton
-                        icon={Code}
-                        label="CodePen"
-                        onClick={() => addEmbed("codepen", "CodePen")}
-                      />
-                      <ToolButton
-                        icon={Code2}
-                        label="Scratch"
-                        onClick={() => addEmbed("scratch", "Scratch")}
-                      />
-                      <ToolButton
-                        icon={Globe}
-                        label="Generic"
-                        onClick={() => addEmbed("generic", "Website")}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Customize / Bookmarks Group */}
-            <div className="relative">
-              <ToolButton
-                icon={Bookmark}
-                label="Customize"
-                isActive={showCustomize}
-                onClick={() => {
-                  setShowCustomize(!showCustomize);
-                  setShowSettings(false);
-                  setShowMathTools(false);
-                }}
-              />
-
-              {/* Customize Sub-menu */}
-              {showCustomize && (
-                <div className="absolute right-full bottom-0 mr-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 flex flex-col gap-2 w-64">
-                  <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    Bookmarks
-                  </h3>
-
-                  {/* List */}
-                  <div className="flex flex-col gap-1 max-h-[200px] overflow-y-auto">
-                    {bookmarks.length === 0 && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 italic text-center py-2">
-                        No bookmarks yet
-                      </p>
-                    )}
-                    {bookmarks.map((bm: Bookmark, i: number) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 group/item p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                      >
-                        <button
-                          onClick={() => openBookmark(bm.url)}
-                          className="flex-1 flex items-center gap-2 text-left overflow-hidden"
-                          title={bm.url}
-                        >
-                          <Globe
-                            size={14}
-                            className="text-blue-500 flex-shrink-0"
-                          />
-                          <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                            {bm.name}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => removeBookmark(i)}
-                          className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Add New */}
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+              {/* Bookmarks dropdown */}
+              {showBookmarks && (
+                <div className="absolute right-full top-0 ml-3 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap w-52">
+                  {/* Add bookmark input */}
+                  <div className="flex items-center gap-1">
                     <input
                       type="text"
                       value={newBookmarkUrl}
                       onChange={(e) => setNewBookmarkUrl(e.target.value)}
-                      placeholder="google.com"
-                      className="flex-1 text-sm px-2 py-1 rounded border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:border-blue-500"
+                      placeholder="Add URL..."
+                      className="flex-1 text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:border-blue-500"
                       onKeyDown={(e) => e.key === "Enter" && addBookmark()}
                     />
                     <button
                       onClick={addBookmark}
-                      className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                      className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
                       disabled={!newBookmarkUrl}
                     >
-                      <Plus size={14} />
+                      <Plus size={12} />
                     </button>
+                  </div>
+
+                  {/* Bookmarks list */}
+                  <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                    {bookmarks.length === 0 && (
+                      <p className="text-xs text-gray-400 italic text-center py-2">No bookmarks</p>
+                    )}
+                    {bookmarks.map((bm: Bookmark, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => openBookmark(bm.url)}
+                        className="flex items-center gap-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-2 py-1"
+                      >
+                        <Globe size={14} className="text-blue-500" />
+                        <span className="text-sm truncate">{bm.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
+
+            {/* Bottom Tools */}
+            <div className="flex flex-col gap-1 w-full px-1.5 pb-1 pt-1">
+              {/* Layout Button */}
+              <ToolButton
+                icon={PanelBottom}
+                label="Layout"
+                onClick={() => {
+                  onToggle(true);
+                  setShowCustomize(true);
+                }}
+              />
+
+              {/* About Button */}
+              <ToolButton
+                icon={Info}
+                label="About"
+                onClick={() => {
+                  onToggle(true);
+                  setShowAbout(true);
+                }}
+              />
+</div>
           </div>
-        </div>
-
-        {/* Customize Button */}
-        <div className="px-2 pt-2">
-          <ToolButton
-            icon={PanelBottom}
-            label="Customize"
-            onClick={() => setShowCustomize(true)}
-          />
-        </div>
-
-        {/* About Button */}
-        <div className="px-2 pb-2">
-          <ToolButton
-            icon={Info}
-            label="About"
-            onClick={() => setShowAbout(true)}
-          />
         </div>
       </div>
 
-      {/* About Popup Overlay */}
+{/* About Popup Overlay */}
       {showAbout && (
         <div
           style={{
@@ -529,23 +378,17 @@ export function ToolsSidebar({
             background: "rgba(0,0,0,0.5)",
             backdropFilter: "blur(4px)",
           }}
-          onClick={() => setShowAbout(false)}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
               background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
               borderRadius: 16,
               padding: 32,
               maxWidth: 420,
               width: "90%",
-              maxHeight: "90vh",
-              overflowY: "auto",
               color: "white",
               boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.1)",
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255,255,255,0.2) transparent",
             }}
           >
             <img
@@ -559,14 +402,14 @@ export function ToolsSidebar({
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <h2 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>
-                ✨ Presentorbord
+                Presentorbord
               </h2>
-              <span style={{ 
-                background: 'rgba(59, 130, 246, 0.2)', 
-                color: '#60a5fa', 
-                padding: '2px 8px', 
-                borderRadius: 99, 
-                fontSize: 11, 
+              <span style={{
+                background: 'rgba(59, 130, 246, 0.2)',
+                color: '#60a5fa',
+                padding: '2px 8px',
+                borderRadius: 99,
+                fontSize: 11,
                 fontWeight: 600,
                 border: '1px solid rgba(59, 130, 246, 0.3)'
               }}>
@@ -576,22 +419,21 @@ export function ToolsSidebar({
             <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 12 }}>
               An interactive digital whiteboard built for teaching and
               presenting. Features include multi-page support, PDF import,
-              geometry tools (Ruler, Protractor, Compass), drawing with pen
-              snapping, and much more.
+              geometry tools, drawing with pen snapping, and much more.
             </p>
-            <div style={{ 
-              marginBottom: 20, 
-              padding: '10px 14px', 
-              background: 'rgba(255,255,255,0.05)', 
+            <div style={{
+              marginBottom: 20,
+              padding: '10px 14px',
+              background: 'rgba(255,255,255,0.05)',
               borderRadius: 10,
               border: '1px solid rgba(255,255,255,0.1)'
             }}>
-               <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>
-                🚀 <strong>Funded by <a href="https://www.youtube.com/@LearnandShareeducation" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', borderBottom: '1px dashed #60a5fa' }}>Learn&Share</a></strong>
+              <p style={{ fontSize: 12, color: "#cbd5e1", margin: 0 }}>
+                Funded by <a href="https://www.youtube.com/@LearnandShareeducation" target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none' }}>Learn&Share</a>
               </p>
             </div>
             <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
-              Built with ❤️ using Electron, React, and tldraw.
+              Built with Electron, React, and tldraw.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               <a
@@ -631,7 +473,7 @@ export function ToolsSidebar({
                 }}
               >
                 <Youtube size={18} />
-                YouTube Channel
+                YouTube
               </a>
               <button
                 onClick={() => setShowAbout(false)}
@@ -658,126 +500,106 @@ export function ToolsSidebar({
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9999,
+            zIndex: 99999,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(8px)",
           }}
-          onClick={() => setShowCustomize(false)}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
               background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-              borderRadius: 16,
-              padding: 20,
-              maxWidth: 600,
-              width: "95%",
-              maxHeight: "90vh",
-              overflowY: "auto",
+              borderRadius: 20,
+              padding: 24,
+              width: "90%",
+              maxWidth: 420,
               color: "white",
-              boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              display: "flex",
-              flexDirection: "column",
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255,255,255,0.2) transparent",
+              boxShadow: "0 25px 80px rgba(0,0,0,0.5)",
+              border: "1px solid rgba(255,255,255,0.15)",
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
-                Customize Toolbar
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+                Customize
               </h2>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => {
-                    const defaultSettings: ToolbarSettings = {
-                      copyPaste: "main",
-                      undoRedo: "main",
-                      colorPalette: "main",
-                      penTools: "main",
-                      eraser: "main",
-                      shapes: "main",
-                      handTool: "main",
-                      lockPage: "main",
-                      addPage: "main",
-                      zoomInOut: "nav",
-                      fitToScreen: "nav",
-                    };
-                    if (onToolbarSettingsChange) {
-                      onToolbarSettingsChange(defaultSettings);
-                    }
-                  }}
-                  style={{
-                    background: "rgba(255,255,255,0.1)",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "6px 10px",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: 12,
-                  }}
-                >
-                  Reset
-                </button>
-                <button
-                  onClick={() => setShowCustomize(false)}
-                  style={{
-                    background: "#3b82f6",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "6px 10px",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Done
-                </button>
+              <button
+                onClick={() => setShowCustomize(false)}
+                style={{
+                  background: "rgba(255,255,255,0.1)",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  color: "white",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 10 }}>
+              <button
+                onClick={() => setCustomizeTab("drawing")}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  background: customizeTab === "drawing" ? "#3b82f6" : "transparent",
+                  color: customizeTab === "drawing" ? "white" : "#94a3b8",
+                }}
+              >
+                Drawing
+              </button>
+              <button
+                onClick={() => setCustomizeTab("navigation")}
+                style={{
+                  flex: 1,
+                  padding: "10px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  background: customizeTab === "navigation" ? "#3b82f6" : "transparent",
+                  color: customizeTab === "navigation" ? "white" : "#94a3b8",
+                }}
+              >
+                Navigation
+              </button>
+            </div>
+
+            {/* Drawing Toolbar Options */}
+            {customizeTab === "drawing" && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <ToggleOption name="Copy/Paste" settingKey="copyPaste" settings={settings} onChange={updateSetting} />
+                <ToggleOption name="Undo/Redo" settingKey="undoRedo" settings={settings} onChange={updateSetting} />
+                <ToggleOption name="Colors" settingKey="colorPalette" settings={settings} onChange={updateSetting} />
+                <ToggleOption name="Pen Tools" settingKey="penTools" settings={settings} onChange={updateSetting} />
+                <ToggleOption name="Eraser" settingKey="eraser" settings={settings} onChange={updateSetting} />
+                <ToggleOption name="Shapes" settingKey="shapes" settings={settings} onChange={updateSetting} />
               </div>
-            </div>
+            )}
 
-            <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>
-              Choose where each tool should appear. Toggle off to hide from toolbar.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Copy/Paste */}
-              <ToolbarOption name="Copy/Paste" settings={settings} onChange={updateSetting} />
-
-              {/* Undo/Redo */}
-              <ToolbarOption name="Undo/Redo" settings={settings} onChange={updateSetting} />
-
-              {/* Color Palette */}
-              <ToolbarOption name="Color Palette" settings={settings} onChange={updateSetting} />
-
-              {/* Pen Tools */}
-              <ToolbarOption name="Pen Tools" settings={settings} onChange={updateSetting} />
-
-              {/* Eraser */}
-              <ToolbarOption name="Eraser" settings={settings} onChange={updateSetting} />
-
-              {/* Shapes */}
-              <ToolbarOption name="Shapes" settings={settings} onChange={updateSetting} />
-
-              {/* Hand Tool */}
-              <ToolbarOption name="Hand Tool" showNavPanelOption settings={settings} onChange={updateSetting} />
-
-              {/* Lock Page */}
-              <ToolbarOption name="Lock Page" showNavPanelOption settings={settings} onChange={updateSetting} />
-
-              {/* Add Page */}
-              <ToolbarOption name="Add Page" showNavPanelOption settings={settings} onChange={updateSetting} />
-
-              {/* Zoom In/Out */}
-              <ToolbarOption name="Zoom In/Out" showNavPanelOption settings={settings} onChange={updateSetting} />
-
-              {/* Fit to Screen */}
-              <ToolbarOption name="Fit to Screen" showNavPanelOption settings={settings} onChange={updateSetting} />
-            </div>
+            {/* Navigation Options - show in Drawing or Nav Panel */}
+            {customizeTab === "navigation" && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <NavOption name="Hand Tool" settingKey="handTool" settings={settings} onChange={updateSetting} />
+                <NavOption name="Lock Page" settingKey="lockPage" settings={settings} onChange={updateSetting} />
+                <NavOption name="Page Nav" settingKey="pageNav" settings={settings} onChange={updateSetting} />
+                <NavOption name="Add Page" settingKey="addPage" settings={settings} onChange={updateSetting} />
+                <NavOption name="Zoom" settingKey="zoomInOut" settings={settings} onChange={updateSetting} />
+                <NavOption name="Fit Screen" settingKey="fitToScreen" settings={settings} onChange={updateSetting} />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -799,12 +621,101 @@ function ToolButton({
   return (
     <button
       onClick={onClick}
-      className={`group flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${isActive ? "bg-blue-500 text-white shadow-md shadow-blue-200 dark:shadow-blue-900/40" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"}`}
+      className={`group relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200 ${isActive ? "bg-blue-500 text-white shadow-md" : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"}`}
       title={label}
     >
-      <Icon size={24} strokeWidth={1.5} />
-      <span className="text-[10px] font-medium mt-1 opacity-0 group-hover:opacity-100 transition-opacity absolute bg-gray-800 text-white px-2 py-1 rounded-md right-full mr-2 whitespace-nowrap pointer-events-none">
+      <Icon size={18} strokeWidth={1.5} />
+      <span className="text-[9px] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute bg-gray-800 text-white px-2 py-0.5 rounded-md right-full mr-2 whitespace-nowrap pointer-events-none z-[100]">
         {label}
+      </span>
+    </button>
+  );
+}
+
+function ToggleOption({
+  name,
+  settingKey,
+  settings,
+  onChange,
+}: {
+  name: string;
+  settingKey: keyof ToolbarSettings;
+  settings: ToolbarSettings;
+  onChange: (key: keyof ToolbarSettings, value: ToolbarLocation) => void;
+}) {
+  const isEnabled = settings[settingKey] !== "hidden";
+
+  return (
+    <button
+      onClick={() => onChange(settingKey, isEnabled ? "hidden" : "main")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 12px",
+        background: isEnabled ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.06)",
+        borderRadius: 8,
+        border: isEnabled ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
+        cursor: "pointer",
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 500, color: isEnabled ? "#60a5fa" : "#94a3b8" }}>{name}</span>
+      <div
+        style={{
+          width: 32,
+          height: 16,
+          borderRadius: 8,
+          background: isEnabled ? "#3b82f6" : "rgba(255,255,255,0.15)",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            width: 12,
+            height: 12,
+            borderRadius: 6,
+            background: "white",
+            position: "absolute",
+            top: 2,
+            left: isEnabled ? 18 : 2,
+          }}
+        />
+      </div>
+    </button>
+  );
+}
+
+function NavOption({
+  name,
+  settingKey,
+  settings,
+  onChange,
+}: {
+  name: string;
+  settingKey: keyof ToolbarSettings;
+  settings: ToolbarSettings;
+  onChange: (key: keyof ToolbarSettings, value: ToolbarLocation) => void;
+}) {
+  const location = settings[settingKey] || "main";
+  const isInNav = location === "nav";
+
+  return (
+    <button
+      onClick={() => onChange(settingKey, isInNav ? "main" : "nav")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "8px 12px",
+        background: isInNav ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.06)",
+        borderRadius: 8,
+        border: isInNav ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
+        cursor: "pointer",
+      }}
+    >
+      <span style={{ fontSize: 12, fontWeight: 500, color: isInNav ? "#60a5fa" : "#94a3b8" }}>{name}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: isInNav ? "#3b82f6" : "#64748b" }}>
+        {isInNav ? "Nav" : "Main"}
       </span>
     </button>
   );
@@ -848,57 +759,60 @@ function ToolbarOption({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "8px 12px",
-        background: "rgba(255,255,255,0.05)",
-        borderRadius: 8,
-        border: "1px solid rgba(255,255,255,0.1)",
+        padding: "10px 14px",
+        background: "rgba(255,255,255,0.08)",
+        borderRadius: 10,
+        border: currentLocation === "hidden" ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.12)",
       }}
     >
-      <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
-      <div style={{ display: "flex", gap: 6 }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color: "#e2e8f0" }}>{name}</span>
+      <div style={{ display: "flex", gap: 4 }}>
         <button
           onClick={() => handleLocationChange("main")}
           style={{
-            padding: "4px 10px",
+            padding: "6px 12px",
             borderRadius: 6,
             border: "none",
             fontSize: 11,
+            fontWeight: 600,
             cursor: "pointer",
             background: currentLocation === "main" ? "#3b82f6" : "rgba(255,255,255,0.1)",
-            color: "white",
+            color: currentLocation === "main" ? "white" : "#94a3b8",
           }}
         >
-          Toolbar
+          Main
         </button>
         {showNavPanelOption && (
           <button
             onClick={() => handleLocationChange("nav")}
             style={{
-              padding: "4px 10px",
+              padding: "6px 12px",
               borderRadius: 6,
               border: "none",
               fontSize: 11,
+              fontWeight: 600,
               cursor: "pointer",
               background: currentLocation === "nav" ? "#3b82f6" : "rgba(255,255,255,0.1)",
-              color: "white",
+              color: currentLocation === "nav" ? "white" : "#94a3b8",
             }}
           >
-            Nav Panel
+            Nav
           </button>
         )}
         <button
           onClick={() => handleLocationChange("hidden")}
           style={{
-            padding: "4px 10px",
+            padding: "6px 12px",
             borderRadius: 6,
             border: "none",
             fontSize: 11,
+            fontWeight: 600,
             cursor: "pointer",
             background: currentLocation === "hidden" ? "#ef4444" : "rgba(255,255,255,0.1)",
-            color: "white",
+            color: currentLocation === "hidden" ? "white" : "#94a3b8",
           }}
         >
-          Hide
+          Off
         </button>
       </div>
     </div>

@@ -187,12 +187,12 @@ export function Sidebar({
         <button
           data-sidebar
           onClick={() => onToggle(true)}
-          className="absolute left-3 top-3 z-[99999] p-1.5 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-lg hover:bg-white/90 dark:hover:bg-gray-800/90 transition-all"
+          className="absolute left-3 top-3 z-[99999] p-1.5 bg-gradient-to-r from-orange-400 to-pink-500 backdrop-blur-md rounded-lg hover:from-orange-300 hover:to-pink-400 transition-all shadow-lg shadow-orange-500/30"
           title="Expand Sidebar"
         >
           <ChevronRight
             size={16}
-            className="text-gray-600 dark:text-gray-400"
+            className="text-white drop-shadow-md"
           />
         </button>
       )}
@@ -201,8 +201,8 @@ export function Sidebar({
         data-sidebar
         className={`absolute top-0 left-0 bottom-0 z-[99998] transform transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : "-translate-x-96 opacity-0 pointer-events-none"}`}
       >
-        <div className="w-96 h-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-r border-gray-200/50 dark:border-gray-700/50 flex flex-col">
-          <div className="px-3 py-2.5 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
+        <div className="w-72 h-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg flex flex-col">
+          <div className="px-2 py-2 flex justify-between items-center">
             <h2 className="font-semibold text-sm text-gray-800 dark:text-gray-200">
               Pages
             </h2>

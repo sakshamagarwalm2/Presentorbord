@@ -7,12 +7,16 @@ import { ToolbarSettings } from "./ToolsSidebar";
 export function NavigationPanel({
   isVisible,
   position = "right",
+  navPosition,
+  onToggleNavPosition,
   toolbarSettings,
   onAddPage,
   isCompact,
 }: {
   isVisible: boolean;
   position?: "left" | "right";
+  navPosition?: "left" | "right";
+  onToggleNavPosition?: () => void;
   toolbarSettings?: ToolbarSettings;
   onAddPage?: () => void;
   isCompact?: boolean;
@@ -89,135 +93,229 @@ export function NavigationPanel({
 
   return (
     <div
-      className={`fixed bottom-0 ${position === "left" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 ${isCompact ? 'p-1' : 'p-1.5'} flex items-center ${isCompact ? 'gap-1' : 'gap-1.5'} z-[99999] animate-in slide-in-from-bottom-4 fade-in duration-300`}
+      className={`fixed bottom-0 ${position === "left" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 p-1 flex items-center gap-0.5 z-[99999] animate-in slide-in-from-bottom-4 fade-in duration-300`}
     >
-      {/* Page Controls */}
-      <div className={`flex items-center gap-1 border-r border-gray-200 dark:border-gray-700 ${isCompact ? 'pr-1' : 'pr-1.5'}`}>
-        <button
-          onClick={handlePrevPage}
-          disabled={currentPageIndex === 0}
-          className={btnClass}
-        >
-          <ChevronLeft size={iconSize} />
-        </button>
-
-        <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
-          {currentPageIndex + 1} / {totalPages}
-        </span>
-
-        <button
-          onClick={handleNextPage}
-          disabled={currentPageIndex >= totalPages - 1}
-          className={btnClass}
-        >
-          <ChevronRight size={iconSize} />
-        </button>
-      </div>
-
-      {/* Zoom Controls */}
-      {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
-        <div className="flex items-center gap-1 pl-1">
+      {position === "left" ? (
+        <>
+          {/* Left side: Purple, Lock, Minimize, Close */}
+          {onToggleNavPosition && (
+            <button
+              onClick={onToggleNavPosition}
+              className="w-4 h-4 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110"
+              title="Switch Toolbar Position"
+            />
+          )}
           <button
-            onClick={handleZoomOut}
-            className={btnClass}
-            title="Zoom Out (-5%)"
-          >
-            <ZoomOut size={iconSize} />
-          </button>
-
-          <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
-            {zoomLevel}%
-          </span>
-
-          <button
-            onClick={handleZoomIn}
-            className={btnClass}
-            title="Zoom In (+5%)"
-          >
-            <ZoomIn size={iconSize} />
-          </button>
-        </div>
-      )}
-      {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
-        <div className="w-px bg-gray-200 dark:bg-gray-700 mx-0.5 my-1 h-6" />
-      )}
-
-      {/* Fit to Screen */}
-      {(!toolbarSettings || toolbarSettings.fitToScreen === "nav") && (
-        <button
-          onClick={handleFitToScreen}
-          className={btnClass}
-          title="Fit to Screen"
-        >
-          <Maximize size={iconSize} />
-        </button>
-      )}
-
-
-      {/* Add Page Button */}
-      {toolbarSettings?.addPage === "nav" && onAddPage && (
-        <button
-          onClick={onAddPage}
-          className={btnClass}
-          title="Add Page"
-        >
-          <Plus size={iconSize} />
-        </button>
-      )}
-
-      {/* Separator */}
-      <div className="w-px bg-gray-200 dark:bg-gray-700 mx-0.5 my-1 h-6" />
-
-      {/* Hand Tool */}
-      {toolbarSettings?.handTool === "nav" && (
-        <button
-          onClick={() => {
-            editor.setCurrentTool("hand");
-            editor.updateInstanceState({ isToolLocked: true });
-          }}
-          className={btnClass}
-          title="Hand Tool"
-        >
-          <Hand size={iconSize} />
-        </button>
-      )}
-
-      {/* Lock Page Button */}
-      {toolbarSettings?.lockPage === "nav" && (
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
-          className={`${btnClass} ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : ''}`}
-          title={isCameraLocked ? "Unlock Page" : "Lock Page"}
-        >
-          {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
-        </button>
-      )}
-
-      {/* Minimize Button */}
-      <div className={`${isCompact ? 'w-8' : 'w-9'} flex items-center justify-center`}>
-        <button
-          onClick={() => {
-            // @ts-ignore
-            if (window.electron && window.electron.ipcRenderer) {
+            onClick={() => {
               // @ts-ignore
-              window.electron.ipcRenderer.invoke("minimize-app");
-            }
-          }}
-          className="w-3.5 h-3.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 flex-shrink-0"
-          title="Minimize App"
-        />
-      </div>
-
-      {/* Close/Exit Button */}
-      <div className={`${isCompact ? 'w-8' : 'w-9'} flex items-center justify-center`}>
-        <button
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent("request-close-app"));
-          }}
-          className="w-3.5 h-3.5 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 flex-shrink-0"
-          title="Close App"
-        />
-      </div>
+              if (window.electron && window.electron.ipcRenderer) {
+                // @ts-ignore
+                window.electron.ipcRenderer.invoke("minimize-app");
+              }
+            }}
+            className="w-4 h-4 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 ml-0.5"
+            title="Minimize App"
+          />
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("request-close-app"));
+            }}
+            className="w-4 h-4 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 ml-0.5"
+            title="Close App"
+          />
+          {toolbarSettings?.lockPage === "nav" && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+              className={`${btnClass} ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : ''}`}
+              title={isCameraLocked ? "Unlock Page" : "Lock Page"}
+            >
+              {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
+            </button>
+          )}
+          {toolbarSettings?.addPage === "nav" && onAddPage && (
+            <button
+              onClick={onAddPage}
+              className={btnClass}
+              title="Add Page"
+            >
+              <Plus size={iconSize} />
+            </button>
+          )}
+          {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={handleZoomOut}
+                className={btnClass}
+                title="Zoom Out (-5%)"
+              >
+                <ZoomOut size={iconSize} />
+              </button>
+              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
+                {zoomLevel}%
+              </span>
+              <button
+                onClick={handleZoomIn}
+                className={btnClass}
+                title="Zoom In (+5%)"
+              >
+                <ZoomIn size={iconSize} />
+              </button>
+            </div>
+          )}
+          {(!toolbarSettings || toolbarSettings.fitToScreen === "nav") && (
+            <button
+              onClick={handleFitToScreen}
+              className={btnClass}
+              title="Fit to Screen"
+            >
+              <Maximize size={iconSize} />
+            </button>
+          )}
+          {toolbarSettings?.handTool === "nav" && (
+            <button
+              onClick={() => {
+                editor.setCurrentTool("hand");
+                editor.updateInstanceState({ isToolLocked: true });
+              }}
+              className={btnClass}
+              title="Hand Tool"
+            >
+              <Hand size={iconSize} />
+            </button>
+          )}
+          {(!toolbarSettings || toolbarSettings.pageNav === "nav") && (
+            <div className={`flex items-center`}>
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPageIndex === 0}
+                className={btnClass}
+              >
+                <ChevronLeft size={iconSize} />
+              </button>
+              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                {currentPageIndex + 1} / {totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPageIndex >= totalPages - 1}
+                className={btnClass}
+              >
+                <ChevronRight size={iconSize} />
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Right side: PageNav, Zoom, AddPage, Hand, Lock, Minimize, Close, Purple */}
+          {(!toolbarSettings || toolbarSettings.pageNav === "nav") && (
+            <div className={`flex items-center border-r border-gray-200 dark:border-gray-700 pr-1`}>
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPageIndex === 0}
+                className={btnClass}
+              >
+                <ChevronLeft size={iconSize} />
+              </button>
+              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                {currentPageIndex + 1} / {totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPageIndex >= totalPages - 1}
+                className={btnClass}
+              >
+                <ChevronRight size={iconSize} />
+              </button>
+            </div>
+          )}
+          {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={handleZoomOut}
+                className={btnClass}
+                title="Zoom Out (-5%)"
+              >
+                <ZoomOut size={iconSize} />
+              </button>
+              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
+                {zoomLevel}%
+              </span>
+              <button
+                onClick={handleZoomIn}
+                className={btnClass}
+                title="Zoom In (+5%)"
+              >
+                <ZoomIn size={iconSize} />
+              </button>
+            </div>
+          )}
+          {(!toolbarSettings || toolbarSettings.fitToScreen === "nav") && (
+            <button
+              onClick={handleFitToScreen}
+              className={btnClass}
+              title="Fit to Screen"
+            >
+              <Maximize size={iconSize} />
+            </button>
+          )}
+          {toolbarSettings?.addPage === "nav" && onAddPage && (
+            <button
+              onClick={onAddPage}
+              className={btnClass}
+              title="Add Page"
+            >
+              <Plus size={iconSize} />
+            </button>
+          )}
+          {toolbarSettings?.handTool === "nav" && (
+            <button
+              onClick={() => {
+                editor.setCurrentTool("hand");
+                editor.updateInstanceState({ isToolLocked: true });
+              }}
+              className={btnClass}
+              title="Hand Tool"
+            >
+              <Hand size={iconSize} />
+            </button>
+          )}
+          {toolbarSettings?.lockPage === "nav" && (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+              className={`${btnClass} ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : ''}`}
+              title={isCameraLocked ? "Unlock Page" : "Lock Page"}
+            >
+              {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              // @ts-ignore
+              if (window.electron && window.electron.ipcRenderer) {
+                // @ts-ignore
+                window.electron.ipcRenderer.invoke("minimize-app");
+              }
+            }}
+            className="w-4 h-4 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 ml-0.5"
+            title="Minimize App"
+          />
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("request-close-app"));
+            }}
+            className="w-4 h-4 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 ml-0.5"
+            title="Close App"
+          />
+          {onToggleNavPosition && (
+            <button
+              onClick={onToggleNavPosition}
+              className="w-4 h-4 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 ml-0.5"
+              title="Switch Toolbar Position"
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -407,7 +407,7 @@ function EraserGroupButton({
 
       {/* Flyout */}
       {isOpen && (
-        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-2 flex flex-col gap-1 min-w-[180px] z-[99999]">
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1.5 flex flex-col gap-1 min-w-[180px] z-[99999]">
           {/* Mode selection */}
           <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-2 pt-1">
             Eraser Mode
@@ -1043,9 +1043,6 @@ function SelectGroupButton({
             )
           })}
 
-          {/* Divider */}
-          <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
-
           {/* Lock Page - only show if not moved to nav panel */}
           {(!toolbarSettings || toolbarSettings.lockPage !== "nav") && (
             <button
@@ -1383,7 +1380,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
 
         {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
         {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
-          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 ${isCompact ? 'p-0.5' : 'p-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200`}>
+          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 ${isCompact ? 'p-0.5' : 'p-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200`}>
             {recentColors.map(color => {
               const theme = COLOR_THEMES[color]
               const isActive = currentColor === color
@@ -1404,11 +1401,11 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           </div>
         )}
 
-        <div className={`flex items-center ${isCompact ? 'gap-1' : 'gap-1.5'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl ${isCompact ? 'p-1' : 'p-1.5'} border border-gray-200/50 dark:border-gray-700/50 border-b-0`}>
+        <div className={`flex items-center ${isCompact ? 'gap-0.5' : 'gap-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl p-1 border border-gray-200/50 dark:border-gray-700/50 border-b-0`}>
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
           {(!toolbarSettings || toolbarSettings.copyPaste === "main") && (
-          <div className={`flex items-center ${isCompact ? 'gap-0.5' : 'gap-1'} ${isCompact ? 'mr-0.5' : 'mr-1'} relative`} ref={dropdownRef}>
+          <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
             <button
               onClick={() => {
                 setShowCopyPasteDropdown(!showCopyPasteDropdown)
@@ -1523,9 +1520,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             >
               <Redo2 size={iconSize - 2} />
             </button>
-
-            {/* Divider */}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
@@ -1540,9 +1534,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 isCompact={isCompact}
               />
             </div>
-
-            {/* Divider */}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
@@ -1550,9 +1541,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           {(!toolbarSettings || toolbarSettings.penTools === "main") && (
           <>
             <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} />
-
-            {/* Divider */}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
@@ -1573,20 +1561,12 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
               activeTheme={activeColorTheme}
               isCompact={isCompact}
             />
-
-            {/* Divider */}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
           {(!toolbarSettings || toolbarSettings.shapes === "main") && (
-          <>
             <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} isCompact={isCompact} />
-
-            {/* Divider */}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
-          </>
           )}
 
           {/* More options */}

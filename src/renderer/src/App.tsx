@@ -26,12 +26,11 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { PageSelectionDialog } from "./components/PageSelectionDialog";
 import { AllSlidesGrid } from "./components/AllSlidesGrid";
 import { jsPDF } from "jspdf";
+import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { GraphAxes1ShapeUtil } from "./shapes/graph/GraphAxes1ShapeUtil";
 import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
-import { RulerShapeUtil } from "./shapes/ruler/RulerShapeUtil";
-import { ProtractorShapeUtil } from "./shapes/protractor/ProtractorShapeUtil";
-import { CompassShapeUtil } from "./shapes/compass/CompassShapeUtil";
+
 import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
 
 import { CustomLaserTool } from "./tools/CustomLaserTool";
@@ -47,9 +46,6 @@ import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 const customShapeUtils = [
   GraphAxes1ShapeUtil,
   GraphAxes4ShapeUtil,
-  RulerShapeUtil,
-  ProtractorShapeUtil,
-  CompassShapeUtil,
   CustomDrawShapeUtil,
   SuperPenShapeUtil,
 ];
@@ -204,6 +200,56 @@ function AppContent() {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, _setImportProgress] = useState("");
   const [importedFileBaseName, setImportedFileBaseName] = useState("");
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Poll zoom level and page info
+  useEffect(() => {
+    const updateInfo = () => {
+      setZoomLevel(Math.round(editor.getZoomLevel() * 100));
+      const pages = editor.getPages();
+      const currentPageId = editor.getCurrentPageId();
+      const index = pages.findIndex((p: any) => p.id === currentPageId);
+      setCurrentPageIndex(index !== -1 ? index : 0);
+      setTotalPages(pages.length);
+    };
+    updateInfo();
+    const interval = setInterval(updateInfo, 500);
+    return () => clearInterval(interval);
+  }, [editor]);
+
+  const handleZoomIn = () => {
+    const currentZoom = editor.getZoomLevel();
+    const newZoom = Math.min(currentZoom + 0.05, 8);
+    editor.setCamera({ ...editor.getCamera(), z: newZoom });
+  };
+
+  const handleZoomOut = () => {
+    const currentZoom = editor.getZoomLevel();
+    const newZoom = Math.max(currentZoom - 0.05, 0.1);
+    editor.setCamera({ ...editor.getCamera(), z: newZoom });
+  };
+
+  const handleFitToScreen = () => {
+    requestAnimationFrame(() => animateSlideToViewport(editor));
+  };
+
+  const handlePrevPage = () => {
+    const pages = editor.getPages();
+    if (currentPageIndex > 0) {
+      editor.run(() => editor.setCurrentPage(pages[currentPageIndex - 1].id), { history: 'ignore' });
+      requestAnimationFrame(() => animateSlideToViewport(editor));
+    }
+  };
+
+  const handleNextPage = () => {
+    const pages = editor.getPages();
+    if (currentPageIndex < pages.length - 1) {
+      editor.run(() => editor.setCurrentPage(pages[currentPageIndex + 1].id), { history: 'ignore' });
+      requestAnimationFrame(() => animateSlideToViewport(editor));
+    }
+  };
 
   // Set dark mode as default on first mount
   useEffect(() => {
@@ -459,33 +505,6 @@ function AppContent() {
       cleanup();
     };
   }, [editor]);
-
-  const addProtractor = () => {
-    editor.createShape({
-      id: createShapeId(),
-      type: "protractor",
-      x: editor.getViewportScreenCenter().x - 150,
-      y: editor.getViewportScreenCenter().y - 75,
-    });
-  };
-
-  const addRuler = () => {
-    editor.createShape({
-      id: createShapeId(),
-      type: "ruler",
-      x: editor.getViewportScreenCenter().x - 150,
-      y: editor.getViewportScreenCenter().y - 25,
-    });
-  };
-
-  const addCompass = () => {
-    editor.createShape({
-      id: createShapeId(),
-      type: "compass",
-      x: editor.getViewportScreenCenter().x - 75,
-      y: editor.getViewportScreenCenter().y - 25,
-    });
-  };
 
   const projectInputRef = useRef<HTMLInputElement>(null);
 
@@ -901,6 +920,7 @@ function AppContent() {
     handTool: "main",
     lockPage: "main",
     addPage: "main",
+    pageNav: "nav",
     zoomInOut: "nav",
     fitToScreen: "nav",
   };
@@ -1304,9 +1324,6 @@ function AppContent() {
         onToggleRecentColors={() => setShowRecentColors(!showRecentColors)}
         isOpen={rightSidebarOpen}
         onToggle={setRightSidebarOpen}
-        onAddRuler={addRuler}
-        onAddProtractor={addProtractor}
-        onAddCompass={addCompass}
         toolbarSettings={toolbarSettings}
         onToolbarSettingsChange={handleToolbarSettingsChange}
       />
@@ -1321,23 +1338,160 @@ function AppContent() {
       <NavigationPanel 
         isVisible={showNavPanel} 
         position={navPosition}
+        onToggleNavPosition={() => setNavPosition(navPosition === "right" ? "left" : "right")}
         toolbarSettings={toolbarSettings}
         onAddPage={addPage}
         isCompact={width < 1100}
       />
       {showNavPanel && (
         <div
-          className={`fixed bottom-0 ${navPosition === "right" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 ${width < 1100 ? 'p-1' : 'p-1.5'} z-[99999] flex items-center justify-center animate-in slide-in-from-bottom-4 fade-in duration-300`}
+          className={`fixed bottom-0 ${navPosition === "right" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 ${width < 1100 ? 'p-1' : 'p-1.5'} z-[99999] flex items-center gap-0.5 animate-in slide-in-from-bottom-4 fade-in duration-300`}
         >
-          <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
-            <button
-              onClick={() =>
-                setNavPosition(navPosition === "right" ? "left" : "right")
-              }
-              className="w-3.5 h-3.5 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 flex-shrink-0 cursor-pointer shadow-sm"
-              title="Switch Toolbar Position"
-            />
-          </div>
+          {navPosition === "left" ? (
+            <>
+              {/* Left side: PageNav, Plus, Zoom, Purple */}
+              {(toolbarSettings?.pageNav !== "nav") && (
+                <div className="flex items-center border-r border-gray-200 dark:border-gray-700 pr-1">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPageIndex === 0}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronLeft size={width < 1100 ? 16 : 18} />
+                  </button>
+                  <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                    {currentPageIndex + 1} / {totalPages}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPageIndex >= totalPages - 1}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronRight size={width < 1100 ? 16 : 18} />
+                  </button>
+                </div>
+              )}
+              {(toolbarSettings?.addPage !== "nav") && addPage && (
+                <button
+                  onClick={addPage}
+                  className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                  title="Add Page"
+                >
+                  <Plus size={width < 1100 ? 16 : 18} />
+                </button>
+              )}
+              {(toolbarSettings?.zoomInOut !== "nav") && (
+                <div className="flex items-center">
+                  <button
+                    onClick={handleZoomOut}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                    title="Zoom Out (-5%)"
+                  >
+                    <ZoomOut size={width < 1100 ? 16 : 18} />
+                  </button>
+                  <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
+                    {zoomLevel}%
+                  </span>
+                  <button
+                    onClick={handleZoomIn}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                    title="Zoom In (+5%)"
+                  >
+                    <ZoomIn size={width < 1100 ? 16 : 18} />
+                  </button>
+                  {(toolbarSettings?.fitToScreen !== "nav") && (
+                    <button
+                      onClick={handleFitToScreen}
+                      className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                      title="Fit to Screen"
+                    >
+                      <Maximize size={width < 1100 ? 16 : 18} />
+                    </button>
+                  )}
+                </div>
+              )}
+              <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
+                <button
+                  onClick={() => setNavPosition("right")}
+                  className="w-3.5 h-3.5 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 flex-shrink-0 cursor-pointer shadow-sm"
+                  title="Switch Toolbar Position"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Right side: Purple, Zoom, Plus, PageNav */}
+              <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
+                <button
+                  onClick={() => setNavPosition("left")}
+                  className="w-3.5 h-3.5 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 flex-shrink-0 cursor-pointer shadow-sm"
+                  title="Switch Toolbar Position"
+                />
+              </div>
+              {(toolbarSettings?.zoomInOut !== "nav") && (
+                <>
+                  <div className="flex items-center border-r border-gray-200 dark:border-gray-700 pr-1">
+                    <button
+                      onClick={handleZoomOut}
+                      className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                      title="Zoom Out (-5%)"
+                    >
+                      <ZoomOut size={width < 1100 ? 16 : 18} />
+                    </button>
+                    <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
+                      {zoomLevel}%
+                    </span>
+                    <button
+                      onClick={handleZoomIn}
+                      className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                      title="Zoom In (+5%)"
+                    >
+                      <ZoomIn size={width < 1100 ? 16 : 18} />
+                    </button>
+                    {(toolbarSettings?.fitToScreen !== "nav") && (
+                      <button
+                        onClick={handleFitToScreen}
+                        className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                        title="Fit to Screen"
+                      >
+                        <Maximize size={width < 1100 ? 16 : 18} />
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+              {(toolbarSettings?.addPage !== "nav") && addPage && (
+                <button
+                  onClick={addPage}
+                  className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
+                  title="Add Page"
+                >
+                  <Plus size={width < 1100 ? 16 : 18} />
+                </button>
+              )}
+              {(toolbarSettings?.pageNav !== "nav") && (
+                <div className="flex items-center border-l border-gray-200 dark:border-gray-700 pl-1">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPageIndex === 0}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronLeft size={width < 1100 ? 16 : 18} />
+                  </button>
+                  <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                    {currentPageIndex + 1} / {totalPages}
+                  </span>
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPageIndex >= totalPages - 1}
+                    className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed`}
+                  >
+                    <ChevronRight size={width < 1100 ? 16 : 18} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
       <input
