@@ -630,7 +630,6 @@ function AppContent() {
             type: "image",
             x: viewportCenter.x - displayW / 2,
             y: viewportCenter.y - displayH / 2,
-            isLocked: true,
             props: {
               assetId,
               w: displayW,
