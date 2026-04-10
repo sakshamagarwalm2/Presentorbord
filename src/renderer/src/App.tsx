@@ -1350,7 +1350,7 @@ function AppContent() {
           {navPosition === "left" ? (
             <>
               {/* Left side: PageNav, Plus, Zoom, Purple */}
-              {(toolbarSettings?.pageNav !== "nav") && (
+              {(toolbarSettings?.pageNav === "main") && (
                 <div className="flex items-center border-r border-gray-200 dark:border-gray-700 pr-1">
                   <button
                     onClick={handlePrevPage}
@@ -1371,7 +1371,7 @@ function AppContent() {
                   </button>
                 </div>
               )}
-              {(toolbarSettings?.addPage !== "nav") && addPage && (
+              {(toolbarSettings?.addPage === "main") && addPage && (
                 <button
                   onClick={addPage}
                   className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
@@ -1380,7 +1380,7 @@ function AppContent() {
                   <Plus size={width < 1100 ? 16 : 18} />
                 </button>
               )}
-              {(toolbarSettings?.zoomInOut !== "nav") && (
+              {(toolbarSettings?.zoomInOut === "main") && (
                 <div className="flex items-center">
                   <button
                     onClick={handleZoomOut}
@@ -1399,7 +1399,7 @@ function AppContent() {
                   >
                     <ZoomIn size={width < 1100 ? 16 : 18} />
                   </button>
-                  {(toolbarSettings?.fitToScreen !== "nav") && (
+                  {(toolbarSettings?.fitToScreen === "main") && (
                     <button
                       onClick={handleFitToScreen}
                       className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
@@ -1428,7 +1428,7 @@ function AppContent() {
                   title="Switch Toolbar Position"
                 />
               </div>
-              {(toolbarSettings?.zoomInOut !== "nav") && (
+              {(toolbarSettings?.zoomInOut === "main") && (
                 <>
                   <div className="flex items-center border-r border-gray-200 dark:border-gray-700 pr-1">
                     <button
@@ -1448,7 +1448,7 @@ function AppContent() {
                     >
                       <ZoomIn size={width < 1100 ? 16 : 18} />
                     </button>
-                    {(toolbarSettings?.fitToScreen !== "nav") && (
+                    {(toolbarSettings?.fitToScreen === "main") && (
                       <button
                         onClick={handleFitToScreen}
                         className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
@@ -1460,7 +1460,7 @@ function AppContent() {
                   </div>
                 </>
               )}
-              {(toolbarSettings?.addPage !== "nav") && addPage && (
+              {(toolbarSettings?.addPage === "main") && addPage && (
                 <button
                   onClick={addPage}
                   className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400`}
@@ -1469,7 +1469,7 @@ function AppContent() {
                   <Plus size={width < 1100 ? 16 : 18} />
                 </button>
               )}
-              {(toolbarSettings?.pageNav !== "nav") && (
+              {(toolbarSettings?.pageNav === "main") && (
                 <div className="flex items-center border-l border-gray-200 dark:border-gray-700 pl-1">
                   <button
                     onClick={handlePrevPage}

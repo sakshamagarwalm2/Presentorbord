@@ -504,37 +504,38 @@ return (
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(8px)",
+            background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(12px)",
           }}
         >
           <div
             style={{
-              background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-              borderRadius: 20,
+              background: "linear-gradient(145deg, rgba(20,30,48,0.95) 0%, rgba(36,59,85,0.95) 50%, rgba(15,23,42,0.98) 100%)",
+              borderRadius: 24,
               padding: 24,
               width: "90%",
-              maxWidth: 420,
+              maxWidth: 440,
               color: "white",
-              boxShadow: "0 25px 80px rgba(0,0,0,0.5)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              boxShadow: "0 0 60px rgba(139,92,246,0.3), 0 0 100px rgba(59,130,246,0.2), 0 25px 80px rgba(0,0,0,0.5)",
+              border: "1px solid rgba(139,92,246,0.4)",
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, textShadow: '0 0 20px rgba(139,92,246,0.5)' }}>
                 Customize
               </h2>
               <button
                 onClick={() => setShowCustomize(false)}
                 style={{
-                  background: "rgba(255,255,255,0.1)",
+                  background: "linear-gradient(135deg, rgba(239,68,68,0.8) 0%, rgba(220,38,38,0.9) 100%)",
                   border: "none",
-                  borderRadius: 8,
-                  padding: "8px 14px",
+                  borderRadius: 10,
+                  padding: "10px 16px",
                   color: "white",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: 600,
+                  boxShadow: "0 4px 15px rgba(239,68,68,0.4)",
                 }}
               >
                 Close
@@ -542,19 +543,21 @@ return (
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 10 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(0,0,0,0.3)', padding: 6, borderRadius: 14, border: '1px solid rgba(139,92,246,0.2)' }}>
               <button
                 onClick={() => setCustomizeTab("drawing")}
                 style={{
                   flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 8,
+                  padding: "12px 16px",
+                  borderRadius: 10,
                   border: "none",
                   fontSize: 13,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: "pointer",
-                  background: customizeTab === "drawing" ? "#3b82f6" : "transparent",
-                  color: customizeTab === "drawing" ? "white" : "#94a3b8",
+                  background: customizeTab === "drawing" ? "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)" : "transparent",
+                  color: customizeTab === "drawing" ? "white" : "rgba(255,255,255,0.5)",
+                  boxShadow: customizeTab === "drawing" ? "0 0 20px rgba(139,92,246,0.5)" : "none",
+                  textShadow: customizeTab === "drawing" ? "0 0 10px rgba(255,255,255,0.3)" : "none",
                 }}
               >
                 Drawing
@@ -563,14 +566,16 @@ return (
                 onClick={() => setCustomizeTab("navigation")}
                 style={{
                   flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 8,
+                  padding: "12px 16px",
+                  borderRadius: 10,
                   border: "none",
                   fontSize: 13,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: "pointer",
-                  background: customizeTab === "navigation" ? "#3b82f6" : "transparent",
-                  color: customizeTab === "navigation" ? "white" : "#94a3b8",
+                  background: customizeTab === "navigation" ? "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)" : "transparent",
+                  color: customizeTab === "navigation" ? "white" : "rgba(255,255,255,0.5)",
+                  boxShadow: customizeTab === "navigation" ? "0 0 20px rgba(139,92,246,0.5)" : "none",
+                  textShadow: customizeTab === "navigation" ? "0 0 10px rgba(255,255,255,0.3)" : "none",
                 }}
               >
                 Navigation
@@ -592,12 +597,12 @@ return (
             {/* Navigation Options - show in Drawing or Nav Panel */}
             {customizeTab === "navigation" && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <NavOption name="Hand Tool" settingKey="handTool" settings={settings} onChange={updateSetting} />
-                <NavOption name="Lock Page" settingKey="lockPage" settings={settings} onChange={updateSetting} />
-                <NavOption name="Page Nav" settingKey="pageNav" settings={settings} onChange={updateSetting} />
-                <NavOption name="Add Page" settingKey="addPage" settings={settings} onChange={updateSetting} />
-                <NavOption name="Zoom" settingKey="zoomInOut" settings={settings} onChange={updateSetting} />
-                <NavOption name="Fit Screen" settingKey="fitToScreen" settings={settings} onChange={updateSetting} />
+                <NavOption name="Hand Tool" settingKey="handTool" settings={settings} onChange={updateSetting} color="#f472b6" />
+                <NavOption name="Lock Page" settingKey="lockPage" settings={settings} onChange={updateSetting} color="#fb923c" />
+                <NavOption name="Page Nav" settingKey="pageNav" settings={settings} onChange={updateSetting} color="#a78bfa" />
+                <NavOption name="Add Page" settingKey="addPage" settings={settings} onChange={updateSetting} color="#34d399" />
+                <NavOption name="Zoom" settingKey="zoomInOut" settings={settings} onChange={updateSetting} color="#38bdf8" />
+                <NavOption name="Fit Screen" settingKey="fitToScreen" settings={settings} onChange={updateSetting} color="#fbbf24" />
               </div>
             )}
           </div>
@@ -643,44 +648,63 @@ function ToggleOption({
   settings: ToolbarSettings;
   onChange: (key: keyof ToolbarSettings, value: ToolbarLocation) => void;
 }) {
-  const isEnabled = settings[settingKey] !== "hidden";
+  const location = settings[settingKey] || "main";
+  const isMain = location === "main";
+  const isHidden = location === "hidden";
+
+  const cycleLocation = () => {
+    if (location === "main") {
+      onChange(settingKey, "hidden");
+    } else if (location === "hidden") {
+      onChange(settingKey, "main");
+    } else {
+      onChange(settingKey, "main");
+    }
+  };
+
+  const getStatusText = () => {
+    if (location === "hidden") return "Hide";
+    if (location === "nav") return "Nav";
+    return "Main";
+  };
+
+  const mainColor = "#8b5cf6"; // Purple for Main
+  const hiddenColor = "#f87171"; // Red for Hide
+
+  const currentColor = isHidden ? hiddenColor : mainColor;
 
   return (
     <button
-      onClick={() => onChange(settingKey, isEnabled ? "hidden" : "main")}
+      onClick={cycleLocation}
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "8px 12px",
-        background: isEnabled ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.06)",
-        borderRadius: 8,
-        border: isEnabled ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
+        padding: "10px 14px",
+        background: isHidden 
+          ? "linear-gradient(135deg, rgba(248,113,113,0.2) 0%, rgba(239,68,68,0.15) 100%)"
+          : "linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(99,102,241,0.2) 100%)",
+        borderRadius: 12,
+        border: isHidden 
+          ? "1px solid rgba(248,113,113,0.5)" 
+          : "1px solid rgba(139,92,246,0.5)",
         cursor: "pointer",
+        boxShadow: isHidden 
+          ? "0 0 15px rgba(248,113,113,0.2)" 
+          : "0 0 15px rgba(139,92,246,0.2)",
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 500, color: isEnabled ? "#60a5fa" : "#94a3b8" }}>{name}</span>
-      <div
-        style={{
-          width: 32,
-          height: 16,
-          borderRadius: 8,
-          background: isEnabled ? "#3b82f6" : "rgba(255,255,255,0.15)",
-          position: "relative",
-        }}
-      >
-        <div
-          style={{
-            width: 12,
-            height: 12,
-            borderRadius: 6,
-            background: "white",
-            position: "absolute",
-            top: 2,
-            left: isEnabled ? 18 : 2,
-          }}
-        />
-      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color: isHidden ? "#fca5a5" : "#c4b5fd", textShadow: `0 0 10px ${currentColor}50` }}>{name}</span>
+      <span style={{ 
+        fontSize: 11, 
+        fontWeight: 700, 
+        color: currentColor,
+        background: `${currentColor}30`,
+        padding: "4px 10px",
+        borderRadius: 8,
+      }}>
+        {getStatusText()}
+      </span>
     </button>
   );
 }
@@ -690,32 +714,83 @@ function NavOption({
   settingKey,
   settings,
   onChange,
+  color = "#8b5cf6",
 }: {
   name: string;
   settingKey: keyof ToolbarSettings;
   settings: ToolbarSettings;
   onChange: (key: keyof ToolbarSettings, value: ToolbarLocation) => void;
+  color?: string;
 }) {
   const location = settings[settingKey] || "main";
   const isInNav = location === "nav";
+  const isHidden = location === "hidden";
+
+  const cycleLocation = () => {
+    if (location === "main") {
+      onChange(settingKey, "nav");
+    } else if (location === "nav") {
+      onChange(settingKey, "hidden");
+    } else {
+      onChange(settingKey, "main");
+    }
+  };
+
+  const getStatusText = () => {
+    if (location === "hidden") return "Hide";
+    if (location === "nav") return "Nav";
+    return "Main";
+  };
+
+  const mainColor = "#8b5cf6"; // Purple for Main
+  const hiddenColor = "#f87171"; // Red for Hide
+  
+  // Use passed color for Nav, mainColor for Main, hiddenColor for Hide
+  const currentColor = isHidden ? hiddenColor : (isInNav ? color : mainColor);
+
+  const getBackground = () => {
+    if (isHidden) return "linear-gradient(135deg, rgba(248,113,113,0.2) 0%, rgba(239,68,68,0.15) 100%)";
+    if (isInNav) return `linear-gradient(135deg, ${color}40 0%, ${color}30 100%)`;
+    return "linear-gradient(135deg, rgba(139,92,246,0.25) 0%, rgba(99,102,241,0.2) 100%)";
+  };
+
+  const getBorder = () => {
+    if (isHidden) return "1px solid rgba(248,113,113,0.5)";
+    if (isInNav) return `1px solid ${color}80`;
+    return "1px solid rgba(139,92,246,0.5)";
+  };
+
+  const getBoxShadow = () => {
+    if (isHidden) return "0 0 15px rgba(248,113,113,0.2)";
+    if (isInNav) return `0 0 15px ${color}30`;
+    return "0 0 15px rgba(139,92,246,0.2)";
+  };
 
   return (
     <button
-      onClick={() => onChange(settingKey, isInNav ? "main" : "nav")}
+      onClick={cycleLocation}
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "8px 12px",
-        background: isInNav ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.06)",
-        borderRadius: 8,
-        border: isInNav ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
+        padding: "10px 14px",
+        background: getBackground(),
+        borderRadius: 12,
+        border: getBorder(),
         cursor: "pointer",
+        boxShadow: getBoxShadow(),
       }}
     >
-      <span style={{ fontSize: 12, fontWeight: 500, color: isInNav ? "#60a5fa" : "#94a3b8" }}>{name}</span>
-      <span style={{ fontSize: 11, fontWeight: 600, color: isInNav ? "#3b82f6" : "#64748b" }}>
-        {isInNav ? "Nav" : "Main"}
+      <span style={{ fontSize: 12, fontWeight: 600, color: isHidden ? "#fca5a5" : isInNav ? color : "#c4b5fd", textShadow: `0 0 10px ${currentColor}50` }}>{name}</span>
+      <span style={{ 
+        fontSize: 11, 
+        fontWeight: 700, 
+        color: currentColor,
+        background: `${currentColor}30`,
+        padding: "4px 10px",
+        borderRadius: 8,
+      }}>
+        {getStatusText()}
       </span>
     </button>
   );
