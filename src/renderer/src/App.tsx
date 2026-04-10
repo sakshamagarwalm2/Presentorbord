@@ -181,8 +181,23 @@ const overrides: TLUiOverrides = {
   },
 };
 
+function useWindowSize() {
+  const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return size;
+}
+
 function AppContent() {
   const editor = useEditor();
+  const { width } = useWindowSize();
   useGeometrySnapping(editor);
   const { mode } = useSubjectMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1300,18 +1315,21 @@ function AppContent() {
         onImageClick={handleImportClick} 
         onAddPage={addPage}
         toolbarSettings={toolbarSettings}
+        isCompact={width < 1100}
+        style={width < 1100 && showNavPanel ? { transform: `translateX(${navPosition === 'right' ? '-80px' : 'calc(-50% + 80px)'})` } : undefined}
       />
       <NavigationPanel 
         isVisible={showNavPanel} 
         position={navPosition}
         toolbarSettings={toolbarSettings}
         onAddPage={addPage}
+        isCompact={width < 1100}
       />
       {showNavPanel && (
         <div
-          className={`fixed bottom-0 ${navPosition === "right" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 p-2 z-[99999] flex items-center justify-center animate-in slide-in-from-bottom-4 fade-in duration-300`}
+          className={`fixed bottom-0 ${navPosition === "right" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 ${width < 1100 ? 'p-1' : 'p-1.5'} z-[99999] flex items-center justify-center animate-in slide-in-from-bottom-4 fade-in duration-300`}
         >
-          <div className="flex items-center justify-center h-9 px-1">
+          <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
             <button
               onClick={() =>
                 setNavPosition(navPosition === "right" ? "left" : "right")

@@ -9,11 +9,13 @@ export function NavigationPanel({
   position = "right",
   toolbarSettings,
   onAddPage,
+  isCompact,
 }: {
   isVisible: boolean;
   position?: "left" | "right";
   toolbarSettings?: ToolbarSettings;
   onAddPage?: () => void;
+  isCompact?: boolean;
 }) {
   const editor = useEditor();
 
@@ -82,30 +84,33 @@ export function NavigationPanel({
     }
   };
 
+  const btnClass = `${isCompact ? "w-8 h-8" : "w-9 h-9"} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed`;
+  const iconSize = isCompact ? 16 : 18;
+
   return (
     <div
-      className={`fixed bottom-0 ${position === "left" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 p-2 flex gap-2 z-[99999] animate-in slide-in-from-bottom-4 fade-in duration-300`}
+      className={`fixed bottom-0 ${position === "left" ? "left-0 border-l-0 rounded-tr-2xl" : "right-0 border-r-0 rounded-tl-2xl"} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 border-b-0 ${isCompact ? 'p-1' : 'p-1.5'} flex items-center ${isCompact ? 'gap-1' : 'gap-1.5'} z-[99999] animate-in slide-in-from-bottom-4 fade-in duration-300`}
     >
       {/* Page Controls */}
-      <div className="flex items-center gap-1 border-r border-gray-200 dark:border-gray-700 pr-2">
+      <div className={`flex items-center gap-1 border-r border-gray-200 dark:border-gray-700 ${isCompact ? 'pr-1' : 'pr-1.5'}`}>
         <button
           onClick={handlePrevPage}
           disabled={currentPageIndex === 0}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className={btnClass}
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={iconSize} />
         </button>
 
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center">
+        <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
           {currentPageIndex + 1} / {totalPages}
         </span>
 
         <button
           onClick={handleNextPage}
-          disabled={currentPageIndex >= totalPages - 1} // Safety check
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          disabled={currentPageIndex >= totalPages - 1}
+          className={btnClass}
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={iconSize} />
         </button>
       </div>
 
@@ -114,37 +119,37 @@ export function NavigationPanel({
         <div className="flex items-center gap-1 pl-1">
           <button
             onClick={handleZoomOut}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+            className={btnClass}
             title="Zoom Out (-5%)"
           >
-            <ZoomOut size={20} />
+            <ZoomOut size={iconSize} />
           </button>
 
-          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums">
+          <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center tabular-nums`}>
             {zoomLevel}%
           </span>
 
           <button
             onClick={handleZoomIn}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+            className={btnClass}
             title="Zoom In (+5%)"
           >
-            <ZoomIn size={20} />
+            <ZoomIn size={iconSize} />
           </button>
         </div>
       )}
       {(!toolbarSettings || toolbarSettings.zoomInOut === "nav") && (
-        <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
+        <div className="w-px bg-gray-200 dark:bg-gray-700 mx-0.5 my-1 h-6" />
       )}
 
       {/* Fit to Screen */}
       {(!toolbarSettings || toolbarSettings.fitToScreen === "nav") && (
         <button
           onClick={handleFitToScreen}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          className={btnClass}
           title="Fit to Screen"
         >
-          <Maximize size={20} />
+          <Maximize size={iconSize} />
         </button>
       )}
 
@@ -153,15 +158,15 @@ export function NavigationPanel({
       {toolbarSettings?.addPage === "nav" && onAddPage && (
         <button
           onClick={onAddPage}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          className={btnClass}
           title="Add Page"
         >
-          <Plus size={20} />
+          <Plus size={iconSize} />
         </button>
       )}
 
       {/* Separator */}
-      <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1 my-1" />
+      <div className="w-px bg-gray-200 dark:bg-gray-700 mx-0.5 my-1 h-6" />
 
       {/* Hand Tool */}
       {toolbarSettings?.handTool === "nav" && (
@@ -170,10 +175,10 @@ export function NavigationPanel({
             editor.setCurrentTool("hand");
             editor.updateInstanceState({ isToolLocked: true });
           }}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+          className={btnClass}
           title="Hand Tool"
         >
-          <Hand size={20} />
+          <Hand size={iconSize} />
         </button>
       )}
 
@@ -181,34 +186,38 @@ export function NavigationPanel({
       {toolbarSettings?.lockPage === "nav" && (
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
-          className={`p-2 rounded-xl transition-colors ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+          className={`${btnClass} ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : ''}`}
           title={isCameraLocked ? "Unlock Page" : "Lock Page"}
         >
-          {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
+          {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
         </button>
       )}
 
       {/* Minimize Button */}
-      <button
-        onClick={() => {
-          // @ts-ignore
-          if (window.electron && window.electron.ipcRenderer) {
+      <div className={`${isCompact ? 'w-8' : 'w-9'} flex items-center justify-center`}>
+        <button
+          onClick={() => {
             // @ts-ignore
-            window.electron.ipcRenderer.invoke("minimize-app");
-          }
-        }}
-        className="w-3.5 h-3.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 flex-shrink-0 self-center"
-        title="Minimize App"
-      />
+            if (window.electron && window.electron.ipcRenderer) {
+              // @ts-ignore
+              window.electron.ipcRenderer.invoke("minimize-app");
+            }
+          }}
+          className="w-3.5 h-3.5 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-all hover:scale-110 flex-shrink-0"
+          title="Minimize App"
+        />
+      </div>
 
       {/* Close/Exit Button */}
-      <button
-        onClick={() => {
-          window.dispatchEvent(new CustomEvent("request-close-app"));
-        }}
-        className="w-3.5 h-3.5 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 flex-shrink-0 self-center"
-        title="Close App"
-      />
+      <div className={`${isCompact ? 'w-8' : 'w-9'} flex items-center justify-center`}>
+        <button
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("request-close-app"));
+          }}
+          className="w-3.5 h-3.5 bg-red-500 hover:bg-red-600 rounded-full transition-all hover:scale-110 flex-shrink-0"
+          title="Close App"
+        />
+      </div>
     </div>
   );
 }

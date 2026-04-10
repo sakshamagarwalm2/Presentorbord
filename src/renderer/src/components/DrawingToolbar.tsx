@@ -154,11 +154,13 @@ function PenGroupButton({
   onSelect,
   activeTheme,
   editor,
+  isCompact,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   activeTheme?: ColorTheme
   editor: any
+  isCompact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(PEN_GROUP[0])
@@ -232,6 +234,10 @@ function PenGroupButton({
     setIsOpen(false)
   }
 
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
+  const iconSize = isCompact ? 16 : 18
+
   return (
     <div className="relative" ref={flyoutRef}>
       {/* Main button */}
@@ -240,7 +246,7 @@ function PenGroupButton({
           onClick={() => handleSelect(selectedTool)}
           className={`
             relative flex items-center justify-center
-            w-10 h-10 rounded-l-xl transition-all duration-150
+            ${btnSizeClass} rounded-l-xl transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -248,13 +254,13 @@ function PenGroupButton({
           `}
           title={selectedTool.label}
         >
-          <Icon size={20} />
+          <Icon size={iconSize} />
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`
             flex items-center justify-center
-            w-5 h-10 rounded-r-xl border-l transition-all duration-150
+            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
@@ -322,6 +328,7 @@ function EraserGroupButton({
   onSelectSize,
   onClearPage,
   activeTheme,
+  isCompact,
 }: {
   activeTool: string
   eraserMode: 'shape' | 'precision' | 'area'
@@ -331,6 +338,7 @@ function EraserGroupButton({
   onSelectSize: (size: number) => void
   onClearPage: () => void
   activeTheme?: ColorTheme
+  isCompact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
@@ -359,6 +367,10 @@ function EraserGroupButton({
   }
   const ActiveIcon = getActiveIcon()
 
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
+  const iconSize = isCompact ? 16 : 18
+
   return (
     <div className="relative" ref={flyoutRef}>
       {/* Split button */}
@@ -367,7 +379,7 @@ function EraserGroupButton({
           onClick={onSelectTool}
           className={`
             relative flex items-center justify-center
-            w-10 h-10 rounded-l-xl transition-all duration-150
+            ${btnSizeClass} rounded-l-xl transition-all duration-150
             ${isActive
               ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -375,13 +387,13 @@ function EraserGroupButton({
           `}
           title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
         >
-          <ActiveIcon size={20} />
+          <ActiveIcon size={iconSize} />
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`
             flex items-center justify-center
-            w-5 h-10 rounded-r-xl border-l transition-all duration-150
+            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
             ${isActive
               ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
@@ -507,10 +519,12 @@ function ShapeGroupButton({
   activeTool,
   editor,
   activeTheme,
+  isCompact,
 }: {
   activeTool: string
   editor: ReturnType<typeof useEditor>
   activeTheme?: ColorTheme
+  isCompact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[0])
@@ -562,6 +576,10 @@ function ShapeGroupButton({
     // DO NOT LOCK for shapes/geo - let it auto-switch back to select
   }
 
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
+  const iconSize = isCompact ? 16 : 18
+
   return (
     <div className="relative" ref={flyoutRef}>
       {/* Split button */}
@@ -570,7 +588,7 @@ function ShapeGroupButton({
           onClick={handleMainClick}
           className={`
             relative flex items-center justify-center
-            w-10 h-10 rounded-l-xl transition-all duration-150
+            ${btnSizeClass} rounded-l-xl transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -578,13 +596,13 @@ function ShapeGroupButton({
           `}
           title={selectedShape.label}
         >
-          <Icon size={20} />
+          <Icon size={iconSize} />
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`
             flex items-center justify-center
-            w-5 h-10 rounded-r-xl border-l transition-all duration-150
+            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
@@ -685,12 +703,14 @@ function MoreOptionsButton({
   onAction,
   activeTheme,
   onImageClick,
+  isCompact,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   onAction: (action: string) => void
   activeTheme?: ColorTheme
   onImageClick?: () => void
+  isCompact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
@@ -708,6 +728,8 @@ function MoreOptionsButton({
   }, [])
 
   const isGroupActive = MORE_TOOLS.some((t) => t.id === activeTool)
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const iconSize = isCompact ? 16 : 18
 
   return (
     <div className="relative" ref={flyoutRef}>
@@ -715,7 +737,7 @@ function MoreOptionsButton({
         onClick={() => setIsOpen(!isOpen)}
         className={`
           relative flex items-center justify-center
-          w-10 h-10 rounded-xl transition-all duration-150
+          ${btnSizeClass} rounded-xl transition-all duration-150
           ${isGroupActive
             ? `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -723,7 +745,7 @@ function MoreOptionsButton({
         `}
         title="More tools"
       >
-        <ChevronUp size={20} />
+        <ChevronUp size={iconSize} />
       </button>
 
       {isOpen && (
@@ -802,18 +824,23 @@ function PaletteButton({
   isVisible,
   onToggle,
   activeTheme,
+  isCompact,
 }: {
   isVisible: boolean
   onToggle: () => void
   activeTheme?: ColorTheme
+  isCompact?: boolean
 }) {
   const theme = activeTheme || COLOR_THEMES['blue']
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const iconSize = isCompact ? 16 : 18
+
   return (
     <button
       onClick={onToggle}
       className={`
         relative flex flex-col items-center justify-center
-        w-10 h-10 rounded-xl transition-all duration-150
+        ${btnSizeClass} rounded-xl transition-all duration-150
         ${isVisible
           ? `${theme.bg} shadow-md ${theme.shadow}`
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -821,7 +848,7 @@ function PaletteButton({
       `}
       title={isVisible ? 'Hide Styles' : 'Show Styles'}
     >
-      <Palette size={20} />
+      <Palette size={iconSize} />
     </button>
   )
 }
@@ -902,6 +929,7 @@ function SelectGroupButton({
   isCameraLocked,
   onToggleLock,
   toolbarSettings,
+  isCompact,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
@@ -909,6 +937,7 @@ function SelectGroupButton({
   isCameraLocked: boolean
   onToggleLock: () => void
   toolbarSettings?: ToolbarSettings
+  isCompact?: boolean
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
@@ -948,6 +977,10 @@ function SelectGroupButton({
   const isGroupActive = SELECT_GROUP.some((t) => t.id === activeTool)
   const Icon = selectedTool.icon
 
+  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
+  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
+  const iconSize = isCompact ? 16 : 18
+
   return (
     <div className="relative" ref={flyoutRef}>
       {/* Main button */}
@@ -956,7 +989,7 @@ function SelectGroupButton({
           onClick={() => onSelect(selectedTool.id)}
           className={`
             relative flex items-center justify-center
-            w-10 h-10 rounded-l-xl transition-all duration-150
+            ${btnSizeClass} rounded-l-xl transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} shadow-md ${theme.shadow}`
               : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
@@ -964,13 +997,13 @@ function SelectGroupButton({
           `}
           title={selectedTool.label}
         >
-          <Icon size={20} />
+          <Icon size={iconSize} />
         </button>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`
             flex items-center justify-center
-            w-5 h-10 rounded-r-xl border-l transition-all duration-150
+            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
             ${isGroupActive
               ? `${theme.bg} ${theme.border || 'border-blue-400'}`
               : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
@@ -1035,7 +1068,7 @@ function SelectGroupButton({
   )
 }
 
-export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPage, toolbarSettings }: { showRecentColors?: boolean; onImageClick?: () => void; onAddPage?: () => void; toolbarSettings?: ToolbarSettings }) {
+export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPage, toolbarSettings, style, isCompact }: { showRecentColors?: boolean; onImageClick?: () => void; onAddPage?: () => void; toolbarSettings?: ToolbarSettings; style?: React.CSSProperties; isCompact?: boolean }) {
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
@@ -1337,16 +1370,20 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     editor.setSelectedShapes(newShapes.map((s: any) => s.id))
   }
 
+  const btnSize = isCompact ? "w-8 h-8" : "w-9 h-9";
+  const iconSize = isCompact ? 16 : 18;
+
   return (
     <>
       {/* Eraser cursor overlay for stroke/precision eraser */}
       <EraserCursorOverlay size={eraserSize} active={isCustomEraserActive} />
 
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto">
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto" style={style}>
+
 
         {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
         {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 p-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1.5 ${isCompact ? 'p-0.5' : 'p-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200`}>
             {recentColors.map(color => {
               const theme = COLOR_THEMES[color]
               const isActive = currentColor === color
@@ -1355,7 +1392,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                   key={color}
                   onClick={() => handleRecentColorClick(color)}
                   className={`
-                                w-3 h-3 rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
+                                ${isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
                                 ${theme?.bg.split(' ')[0]} 
                                 ${isActive ? 'scale-125' : 'hover:scale-125'}
                                 transition-all duration-200
@@ -1367,22 +1404,22 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           </div>
         )}
 
-        <div className="flex items-center gap-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl px-2 py-1.5 border border-gray-200/50 dark:border-gray-700/50 border-b-0">
+        <div className={`flex items-center ${isCompact ? 'gap-1' : 'gap-1.5'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl ${isCompact ? 'p-1' : 'p-1.5'} border border-gray-200/50 dark:border-gray-700/50 border-b-0`}>
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
           {(!toolbarSettings || toolbarSettings.copyPaste === "main") && (
-          <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
+          <div className={`flex items-center ${isCompact ? 'gap-0.5' : 'gap-1'} ${isCompact ? 'mr-0.5' : 'mr-1'} relative`} ref={dropdownRef}>
             <button
               onClick={() => {
                 setShowCopyPasteDropdown(!showCopyPasteDropdown)
                 setDuplicateCount(0) // reset offset when opening
               }}
-              className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400`}
               title="Copy / Paste"
             >
               <div className="flex items-center gap-1">
-                <Layers size={18} />
-                <ChevronDown size={12} />
+                <Layers size={iconSize - 2} />
+                <ChevronDown size={isCompact ? 10 : 12} />
               </div>
             </button>
             
@@ -1441,7 +1478,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 </button>
               </div>
             )}
-            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 dark:bg-gray-700 mx-1`} />
           </div>
           )}
 
@@ -1453,16 +1490,17 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             isCameraLocked={isCameraLocked}
             onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
             toolbarSettings={toolbarSettings}
+            isCompact={isCompact}
           />
 
           {/* Lock Page only button - show when lock is in main but hand is in nav */}
           {(toolbarSettings?.handTool === "nav" && toolbarSettings?.lockPage === "main") && (
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}`}
+              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}`}
               title={isCameraLocked ? "Unlock Page" : "Lock Page"}
             >
-              {isCameraLocked ? <Lock size={20} /> : <Unlock size={20} />}
+              {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
             </button>
           )}
 
@@ -1472,22 +1510,22 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             <button
               onClick={() => editor.undo()}
               disabled={!canUndo}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
               title="Undo"
             >
-              <Undo2 size={18} />
+              <Undo2 size={iconSize - 2} />
             </button>
             <button
               onClick={() => editor.redo()}
               disabled={!canRedo}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
               title="Redo"
             >
-              <Redo2 size={18} />
+              <Redo2 size={iconSize - 2} />
             </button>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
@@ -1499,21 +1537,22 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 isVisible={stylePanelVisible}
                 onToggle={() => setStylePanelVisible((v) => !v)}
                 activeTheme={activeColorTheme}
+                isCompact={isCompact}
               />
             </div>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
           {/* Pen group (pen / highlighter / laser) */}
           {(!toolbarSettings || toolbarSettings.penTools === "main") && (
           <>
-            <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} />
+            <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} />
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
@@ -1532,25 +1571,26 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
               }}
               onClearPage={handleClearPage}
               activeTheme={activeColorTheme}
+              isCompact={isCompact}
             />
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
           {(!toolbarSettings || toolbarSettings.shapes === "main") && (
           <>
-            <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} />
+            <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} isCompact={isCompact} />
 
             {/* Divider */}
-            <div className="w-px h-6 bg-gray-200 mx-0.5" />
+            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 mx-0.5`} />
           </>
           )}
 
           {/* More options */}
-          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} onImageClick={onImageClick} />
+          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} onImageClick={onImageClick} isCompact={isCompact} />
         </div>
 
         {/* Custom Style Panel */}
