@@ -188,6 +188,7 @@ function AppContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, _setImportProgress] = useState("");
+  const [importedFileBaseName, setImportedFileBaseName] = useState("");
 
   // Set dark mode as default on first mount
   useEffect(() => {
@@ -660,6 +661,9 @@ function AppContent() {
     try {
       const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
       const isPptx = file.name.endsWith(".pptx") || file.name.endsWith(".ppt");
+      const fileBaseName = file.name.replace(/\.(pdf|pptx?)$/i, "");
+      console.log("[Import] fileBaseName:", fileBaseName);
+      setImportedFileBaseName(fileBaseName);
 
       if (!isPdf && !isPptx) {
         alert("Unsupported file format. Please use PDF or PPTX files.");
@@ -1126,7 +1130,8 @@ function AppContent() {
           doc.addImage(dataUrl, "JPEG", 0, 0, 1920, 1080);
         }
       }
-      doc.save("presentation.pdf");
+      console.log("[Export] importedFileBaseName:", importedFileBaseName);
+      doc.save(importedFileBaseName ? `${importedFileBaseName}_presenter.pdf` : "presentation.pdf");
     } catch (e) {
       console.error("PDF Export Error", e);
       alert("PDF Export failed: " + e);

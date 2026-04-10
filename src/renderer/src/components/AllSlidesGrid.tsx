@@ -417,15 +417,21 @@ function GridItem({
   // Pointer/touch drag support
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isSelectionMode || e.pointerType === "mouse") return;
+    
+    // Don't start drag if clicking buttons
+    if ((e.target as HTMLElement).closest('button')) return;
+
     startPos.current = { x: e.clientX, y: e.clientY };
     isPointerDragging.current = false;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
     
-    // Reduced to 200ms for more responsive feel with stylus
+    // Capture on currentTarget (the slide div) instead of e.target
+    e.currentTarget.setPointerCapture(e.pointerId);
+    
+    // Increased to 350ms for better distinction from taps on smart boards
     longPressTimer.current = window.setTimeout(() => {
       isPointerDragging.current = true;
       onDragStart();
-    }, 200);
+    }, 350);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -441,7 +447,9 @@ function GridItem({
       return;
     }
     
+    // During drag, prevent default to stop scrolling
     e.preventDefault();
+    
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const gridItem = el?.closest("[data-grid-index]");
     if (gridItem) {
@@ -464,15 +472,26 @@ function GridItem({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isSelectionMode || e.pointerType === "mouse") return;
+    
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    
     if (isPointerDragging.current) {
       isPointerDragging.current = false;
       onDrop();
     }
+    
     onDragEnd();
+    
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {
+      // Ignore capture release errors
+    }
   };
 
   return (
@@ -484,11 +503,15 @@ function GridItem({
       onDragEnd={onDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleNativeDrop}
+      onContextMenu={(e) => isPointerDragging.current && e.preventDefault()}
       className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200 
         ${isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
         ${isDragging ? "opacity-40 scale-95" : ""}
       `}
-      style={{ animationDelay: `${index * 20}ms` }}
+      style={{ 
+        animationDelay: `${index * 20}ms`,
+        touchAction: isPointerDragging.current ? 'none' : 'auto'
+      }}
     >
       <div
         onClick={onClick}
@@ -496,6 +519,12 @@ function GridItem({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onContextMenu={(e) => {
+          // Prevent context menu during long press to allow drag to start
+          if (longPressTimer.current || isPointerDragging.current) {
+            e.preventDefault();
+          }
+        }}
         className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
           ${isSelectionMode 
             ? isItemSelected

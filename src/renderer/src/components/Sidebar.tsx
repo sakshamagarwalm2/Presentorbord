@@ -423,14 +423,21 @@ function PageItem({
   // Pointer/touch drag support
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
+    
+    // Don't start drag if clicking buttons
+    if ((e.target as HTMLElement).closest('button')) return;
+
     startY.current = e.clientY;
     isPointerDragging.current = false;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    // Reduced to 200ms for more responsive feel with stylus
+    
+    // Capture on currentTarget (the slide div) instead of e.target
+    e.currentTarget.setPointerCapture(e.pointerId);
+    
+    // Increased to 350ms for more responsive feel with stylus/smart board
     longPressTimer.current = window.setTimeout(() => {
       isPointerDragging.current = true;
       onDragStart();
-    }, 200);
+    }, 350);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -444,7 +451,10 @@ function PageItem({
       }
       return;
     }
+    
+    // During drag, prevent default to stop scrolling
     e.preventDefault();
+    
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const pageItem = el?.closest("[data-page-index]");
     if (pageItem) {
@@ -467,15 +477,26 @@ function PageItem({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
+    
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    
     if (isPointerDragging.current) {
       isPointerDragging.current = false;
       onDrop();
     }
+    
     onDragEnd();
+    
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {
+      // Ignore capture release errors
+    }
   };
 
   return (
@@ -488,11 +509,24 @@ function PageItem({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onClick={onClick}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onContextMenu={(e) => {
+        // Prevent context menu during long press to allow drag to start
+        if (longPressTimer.current || isPointerDragging.current) {
+          e.preventDefault();
+        }
+      }}
       className={`group relative cursor-grab active:cursor-grabbing transition-all overflow-hidden
                 ${isDragging ? "opacity-40 scale-95" : ""}
                 ${isDropTarget && !isDragging ? "ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-900" : ""}
                 ${isSelected ? "ring-2 ring-blue-500 shadow-lg shadow-blue-200 dark:shadow-blue-900/40" : "hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600"}
             `}
+      style={{ 
+        touchAction: isPointerDragging.current ? 'none' : 'auto'
+      }}
     >
       {/* Drop indicator line */}
       {isDropTarget && !isDragging && (
@@ -547,10 +581,6 @@ function PageItem({
         )}
         <div
           className="p-1 rounded bg-black/50 text-white cursor-grab flex items-center justify-center min-w-[20px] min-h-[20px]"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
         >
           <GripVertical size={14} />
         </div>
