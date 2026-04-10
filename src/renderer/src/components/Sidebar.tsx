@@ -222,13 +222,13 @@ export function Sidebar({
               >
                 <Maximize size={14} />
               </button>
-              
+
               <button
                 onClick={onImport}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                 title="Import PDF/PPT"
               >
-                <Upload size={14} />
+                <Download size={14} />
               </button>
 
               <div className="relative" ref={exportBtnRef}>
@@ -237,7 +237,7 @@ export function Sidebar({
                   className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                   title="Export"
                 >
-                  <Download size={14} />
+                  <Upload size={14} />
                 </button>
                 {showExportMenu && (
                   <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-[100000] overflow-hidden">
@@ -297,42 +297,42 @@ export function Sidebar({
             }}
           >
             <div>
-            {sortedPages.map((page, i) => (
-              <PageItem
-                key={page.id}
-                page={page}
-                isSelected={currentPageId === page.id}
-                onClick={() => selectPage(page.id)}
-                onDelete={onDeletePage}
-                index={i}
-                isDragging={draggedId === page.id}
-                isDropTarget={dropTargetIndex === i}
-                onDragStart={() => setDraggedId(page.id)}
-                onDragEnd={() => {
-                  setDraggedId(null);
-                  setDropTargetIndex(null);
-                }}
-                onDragOver={(idx: number) => setDropTargetIndex(idx)}
-                onDrop={() => {
-                  if (draggedId && dropTargetIndex !== null) {
-                    handleDrop(draggedId, dropTargetIndex);
-                  }
-                  setDraggedId(null);
-                  setDropTargetIndex(null);
-                }}
-                isFirst={i === 0}
-                isLast={i === sortedPages.length - 1}
-                onMoveUp={(e) => {
-                  e.stopPropagation();
-                  if (i > 0) handleDrop(page.id, i - 1);
-                }}
-                onMoveDown={(e) => {
-                  e.stopPropagation();
-                  if (i < sortedPages.length - 1) handleDrop(page.id, i + 1);
-                }}
-                cachedThumbnail={thumbnailCache[page.id] || null}
-              />
-            ))}
+              {sortedPages.map((page, i) => (
+                <PageItem
+                  key={page.id}
+                  page={page}
+                  isSelected={currentPageId === page.id}
+                  onClick={() => selectPage(page.id)}
+                  onDelete={onDeletePage}
+                  index={i}
+                  isDragging={draggedId === page.id}
+                  isDropTarget={dropTargetIndex === i}
+                  onDragStart={() => setDraggedId(page.id)}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setDropTargetIndex(null);
+                  }}
+                  onDragOver={(idx: number) => setDropTargetIndex(idx)}
+                  onDrop={() => {
+                    if (draggedId && dropTargetIndex !== null) {
+                      handleDrop(draggedId, dropTargetIndex);
+                    }
+                    setDraggedId(null);
+                    setDropTargetIndex(null);
+                  }}
+                  isFirst={i === 0}
+                  isLast={i === sortedPages.length - 1}
+                  onMoveUp={(e) => {
+                    e.stopPropagation();
+                    if (i > 0) handleDrop(page.id, i - 1);
+                  }}
+                  onMoveDown={(e) => {
+                    e.stopPropagation();
+                    if (i < sortedPages.length - 1) handleDrop(page.id, i + 1);
+                  }}
+                  cachedThumbnail={thumbnailCache[page.id] || null}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -423,16 +423,16 @@ function PageItem({
   // Pointer/touch drag support
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
-    
+
     // Don't start drag if clicking buttons
     if ((e.target as HTMLElement).closest('button')) return;
 
     startY.current = e.clientY;
     isPointerDragging.current = false;
-    
+
     // Capture on currentTarget (the slide div) instead of e.target
     e.currentTarget.setPointerCapture(e.pointerId);
-    
+
     // Increased to 350ms for more responsive feel with stylus/smart board
     longPressTimer.current = window.setTimeout(() => {
       isPointerDragging.current = true;
@@ -451,10 +451,10 @@ function PageItem({
       }
       return;
     }
-    
+
     // During drag, prevent default to stop scrolling
     e.preventDefault();
-    
+
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const pageItem = el?.closest("[data-page-index]");
     if (pageItem) {
@@ -477,19 +477,19 @@ function PageItem({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") return;
-    
+
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    
+
     if (isPointerDragging.current) {
       isPointerDragging.current = false;
       onDrop();
     }
-    
+
     onDragEnd();
-    
+
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -524,7 +524,7 @@ function PageItem({
                 ${isDropTarget && !isDragging ? "ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-900" : ""}
                 ${isSelected ? "ring-2 ring-blue-500 shadow-lg shadow-blue-200 dark:shadow-blue-900/40" : "hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600"}
             `}
-      style={{ 
+      style={{
         touchAction: isPointerDragging.current ? 'none' : 'auto'
       }}
     >

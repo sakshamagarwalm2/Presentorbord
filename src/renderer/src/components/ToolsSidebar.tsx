@@ -539,9 +539,13 @@ export function ToolsSidebar({
               padding: 32,
               maxWidth: 420,
               width: "90%",
+              maxHeight: "90vh",
+              overflowY: "auto",
               color: "white",
               boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.1)",
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255,255,255,0.2) transparent",
             }}
           >
             <img
@@ -668,16 +672,22 @@ export function ToolsSidebar({
             style={{
               background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
               borderRadius: 16,
-              padding: 24,
-              maxWidth: 650,
+              padding: 20,
+              maxWidth: 600,
               width: "95%",
+              maxHeight: "90vh",
+              overflowY: "auto",
               color: "white",
               boxShadow: "0 25px 50px rgba(0,0,0,0.4)",
               border: "1px solid rgba(255,255,255,0.1)",
+              display: "flex",
+              flexDirection: "column",
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255,255,255,0.2) transparent",
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>
                 Customize Toolbar
               </h2>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -704,10 +714,10 @@ export function ToolsSidebar({
                     background: "rgba(255,255,255,0.1)",
                     border: "none",
                     borderRadius: 8,
-                    padding: "8px 12px",
+                    padding: "6px 10px",
                     color: "white",
                     cursor: "pointer",
-                    fontSize: 14,
+                    fontSize: 12,
                   }}
                 >
                   Reset
@@ -718,10 +728,10 @@ export function ToolsSidebar({
                     background: "#3b82f6",
                     border: "none",
                     borderRadius: 8,
-                    padding: "8px 12px",
+                    padding: "6px 10px",
                     color: "white",
                     cursor: "pointer",
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: 600,
                   }}
                 >
@@ -730,11 +740,11 @@ export function ToolsSidebar({
               </div>
             </div>
 
-            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+            <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 16 }}>
               Choose where each tool should appear. Toggle off to hide from toolbar.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {/* Copy/Paste */}
               <ToolbarOption name="Copy/Paste" settings={settings} onChange={updateSetting} />
 
@@ -816,6 +826,7 @@ function ToolbarOption({
     "undoredo": "undoRedo",
     "colorpalette": "colorPalette",
     "pentools": "penTools",
+    "eraser": "eraser",
     "shapes": "shapes",
     "handtool": "handTool",
     "lockpage": "lockPage",
@@ -837,21 +848,21 @@ function ToolbarOption({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "12px 16px",
+        padding: "8px 12px",
         background: "rgba(255,255,255,0.05)",
-        borderRadius: 12,
+        borderRadius: 8,
         border: "1px solid rgba(255,255,255,0.1)",
       }}
     >
-      <span style={{ fontSize: 14, fontWeight: 500 }}>{name}</span>
-      <div style={{ display: "flex", gap: 8 }}>
+      <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
+      <div style={{ display: "flex", gap: 6 }}>
         <button
           onClick={() => handleLocationChange("main")}
           style={{
-            padding: "6px 12px",
-            borderRadius: 8,
+            padding: "4px 10px",
+            borderRadius: 6,
             border: "none",
-            fontSize: 12,
+            fontSize: 11,
             cursor: "pointer",
             background: currentLocation === "main" ? "#3b82f6" : "rgba(255,255,255,0.1)",
             color: "white",
@@ -863,10 +874,10 @@ function ToolbarOption({
           <button
             onClick={() => handleLocationChange("nav")}
             style={{
-              padding: "6px 12px",
-              borderRadius: 8,
+              padding: "4px 10px",
+              borderRadius: 6,
               border: "none",
-              fontSize: 12,
+              fontSize: 11,
               cursor: "pointer",
               background: currentLocation === "nav" ? "#3b82f6" : "rgba(255,255,255,0.1)",
               color: "white",
@@ -878,10 +889,10 @@ function ToolbarOption({
         <button
           onClick={() => handleLocationChange("hidden")}
           style={{
-            padding: "6px 12px",
-            borderRadius: 8,
+            padding: "4px 10px",
+            borderRadius: 6,
             border: "none",
-            fontSize: 12,
+            fontSize: 11,
             cursor: "pointer",
             background: currentLocation === "hidden" ? "#ef4444" : "rgba(255,255,255,0.1)",
             color: "white",

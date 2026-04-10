@@ -31,10 +31,10 @@ export function AllSlidesGrid({
   onExportPdf: () => void;
 }) {
   const editor = useEditor();
-  
+
   const pages = useValue("pages", () => editor.getPages(), [editor]);
   const currentPageId = useValue("currentPageId", () => editor.getCurrentPageId(), [editor]);
-  
+
   const gridRef = useRef<HTMLDivElement>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportBtnRef = useRef<HTMLDivElement>(null);
@@ -137,8 +137,8 @@ export function AllSlidesGrid({
           <div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">All Slides</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isSelectionMode 
-                ? `${selectedIds.size} selected` 
+              {isSelectionMode
+                ? `${selectedIds.size} selected`
                 : `${pages.length} Slides in total`}
             </p>
           </div>
@@ -163,11 +163,10 @@ export function AllSlidesGrid({
               <button
                 onClick={handleDeleteSelected}
                 disabled={selectedIds.size === 0}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedIds.size > 0
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${selectedIds.size > 0
                     ? "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/25"
                     : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
-                }`}
+                  }`}
               >
                 <Trash2 size={16} />
                 Delete ({selectedIds.size})
@@ -204,18 +203,18 @@ export function AllSlidesGrid({
                   className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                   title="Import PDF/PPT"
                 >
-                  <Upload size={18} />
+                  <Download size={18} />
                 </button>
-                
+
                 <div className="relative" ref={exportBtnRef}>
                   <button
                     onClick={() => setShowExportMenu(!showExportMenu)}
                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                     title="Export"
                   >
-                    <Download size={18} />
+                    <Upload size={18} />
                   </button>
-                  
+
                   {showExportMenu && (
                     <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-[100010] overflow-hidden animate-in zoom-in-95 duration-200 origin-top-right">
                       <button
@@ -275,7 +274,7 @@ export function AllSlidesGrid({
       </div>
 
       {/* Grid Content */}
-      <div 
+      <div
         ref={gridRef}
         className="flex-1 overflow-y-auto p-6 md:p-10"
       >
@@ -417,16 +416,16 @@ function GridItem({
   // Pointer/touch drag support
   const handlePointerDown = (e: React.PointerEvent) => {
     if (isSelectionMode || e.pointerType === "mouse") return;
-    
+
     // Don't start drag if clicking buttons
     if ((e.target as HTMLElement).closest('button')) return;
 
     startPos.current = { x: e.clientX, y: e.clientY };
     isPointerDragging.current = false;
-    
+
     // Capture on currentTarget (the slide div) instead of e.target
     e.currentTarget.setPointerCapture(e.pointerId);
-    
+
     // Increased to 350ms for better distinction from taps on smart boards
     longPressTimer.current = window.setTimeout(() => {
       isPointerDragging.current = true;
@@ -446,10 +445,10 @@ function GridItem({
       }
       return;
     }
-    
+
     // During drag, prevent default to stop scrolling
     e.preventDefault();
-    
+
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const gridItem = el?.closest("[data-grid-index]");
     if (gridItem) {
@@ -472,19 +471,19 @@ function GridItem({
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isSelectionMode || e.pointerType === "mouse") return;
-    
+
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    
+
     if (isPointerDragging.current) {
       isPointerDragging.current = false;
       onDrop();
     }
-    
+
     onDragEnd();
-    
+
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -508,7 +507,7 @@ function GridItem({
         ${isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
         ${isDragging ? "opacity-40 scale-95" : ""}
       `}
-      style={{ 
+      style={{
         animationDelay: `${index * 20}ms`,
         touchAction: isPointerDragging.current ? 'none' : 'auto'
       }}
@@ -526,12 +525,12 @@ function GridItem({
           }
         }}
         className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
-          ${isSelectionMode 
+          ${isSelectionMode
             ? isItemSelected
               ? "border-blue-500 ring-4 ring-blue-500/30 scale-105 z-10 shadow-xl"
               : "border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:scale-105"
-            : isSelected 
-              ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl" 
+            : isSelected
+              ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl"
               : "border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:scale-105 hover:shadow-lg dark:hover:border-blue-600"
           }
           ${isDropTarget && !isDragging ? "ring-4 ring-blue-400 border-blue-400" : ""}
@@ -548,17 +547,17 @@ function GridItem({
             📄
           </div>
         )}
-        
+
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/5 transition-colors" />
-        
+
         {/* Selection Checkbox */}
         {isSelectionMode && (
-          <div 
+          <div
             onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
             className={`absolute top-2 left-2 w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer z-20
-              ${isItemSelected 
-                ? "bg-blue-500 text-white" 
+              ${isItemSelected
+                ? "bg-blue-500 text-white"
                 : "bg-white/90 dark:bg-gray-800/90 border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400"
               }`}
           >
@@ -613,7 +612,7 @@ function GridItem({
           {index + 1}
         </div>
       </div>
-      
+
       <span className={`text-center text-xs font-medium transition-colors truncate px-1
         ${isSelected && !isSelectionMode ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500"}
       `}>
