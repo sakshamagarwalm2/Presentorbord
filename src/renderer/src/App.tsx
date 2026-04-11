@@ -1342,6 +1342,7 @@ function AppContent() {
         toolbarSettings={toolbarSettings}
         onAddPage={addPage}
         isCompact={width < 1100}
+        onToggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
       />
       {showNavPanel && (
         <div
@@ -1359,9 +1360,13 @@ function AppContent() {
                   >
                     <ChevronLeft size={width < 1100 ? 16 : 18} />
                   </button>
-                  <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                  <button
+                    onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+                    className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
+                    title="Open Slides Panel"
+                  >
                     {currentPageIndex + 1} / {totalPages}
-                  </span>
+                  </button>
                   <button
                     onClick={handleNextPage}
                     disabled={currentPageIndex >= totalPages - 1}
@@ -1478,9 +1483,13 @@ function AppContent() {
                   >
                     <ChevronLeft size={width < 1100 ? 16 : 18} />
                   </button>
-                  <span className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                  <button
+                    onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+                    className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
+                    title="Open Slides Panel"
+                  >
                     {currentPageIndex + 1} / {totalPages}
-                  </span>
+                  </button>
                   <button
                     onClick={handleNextPage}
                     disabled={currentPageIndex >= totalPages - 1}

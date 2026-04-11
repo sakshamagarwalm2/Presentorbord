@@ -12,6 +12,7 @@ export function NavigationPanel({
   toolbarSettings,
   onAddPage,
   isCompact,
+  onToggleSidebar,
 }: {
   isVisible: boolean;
   position?: "left" | "right";
@@ -20,6 +21,7 @@ export function NavigationPanel({
   toolbarSettings?: ToolbarSettings;
   onAddPage?: () => void;
   isCompact?: boolean;
+  onToggleSidebar?: () => void;
 }) {
   const editor = useEditor();
 
@@ -192,9 +194,19 @@ export function NavigationPanel({
               >
                 <ChevronLeft size={iconSize} />
               </button>
-              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
-                {currentPageIndex + 1} / {totalPages}
-              </span>
+              {onToggleSidebar ? (
+                <button
+                  onClick={onToggleSidebar}
+                  className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
+                  title="Open Slides Panel"
+                >
+                  {currentPageIndex + 1} / {totalPages}
+                </button>
+              ) : (
+                <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                  {currentPageIndex + 1} / {totalPages}
+                </span>
+              )}
               <button
                 onClick={handleNextPage}
                 disabled={currentPageIndex >= totalPages - 1}
@@ -217,9 +229,19 @@ export function NavigationPanel({
               >
                 <ChevronLeft size={iconSize} />
               </button>
-              <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
-                {currentPageIndex + 1} / {totalPages}
-              </span>
+              {onToggleSidebar ? (
+                <button
+                  onClick={onToggleSidebar}
+                  className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
+                  title="Open Slides Panel"
+                >
+                  {currentPageIndex + 1} / {totalPages}
+                </button>
+              ) : (
+                <span className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center`}>
+                  {currentPageIndex + 1} / {totalPages}
+                </span>
+              )}
               <button
                 onClick={handleNextPage}
                 disabled={currentPageIndex >= totalPages - 1}
