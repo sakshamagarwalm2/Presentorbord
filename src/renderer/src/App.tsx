@@ -442,6 +442,46 @@ function AppContent() {
       },
     );
 
+    // Automatically select newly created shapes after the user finishes dragging (Pointer Up)
+    let lastCreatedShapeId: any = null;
+
+    const cleanupAutoSelect = editor.sideEffects.registerAfterCreateHandler(
+      "shape",
+      (shape) => {
+        const currentTool = editor.getCurrentToolId();
+        const shapeTypesToSelect = [
+          'geo', 'arrow', 'line', 'custom-line', 
+          'graph-axes-1', 'graph-axes-4', 'text', 'note', 'frame',
+          'protractor', 'ruler'
+        ];
+
+        // If a geometric shape is created and we're not in select mode, track it
+        if (shapeTypesToSelect.includes(shape.type) && currentTool !== 'select' && !shape.meta?.isPageBackground) {
+          lastCreatedShapeId = shape.id;
+          console.log(`[Auto-Select] New shape ${shape.type} created. Waiting for mouse release to select...`);
+        }
+      }
+    );
+
+    // Listen for mouse release on window to finalize selection (more robust than editor.on)
+    const handlePointerUp = () => {
+      if (lastCreatedShapeId) {
+        const shapeId = lastCreatedShapeId;
+        lastCreatedShapeId = null; // Clear immediately to avoid double-triggers
+
+        console.log(`[Auto-Select] Mouse released. Finalizing selection for: ${shapeId}`);
+        setTimeout(() => {
+          if (editor.getShape(shapeId)) {
+            console.log(`[Auto-Select] Selecting shape and switching to select tool: ${shapeId}`);
+            editor.setSelectedShapes([shapeId]);
+            editor.setCurrentTool('select');
+          }
+        }, 50); // Small delay to let the drawing tool finish its state transition
+      }
+    };
+
+    window.addEventListener('pointerup', handlePointerUp);
+
     // Log major store changes
     const unsubStore = editor.store.listen((entry) => {
       const changes = entry.changes;
@@ -501,6 +541,8 @@ function AppContent() {
 
     return () => {
       cleanupThickness();
+      cleanupAutoSelect();
+      window.removeEventListener('pointerup', handlePointerUp);
       unsubStore();
       cleanup();
     };
