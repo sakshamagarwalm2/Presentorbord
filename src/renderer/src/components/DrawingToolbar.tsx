@@ -43,6 +43,7 @@ import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
 import { currentEraserSizeSignal, currentThicknessSignal } from '../store/styleSignals'
+import { COLOR_MAP } from '../constants/colorConstants'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -1207,21 +1208,42 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   }, [currentColor])
 
   const handleRecentColorClick = (color: string) => {
-    // @ts-ignore - color string is valid but type definition is strict union
+    const selectedShapes = editor.getSelectedShapes()
+    console.log('[DrawingToolbar] handleRecentColorClick:', color, 'Selected shapes:', selectedShapes.length)
+    
+    // 1. Update super-pen shapes specifically
+    const superPenShapes = selectedShapes.filter(s => s.type === 'super-pen')
+    if (superPenShapes.length > 0) {
+      const convertedColor = COLOR_MAP[color] || color
+      console.log('[DrawingToolbar] Updating super-pen shapes color to:', convertedColor)
+
+      editor.updateShapes(superPenShapes.map(s => ({
+        id: s.id,
+        type: 'super-pen',
+        props: { ...s.props, color: convertedColor }
+      })))
+    }
+    
+    // 2. Update all selected shapes using standard style
+    if (selectedShapes.length > 0) {
+      console.log('[DrawingToolbar] Setting style for selected shapes:', color)
+      // @ts-ignore
+      editor.setStyleForSelectedShapes(DefaultColorStyle, color)
+    }
+
+    // 3. Always update the tool's style
+    console.log('[DrawingToolbar] Setting style for next shapes:', color)
+    // @ts-ignore
     editor.setStyleForNextShapes(DefaultColorStyle, color)
     
     // If we are not in a drawing tool, switch to the default Pen
     const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
     if (!drawingTools.includes(activeTool)) {
+      console.log('[DrawingToolbar] Switching to super-pen tool and clearing selection')
       editor.setCurrentTool('super-pen')
       editor.updateInstanceState({ isToolLocked: true })
-    }
-
-    // If we have selected shapes, update them too
-    const selectedShapeIds = editor.getSelectedShapeIds()
-    if (selectedShapeIds.length > 0) {
-      // @ts-ignore
-      editor.setStyleForSelectedShapes(DefaultColorStyle, color)
+      // Deselect everything when we switch to a drawing tool to prevent accidental edits
+      editor.selectNone()
     }
   }
 

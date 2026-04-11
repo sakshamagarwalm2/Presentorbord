@@ -1,7 +1,8 @@
 import { StateNode, TLEventHandlers, createShapeId, DefaultColorStyle, DefaultDashStyle } from 'tldraw'
 import { SuperSmoothPipeline, PipelineConfig, DEFAULT_CONFIG } from '../utils/SuperSmoothPipeline'
 import { SuperPenPoint, TSuperPenShape } from '../shapes/SuperPenShapeUtil'
-import { currentThicknessSignal, currentOpacitySignal } from '../store/styleSignals'
+import { currentThicknessSignal, currentOpacitySignal, currentCustomColorSignal } from '../store/styleSignals'
+import { COLOR_MAP } from '../constants/colorConstants'
 
 export interface SuperPenSettings {
   color: string
@@ -12,27 +13,11 @@ export interface SuperPenSettings {
 }
 
 export const DEFAULT_SETTINGS: SuperPenSettings = {
-  color: '#1a1a1a',
+  color: '#000000',
   size: 3,
   opacity: 1,
   mode: 'pen',
   pipeline: DEFAULT_CONFIG,
-}
-
-const COLOR_MAP: Record<string, string> = {
-  'black': '#1a1a1a',
-  'grey': '#71717a',
-  'light-violet': '#a78bfa',
-  'violet': '#7c3aed',
-  'blue': '#3b82f6',
-  'light-blue': '#38bdf8',
-  'yellow': '#facc15',
-  'orange': '#f97316',
-  'green': '#22c55e',
-  'light-green': '#4ade80',
-  'red': '#ef4444',
-  'light-red': '#fb7185',
-  'white': '#ffffff',
 }
 
 export class SuperPenTool extends StateNode {
@@ -76,8 +61,9 @@ class Drawing extends StateNode {
   private historyMarkId: string | null = null
 
   private getCurrentColor(): string {
-    const colorValue = this.editor.getStyleForNextShape(DefaultColorStyle)
-    return COLOR_MAP[colorValue as string] || colorValue as string || '#1a1a1a'
+    const finalColor = currentCustomColorSignal.get()
+    console.log('[SuperPenTool] getCurrentColor from signal:', finalColor)
+    return finalColor
   }
 
   private getCurrentThickness(): number {
@@ -108,6 +94,9 @@ class Drawing extends StateNode {
     // Mark history stopping point so the stroke is a single undo unit
     this.historyMarkId = 'super-pen-stroke-' + createShapeId()
     this.editor.mark(this.historyMarkId)
+
+    // Clear any existing selection so that we don't accidentally update old shapes
+    this.editor.selectNone()
 
     const pagePoint = this.editor.inputs.currentPagePoint
     

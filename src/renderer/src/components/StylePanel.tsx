@@ -1,11 +1,13 @@
 import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
-import { Check, SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { Check, SlidersHorizontal, Plus } from 'lucide-react'
+import { useState, useRef } from 'react'
 import {
   currentThicknessSignal,
   currentOpacitySignal,
-  currentIsBrushSignal
+  currentIsBrushSignal,
+  currentCustomColorSignal
 } from '../store/styleSignals'
+import { COLOR_MAP } from '../constants/colorConstants'
 
 /* ------------------------------------------------------------------ */
 /*  Color Definitions & Themes                                         */
@@ -68,11 +70,22 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const editor = useEditor()
   const [showCustomThickness, setShowCustomThickness] = useState(false)
 
+  // Use the custom signal if active, otherwise fallback to tldraw's style
   const currentColor = useValue('color', () => {
+    const customHex = currentCustomColorSignal.get()
+    // Reverse lookup: if the hex matches a built-in color, use its name
+    const colorName = Object.keys(COLOR_MAP).find(k => COLOR_MAP[k] === customHex)
+    if (colorName) return colorName
+
     const shared = editor.getSharedStyles().get(DefaultColorStyle)
     if (shared && shared.type === 'shared') return shared.value
     return editor.getStyleForNextShape(DefaultColorStyle)
   }, [editor])
+
+  const [customColor, setCustomColor] = useState('#3b82f6')
+  const colorInputRef = useRef<HTMLInputElement>(null)
+
+  const isCustomColorActive = !DefaultColorStyle.values.includes(currentColor as any)
 
   const currentFill = useValue('fill', () => {
     const shared = editor.getSharedStyles().get(DefaultFillStyle)
@@ -116,8 +129,48 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null
 
   const handleColorChange = (color: string) => {
-    editor.setStyleForSelectedShapes(DefaultColorStyle, color as any)
-    editor.setStyleForNextShapes(DefaultColorStyle, color as any)
+    const selected = editor.getSelectedShapes()
+    const convertedColor = COLOR_MAP[color] || color
+    console.log('[StylePanel] handleColorChange:', color, 'Converted:', convertedColor, 'Selected shapes:', selected.length)
+    
+    // Always update our custom signal for next shapes (tool sync)
+    currentCustomColorSignal.set(convertedColor)
+
+    // 1. Update super-pen shapes specifically since they use a custom color prop
+    const superPenShapes = selected.filter(s => s.type === 'super-pen')
+    if (superPenShapes.length > 0) {
+      console.log('[StylePanel] Updating super-pen shapes color to:', convertedColor)
+
+      editor.updateShapes(superPenShapes.map(s => ({
+        id: s.id,
+        type: 'super-pen',
+        props: { ...s.props, color: convertedColor }
+      })))
+    }
+
+    // 2. Update all selected shapes using standard style (this covers custom-draw and others)
+    if (selected.length > 0) {
+      // ONLY set if it's a valid tldraw color key (like "red", not "#ff0000")
+      if (DefaultColorStyle.values.includes(color as any)) {
+        console.log('[StylePanel] Setting style for selected shapes:', color)
+        editor.setStyleForSelectedShapes(DefaultColorStyle, color as any)
+      } else {
+        console.log('[StylePanel] Skipping tldraw style update for hex color (standard shapes dont support hex colors natively)')
+      }
+    }
+
+    // 3. Always update the style for the next shapes to ensure tool synchronization
+    // ONLY set if it's a valid tldraw color key to avoid the ValidationError
+    if (DefaultColorStyle.values.includes(color as any)) {
+      console.log('[StylePanel] Setting style for next shapes:', color)
+      editor.setStyleForNextShapes(DefaultColorStyle, color as any)
+    }
+  }
+
+  const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value
+    setCustomColor(newColor)
+    handleColorChange(newColor)
   }
 
   const handleFillChange = (fill: string) => {
@@ -175,7 +228,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     currentOpacitySignal.set(opacity)
   }
 
-  const theme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']
+  const theme = COLOR_THEMES[currentColor] || { bg: 'bg-blue-500 text-white', shadow: 'shadow-blue-200' }
 
   return (
     <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 w-[260px] flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -202,6 +255,36 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
               </button>
             )
           })}
+          
+          {/* Last Used Custom Color Slot */}
+          <button
+            onClick={() => handleColorChange(customColor)}
+            className={`
+              w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 border border-gray-200 dark:border-gray-700
+              ${isCustomColorActive ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-900 scale-110' : 'hover:scale-105'}
+            `}
+            style={{ backgroundColor: customColor }}
+            title={`Custom Color: ${customColor}`}
+          >
+            {isCustomColorActive && <Check size={12} className="text-white drop-shadow-md" />}
+          </button>
+
+          {/* Color Picker Opener Button */}
+          <button
+            onClick={() => colorInputRef.current?.click()}
+            className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-105 border border-dashed border-gray-300 dark:border-gray-600"
+            title="Choose New Color"
+          >
+            <Plus size={12} />
+          </button>
+
+          <input
+            ref={colorInputRef}
+            type="color"
+            value={customColor}
+            onChange={handleCustomColorChange}
+            className="absolute opacity-0 w-0 h-0 pointer-events-none"
+          />
         </div>
       </div>
 
