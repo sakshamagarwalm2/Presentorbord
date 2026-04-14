@@ -1,22 +1,26 @@
 import { StateNode, TLEventHandlers, TLStateNodeConstructor } from '@tldraw/editor'
+import { currentThicknessSignal } from '../store/styleSignals'
 
 /**
  * Custom Lasering state with:
- *  - thicker laser line (size 8 instead of 4)
- *  - 4 second delay before fade-out (instead of 1.2s)
+ *  - laser line thickness from selected template
+ *  - 5 second delay before fade-out
  */
 class CustomLasering extends StateNode {
   static override id = 'lasering'
 
   scribbleId = 'id'
+  isPointerDown = false
 
   override onEnter = () => {
     console.log('[Drawing] Laser Pointer active (Scribble Mode)')
+    this.isPointerDown = true
+    const size = currentThicknessSignal.get()
     const scribble = this.editor.scribbles.addScribble({
       color: 'laser',
       opacity: 0.7,
-      size: 12,       // thicker
-      delay: 5000,   // 5 seconds delay
+      size: size,
+      delay: 5000,
       shrink: 0.05,
       taper: true,
     })
@@ -36,6 +40,7 @@ class CustomLasering extends StateNode {
   }
 
   override onPointerUp = () => {
+    this.isPointerDown = false
     this.complete()
   }
 
@@ -49,7 +54,9 @@ class CustomLasering extends StateNode {
   }
 
   override onComplete: TLEventHandlers['onComplete'] = () => {
-    this.complete()
+    if (!this.isPointerDown) {
+      this.complete()
+    }
   }
 
   private complete() {
