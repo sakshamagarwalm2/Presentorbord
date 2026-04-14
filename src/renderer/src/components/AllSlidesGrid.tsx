@@ -70,6 +70,29 @@ export function AllSlidesGrid({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-scroll to current slide when grid opens or page changes
+  useEffect(() => {
+    if (!isVisible || !gridRef.current) return;
+    
+    const currentIndex = sortedPages.findIndex(p => p.id === currentPageId);
+    if (currentIndex === -1) return;
+    
+    const gridColumns = window.innerWidth < 640 ? 2 : window.innerWidth < 768 ? 3 : window.innerWidth < 1024 ? 4 : window.innerWidth < 1280 ? 5 : 6;
+    const rowIndex = Math.floor(currentIndex / gridColumns);
+    
+    requestAnimationFrame(() => {
+      if (gridRef.current) {
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const rowHeight = 180; // Approximate height of each slide row (including gap)
+        const scrollTarget = rowIndex * rowHeight - (gridRect.height / 2) + (rowHeight / 2);
+        gridRef.current.scrollTo({
+          top: Math.max(0, scrollTarget),
+          behavior: 'smooth'
+        });
+      }
+    });
+  }, [isVisible, currentPageId]);
+
   if (!isVisible) return null;
 
   const sortedPages = [...pages].sort((a, b) => (a.index > b.index ? 1 : -1));
@@ -183,7 +206,7 @@ export function AllSlidesGrid({
               <div className="flex items-center gap-1">
                 <button
                   onClick={enterSelectionMode}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/30 rounded-lg transition-colors border border-orange-200 dark:border-orange-800"
                   title="Select Multiple Slides"
                 >
                   <Check size={16} />
@@ -221,7 +244,7 @@ export function AllSlidesGrid({
                         onClick={() => { onExportImage(currentPageId); setShowExportMenu(false); }}
                         className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3"
                       >
-                        <FileImage size={16} className="text-blue-500" />
+                        <FileImage size={16} className="text-orange-500" />
                         <span>Image (Current Page)</span>
                       </button>
                       <button
@@ -237,14 +260,14 @@ export function AllSlidesGrid({
 
                 <button
                   onClick={() => onAddPage()}
-                  className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
+                  className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg text-orange-500 transition-colors"
                   title="Add Page"
                 >
                   <Plus size={18} />
                 </button>
                 <button
                   onClick={() => onDuplicatePage(currentPageId)}
-                  className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-blue-500 transition-colors"
+                  className="p-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg text-orange-500 transition-colors"
                   title="Duplicate Page"
                 >
                   <Copy size={18} />
@@ -527,13 +550,13 @@ function GridItem({
         className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
           ${isSelectionMode
             ? isItemSelected
-              ? "border-blue-500 ring-4 ring-blue-500/30 scale-105 z-10 shadow-xl"
-              : "border-gray-300 dark:border-gray-700 hover:border-blue-400 hover:scale-105"
+              ? "border-orange-500 ring-4 ring-orange-500/30 scale-105 z-10 shadow-xl"
+              : "border-gray-300 dark:border-gray-700 hover:border-orange-400 hover:scale-105"
             : isSelected
-              ? "border-blue-500 ring-4 ring-blue-500/20 scale-105 z-10 shadow-xl"
-              : "border-gray-200 dark:border-gray-800 hover:border-blue-400 hover:scale-105 hover:shadow-lg dark:hover:border-blue-600"
+              ? "border-orange-500 ring-4 ring-orange-500/40 scale-105 z-10 shadow-xl"
+              : "border-gray-200 dark:border-gray-800 hover:border-orange-400 hover:scale-105 hover:shadow-lg dark:hover:border-orange-600"
           }
-          ${isDropTarget && !isDragging ? "ring-4 ring-blue-400 border-blue-400" : ""}
+          ${isDropTarget && !isDragging ? "ring-4 ring-orange-400 border-orange-400" : ""}
         `}
       >
         {thumbnail ? (
@@ -549,7 +572,7 @@ function GridItem({
         )}
 
         {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/5 transition-colors" />
+        <div className="absolute inset-0 bg-orange-500/0 group-hover:bg-orange-500/5 transition-colors" />
 
         {/* Selection Checkbox */}
         {isSelectionMode && (
@@ -557,8 +580,8 @@ function GridItem({
             onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
             className={`absolute top-2 left-2 w-6 h-6 rounded-md flex items-center justify-center transition-all cursor-pointer z-20
               ${isItemSelected
-                ? "bg-blue-500 text-white"
-                : "bg-white/90 dark:bg-gray-800/90 border-2 border-gray-300 dark:border-gray-600 hover:border-blue-400"
+                ? "bg-orange-500 text-white"
+                : "bg-white/90 dark:bg-gray-800/90 border-2 border-gray-300 dark:border-gray-600 hover:border-orange-400"
               }`}
           >
             {isItemSelected && <Check size={14} strokeWidth={3} />}
@@ -607,14 +630,14 @@ function GridItem({
 
         {/* Slide Number Badge */}
         <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-md text-xs font-bold shadow-sm transition-colors z-10
-          ${isSelected && !isSelectionMode ? "bg-blue-500 text-white" : "bg-black/60 text-white group-hover:bg-blue-500"}
+          ${isSelected && !isSelectionMode ? "bg-orange-500 text-white" : "bg-black/60 text-white group-hover:bg-orange-500"}
         `}>
           {index + 1}
         </div>
       </div>
 
       <span className={`text-center text-xs font-medium transition-colors truncate px-1
-        ${isSelected && !isSelectionMode ? "text-blue-600 dark:text-blue-400 font-bold" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500"}
+        ${isSelected && !isSelectionMode ? "text-orange-600 dark:text-orange-400 font-bold" : "text-gray-500 dark:text-gray-400 group-hover:text-orange-500"}
       `}>
         {page.name || `Slide ${index + 1}`}
       </span>

@@ -53,6 +53,17 @@ export function Sidebar({
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [, forceUpdate] = useState(0);
+  const pagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to current slide when sidebar opens
+  useEffect(() => {
+    if (isOpen && currentPageId && pagesContainerRef.current) {
+      const selectedElement = pagesContainerRef.current.querySelector('[data-selected="true"]');
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [isOpen, currentPageId]);
 
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportBtnRef = useRef<HTMLDivElement>(null);
@@ -290,10 +301,11 @@ export function Sidebar({
           </div>
 
           <div
+            ref={pagesContainerRef}
             className="sidebar-pages flex-1 overflow-y-auto p-2 space-y-2"
             style={{
               scrollbarWidth: "thin",
-              scrollbarColor: "rgba(34, 197, 94, 0.5) transparent",
+              scrollbarColor: "rgba(249, 115, 22, 0.5) transparent",
             }}
           >
             <div>
@@ -503,6 +515,7 @@ function PageItem({
     <div
       ref={itemRef}
       data-page-index={index}
+      data-selected={isSelected}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
@@ -521,8 +534,8 @@ function PageItem({
       }}
       className={`group relative cursor-grab active:cursor-grabbing transition-all overflow-hidden
                 ${isDragging ? "opacity-40 scale-95" : ""}
-                ${isDropTarget && !isDragging ? "ring-2 ring-blue-400 ring-offset-2 dark:ring-offset-gray-900" : ""}
-                ${isSelected ? "ring-2 ring-blue-500 shadow-lg shadow-blue-200 dark:shadow-blue-900/40" : "hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600"}
+                ${isDropTarget && !isDragging ? "ring-4 ring-orange-400 ring-offset-2 dark:ring-offset-gray-900" : ""}
+                ${isSelected ? "border-2 border-orange-500 ring-4 ring-orange-500/30 scale-[1.02] shadow-xl shadow-orange-500/20 dark:shadow-orange-500/10 z-10" : "hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600"}
             `}
       style={{
         touchAction: isPointerDragging.current ? 'none' : 'auto'
@@ -530,7 +543,7 @@ function PageItem({
     >
       {/* Drop indicator line */}
       {isDropTarget && !isDragging && (
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 z-10" />
       )}
 
       {/* Thumbnail */}
@@ -544,7 +557,7 @@ function PageItem({
         </div>
       ) : (
         <div
-          className={`w-full aspect-video flex items-center justify-center ${isSelected ? "bg-blue-50 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-800"}`}
+          className={`w-full aspect-video flex items-center justify-center ${isSelected ? "bg-orange-50 dark:bg-orange-900/30" : "bg-gray-100 dark:bg-gray-800"}`}
         >
           <span className="text-2xl">📄</span>
         </div>
@@ -552,7 +565,7 @@ function PageItem({
 
       {/* Slide number badge */}
       <div
-        className={`absolute top-1 left-1 min-w-[20px] h-5 flex items-center justify-center rounded text-[10px] font-bold px-1 ${isSelected ? "bg-blue-500 text-white" : "bg-black/50 text-white"}`}
+        className={`absolute top-1 left-1 min-w-[20px] h-5 flex items-center justify-center rounded text-[10px] font-bold px-1 ${isSelected ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40" : "bg-black/50 text-white"}`}
       >
         {slideNumber}
       </div>
