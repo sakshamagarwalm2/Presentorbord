@@ -1712,20 +1712,8 @@ function AppContent() {
         onExportImage={handleExportImage}
         onExportPdf={handleExportPdf}
       />
-      {mode === "math" && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-800/90 backdrop-blur shadow-lg rounded-xl p-2 z-[99999]">
-          <button
-            onClick={addProtractor}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 font-bold"
-          >
-            Add Protractor
-          </button>
-        </div>
-      )}
       {showTimer && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[99998]">
-          <TimerWidget onClose={() => setShowTimer(false)} />
-        </div>
+        <TimerWidget onClose={() => setShowTimer(false)} />
       )}
     </>
   );
