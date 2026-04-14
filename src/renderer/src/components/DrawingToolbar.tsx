@@ -18,7 +18,6 @@ import {
   Pentagon,
   Octagon,
   ChevronDown,
-  ChevronUp,
   Type,
   StickyNote,
   Frame,
@@ -688,129 +687,6 @@ function ShapeGroupButton({
               })}
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/*  More options button with flyout                                    */
-/* ------------------------------------------------------------------ */
-
-function MoreOptionsButton({
-  activeTool,
-  onSelect,
-  onAction,
-  activeTheme,
-  onImageClick,
-  isCompact,
-}: {
-  activeTool: string
-  onSelect: (toolId: string) => void
-  onAction: (action: string) => void
-  activeTheme?: ColorTheme
-  onImageClick?: () => void
-  isCompact?: boolean
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const flyoutRef = useRef<HTMLDivElement>(null)
-
-  const theme = activeTheme || COLOR_THEMES['blue']
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (flyoutRef.current && !flyoutRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const isGroupActive = MORE_TOOLS.some((t) => t.id === activeTool)
-  const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
-  const iconSize = isCompact ? 16 : 18
-
-  return (
-    <div className="relative" ref={flyoutRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`
-          relative flex items-center justify-center
-          ${btnSizeClass} rounded-xl transition-all duration-150
-          ${isGroupActive
-            ? `${theme.bg} shadow-md ${theme.shadow}`
-            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-          }
-        `}
-        title="More tools"
-      >
-        <ChevronUp size={iconSize} />
-      </button>
-
-      {isOpen && (
-        <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[150px] z-[99999]">
-          {MORE_TOOLS.map((tool) => {
-            const TIcon = tool.icon
-            const isActive = activeTool === tool.id
-            return (
-              <button
-                key={tool.id}
-                onClick={() => {
-                  if (tool.id === 'asset' && onImageClick) {
-                    onImageClick()
-                  } else {
-                    onSelect(tool.id)
-                  }
-                  setIsOpen(false)
-                }}
-                className={`
-                  flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
-                  ${isActive
-                    ? 'bg-blue-50 text-blue-600 font-medium dark:bg-blue-900/40 dark:text-blue-400'
-                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-                  }
-                `}
-              >
-                <TIcon size={16} />
-                {tool.label}
-              </button>
-            )
-          })}
-
-          {/* Divider */}
-          <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
-
-          {/* Action items */}
-          <button
-            onClick={() => { onAction('delete'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
-          >
-            <Trash2 size={16} />
-            Delete
-          </button>
-          <button
-            onClick={() => { onAction('duplicate'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <Copy size={16} />
-            Duplicate
-          </button>
-          <button
-            onClick={() => { onAction('lock'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <Lock size={16} />
-            Lock Selected
-          </button>
-          <button
-            onClick={() => { onAction('unlock-all'); setIsOpen(false) }}
-            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            <Unlock size={16} />
-            Unlock All
-          </button>
         </div>
       )}
     </div>
@@ -1491,6 +1367,31 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                   <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
                   <button
                     onClick={() => {
+                      handleAction('lock')
+                      setShowCopyPasteDropdown(false)
+                    }}
+                    disabled={selectedShapeIds.length === 0}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-[10px] disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700`}
+                    title="Lock Selected Shapes"
+                  >
+                    <Lock size={14} />
+                    Lock
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleAction('lock')
+                      setShowCopyPasteDropdown(false)
+                    }}
+                    disabled={selectedShapeIds.length === 0}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-[10px] disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                    title="Unlock Selected Shapes"
+                  >
+                    <Unlock size={14} />
+                    Unlock
+                  </button>
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                  <button
+                    onClick={() => {
                       if (onAddPage) onAddPage()
                       setShowCopyPasteDropdown(false) // Still close on major action like Add Page
                     }}
@@ -1596,9 +1497,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
               </button>
             </>
           )}
-
-          {/* More options */}
-          <MoreOptionsButton activeTool={activeTool} onSelect={selectTool} onAction={handleAction} activeTheme={activeColorTheme} onImageClick={onImageClick} isCompact={isCompact} />
         </div>
 
         {/* Custom Style Panel */}

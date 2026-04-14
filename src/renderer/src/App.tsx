@@ -1385,6 +1385,34 @@ function AppContent() {
         onAddPage={addPage}
         isCompact={width < 1100}
         onToggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+        activeTool={editor?.getCurrentToolId()}
+        onSelectTool={(toolId) => editor?.setCurrentTool(toolId)}
+        onAction={(action) => {
+          if (action === 'delete') {
+            editor?.deleteShapes(editor?.getSelectedShapeIds() || []);
+          } else if (action === 'duplicate') {
+            editor?.duplicateShapes(editor?.getSelectedShapeIds() || []);
+          } else if (action === 'lock') {
+            const shapes = editor?.getSelectedShapes() || [];
+            editor?.updateShapes(shapes.map(shape => ({ ...shape, isLocked: true })));
+          } else if (action === 'unlock-all') {
+            const currentPageId = editor?.getCurrentPageId();
+            if (currentPageId) {
+              const shapeIds = editor?.getSortedChildIdsForParent(currentPageId) || [];
+              const shapesToUnlock = shapeIds
+                .map(id => editor?.getShape(id))
+                .filter(s => s && (s as any).isLocked);
+              if (shapesToUnlock.length > 0) {
+                editor?.updateShapes(shapesToUnlock.map((shape: any) => ({
+                  id: shape.id,
+                  type: shape.type,
+                  isLocked: false
+                })));
+              }
+            }
+          }
+        }}
+        onImageClick={handleImportClick}
       />
       {showNavPanel && (
         <div
