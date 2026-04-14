@@ -302,7 +302,7 @@ export function Sidebar({
 
           <div
             ref={pagesContainerRef}
-            className="sidebar-pages flex-1 overflow-y-auto p-2 space-y-2"
+            className="sidebar-pages flex-1 overflow-y-auto p-2 space-y-0.5"
             style={{
               scrollbarWidth: "thin",
               scrollbarColor: "rgba(249, 115, 22, 0.5) transparent",
