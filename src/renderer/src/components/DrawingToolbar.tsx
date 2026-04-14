@@ -1273,10 +1273,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400`}
                 title="Copy / Paste"
               >
-                <div className="flex items-center gap-1">
-                  <Layers size={iconSize - 2} />
-                  <ChevronDown size={isCompact ? 10 : 12} />
-                </div>
+                <Layers size={iconSize - 2} />
               </button>
 
               {showCopyPasteDropdown && (
