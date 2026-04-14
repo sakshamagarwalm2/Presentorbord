@@ -42,7 +42,7 @@ import {
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
-import { currentEraserSizeSignal, currentThicknessSignal } from '../store/styleSignals'
+import { currentEraserSizeSignal, currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
 
 /* ------------------------------------------------------------------ */
@@ -358,7 +358,7 @@ function EraserGroupButton({
   }, [])
 
   const isActive = activeTool === 'eraser' || activeTool === 'precision-eraser' || activeTool === 'area-eraser'
-  
+
   const getActiveIcon = () => {
     switch (eraserMode) {
       case 'precision': return Target
@@ -964,7 +964,7 @@ function SelectGroupButton({
   }, [activeTool])
 
   // Filter out hand tool if it's moved to nav panel and update selected tool if needed
-  const visibleTools = toolbarSettings?.handTool === "nav" 
+  const visibleTools = toolbarSettings?.handTool === "nav"
     ? SELECT_GROUP.filter(t => t.id !== "hand")
     : SELECT_GROUP;
 
@@ -1210,11 +1210,16 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const handleRecentColorClick = (color: string) => {
     const selectedShapes = editor.getSelectedShapes()
     console.log('[DrawingToolbar] handleRecentColorClick:', color, 'Selected shapes:', selectedShapes.length)
-    
+
+    const convertedColor = COLOR_MAP[color] || color
+    console.log('[DrawingToolbar] Converted color:', convertedColor)
+
+    // Update the custom color signal so SuperPenTool uses it
+    currentCustomColorSignal.set(convertedColor)
+
     // 1. Update super-pen shapes specifically
     const superPenShapes = selectedShapes.filter(s => s.type === 'super-pen')
     if (superPenShapes.length > 0) {
-      const convertedColor = COLOR_MAP[color] || color
       console.log('[DrawingToolbar] Updating super-pen shapes color to:', convertedColor)
 
       editor.updateShapes(superPenShapes.map(s => ({
@@ -1223,7 +1228,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
         props: { ...s.props, color: convertedColor }
       })))
     }
-    
+
     // 2. Update all selected shapes using standard style
     if (selectedShapes.length > 0) {
       console.log('[DrawingToolbar] Setting style for selected shapes:', color)
@@ -1235,7 +1240,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     console.log('[DrawingToolbar] Setting style for next shapes:', color)
     // @ts-ignore
     editor.setStyleForNextShapes(DefaultColorStyle, color)
-    
+
     // If we are not in a drawing tool, switch to the default Pen
     const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
     if (!drawingTools.includes(activeTool)) {
@@ -1366,7 +1371,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     if (!selectionBounds) return
 
     const viewportCenter = editor.getViewportScreenCenter()
-    
+
     // Offset each duplicate slightly to avoid perfect overlap if clicked multiple times
     const stackOffset = duplicateCount * 10
     setDuplicateCount(prev => prev + 1)
@@ -1427,78 +1432,78 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
           {(!toolbarSettings || toolbarSettings.copyPaste === "main") && (
-          <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
-            <button
-              onClick={() => {
-                setShowCopyPasteDropdown(!showCopyPasteDropdown)
-                setDuplicateCount(0) // reset offset when opening
-              }}
-              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400`}
-              title="Copy / Paste"
-            >
-              <div className="flex items-center gap-1">
-                <Layers size={iconSize - 2} />
-                <ChevronDown size={isCompact ? 10 : 12} />
-              </div>
-            </button>
-            
-            {showCopyPasteDropdown && (
-              <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
-                {selectedShapeIds.length > 0 ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        handleCopyAnnotations()
-                        // No auto-close
-                      }}
-                      disabled={showCopyFeedback}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                      title="Copy Annotations"
-                    >
-                      <Copy size={16} />
-                      {showCopyFeedback ? "Copied!" : "Copy"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleDuplicateAnnotations()
-                        // No auto-close
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                      title="Duplicate Selection"
-                    >
-                      <Layers size={16} />
-                      Duplicate
-                    </button>
-                  </>
-                ) : null}
-                <button
-                  onClick={() => {
-                    handlePasteAnnotations()
-                    // No auto-close
-                  }}
-                  disabled={!hasClipboardContent}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${hasClipboardContent ? 'text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
-                  title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
-                >
-                  <Clipboard size={16} />
-                  Paste
-                </button>
-                <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
-                <button
-                  onClick={() => {
-                    if (onAddPage) onAddPage()
-                    setShowCopyPasteDropdown(false) // Still close on major action like Add Page
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
-                  title="Add New Page"
-                >
-                  <Plus size={16} />
-                  Add Page
-                </button>
-              </div>
-            )}
-            <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 dark:bg-gray-700 mx-1`} />
-          </div>
+            <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
+              <button
+                onClick={() => {
+                  setShowCopyPasteDropdown(!showCopyPasteDropdown)
+                  setDuplicateCount(0) // reset offset when opening
+                }}
+                className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400`}
+                title="Copy / Paste"
+              >
+                <div className="flex items-center gap-1">
+                  <Layers size={iconSize - 2} />
+                  <ChevronDown size={isCompact ? 10 : 12} />
+                </div>
+              </button>
+
+              {showCopyPasteDropdown && (
+                <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[140px] z-[99999]">
+                  {selectedShapeIds.length > 0 ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleCopyAnnotations()
+                          // No auto-close
+                        }}
+                        disabled={showCopyFeedback}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                        title="Copy Annotations"
+                      >
+                        <Copy size={16} />
+                        {showCopyFeedback ? "Copied!" : "Copy"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDuplicateAnnotations()
+                          // No auto-close
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                        title="Duplicate Selection"
+                      >
+                        <Layers size={16} />
+                        Duplicate
+                      </button>
+                    </>
+                  ) : null}
+                  <button
+                    onClick={() => {
+                      handlePasteAnnotations()
+                      // No auto-close
+                    }}
+                    disabled={!hasClipboardContent}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm ${hasClipboardContent ? 'text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700' : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'}`}
+                    title={hasClipboardContent ? "Paste Annotations" : "Clipboard Empty"}
+                  >
+                    <Clipboard size={16} />
+                    Paste
+                  </button>
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-700 my-1" />
+                  <button
+                    onClick={() => {
+                      if (onAddPage) onAddPage()
+                      setShowCopyPasteDropdown(false) // Still close on major action like Add Page
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:bg-blue-50 dark:text-gray-300 dark:hover:bg-gray-700"
+                    title="Add New Page"
+                  >
+                    <Plus size={16} />
+                    Add Page
+                  </button>
+                </div>
+              )}
+              <div className={`w-px ${isCompact ? 'h-4' : 'h-6'} bg-gray-200 dark:bg-gray-700 mx-1`} />
+            </div>
           )}
 
           {/* Select Group Button (Select / Lasso / Hand) - always show, filter hand from dropdown if in nav */}
@@ -1523,72 +1528,73 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             </button>
           )}
 
-          {/* Undo & Redo */}
-          {(!toolbarSettings || toolbarSettings.undoRedo === "main") && (
-          <>
-            <button
-              onClick={() => editor.undo()}
-              disabled={!canUndo}
-              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
-              title="Undo"
-            >
-              <Undo2 size={iconSize - 2} />
-            </button>
-            <button
-              onClick={() => editor.redo()}
-              disabled={!canRedo}
-              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
-              title="Redo"
-            >
-              <Redo2 size={iconSize - 2} />
-            </button>
-          </>
-          )}
-
           {/* Palette toggle */}
           {(!toolbarSettings || toolbarSettings.colorPalette === "main") && (
-          <>
-            <div ref={paletteButtonRef} className="flex">
-              <PaletteButton
-                isVisible={stylePanelVisible}
-                onToggle={() => setStylePanelVisible((v) => !v)}
-                activeTheme={activeColorTheme}
-                isCompact={isCompact}
-              />
-            </div>
-          </>
+            <>
+              <div ref={paletteButtonRef} className="flex">
+                <PaletteButton
+                  isVisible={stylePanelVisible}
+                  onToggle={() => setStylePanelVisible((v) => !v)}
+                  activeTheme={activeColorTheme}
+                  isCompact={isCompact}
+                />
+              </div>
+            </>
           )}
 
           {/* Pen group (pen / highlighter / laser) */}
           {(!toolbarSettings || toolbarSettings.penTools === "main") && (
-          <>
-            <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} />
-          </>
+            <>
+              <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} />
+            </>
           )}
 
           {/* Eraser group (shape eraser + size) */}
           {(!toolbarSettings || toolbarSettings.eraser === "main") && (
-          <>
-            <EraserGroupButton
-              activeTool={activeTool}
-              eraserMode={eraserMode}
-              eraserSize={eraserSize}
-              onSelectTool={handleEraserSelect}
-              onSelectMode={handleEraserModeChange}
-              onSelectSize={(s) => {
-                setEraserSize(s)
-                currentEraserSizeSignal.set(s)
-              }}
-              onClearPage={handleClearPage}
-              activeTheme={activeColorTheme}
-              isCompact={isCompact}
-            />
-          </>
+            <>
+              <EraserGroupButton
+                activeTool={activeTool}
+                eraserMode={eraserMode}
+                eraserSize={eraserSize}
+                onSelectTool={handleEraserSelect}
+                onSelectMode={handleEraserModeChange}
+                onSelectSize={(s) => {
+                  setEraserSize(s)
+                  currentEraserSizeSignal.set(s)
+                }}
+                onClearPage={handleClearPage}
+                activeTheme={activeColorTheme}
+                isCompact={isCompact}
+              />
+            </>
           )}
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
           {(!toolbarSettings || toolbarSettings.shapes === "main") && (
             <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} isCompact={isCompact} />
+          )}
+
+
+          {/* Undo & Redo */}
+          {(!toolbarSettings || toolbarSettings.undoRedo === "main") && (
+            <>
+              <button
+                onClick={() => editor.undo()}
+                disabled={!canUndo}
+                className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canUndo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+                title="Undo"
+              >
+                <Undo2 size={iconSize - 2} />
+              </button>
+              <button
+                onClick={() => editor.redo()}
+                disabled={!canRedo}
+                className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${canRedo ? 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200' : 'text-gray-300 cursor-not-allowed dark:text-gray-600'}`}
+                title="Redo"
+              >
+                <Redo2 size={iconSize - 2} />
+              </button>
+            </>
           )}
 
           {/* More options */}

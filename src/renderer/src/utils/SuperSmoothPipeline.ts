@@ -13,12 +13,20 @@ export interface SmoothPoint {
 
 export interface PipelineConfig {
   noiseMinDistance: number
-  smoothingWeight: number // 0 to 1, higher = more smooth
+  smoothingWeight: number
+  stringRadius: number
+  oneEuroMinCutoff: number
+  oneEuroBeta: number
+  gaussianKernelSize: number
 }
 
 export const DEFAULT_CONFIG: PipelineConfig = {
   noiseMinDistance: 0.2,
   smoothingWeight: 0.4,
+  stringRadius: 0,
+  oneEuroMinCutoff: 1.0,
+  oneEuroBeta: 0.006,
+  gaussianKernelSize: 5,
 }
 
 export class SuperSmoothPipeline {

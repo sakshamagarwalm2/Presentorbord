@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
-import { useEditor } from 'tldraw'
+import { useState, useCallback, useEffect } from 'react'
+import { useEditor, useValue } from 'tldraw'
 import { SuperPenTool, SuperPenSettings, DEFAULT_SETTINGS } from '../tools/SuperPenTool'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon } from './ToolIcons'
+import { currentThicknessSignal, currentOpacitySignal, currentCustomColorSignal } from '../store/styleSignals'
 
 const PEN_MODES = [
   { id: 'pen', label: 'Pen', desc: 'Ballpoint pen', Icon: PenIcon },
@@ -20,6 +21,24 @@ export function SuperPenToolbar() {
   const editor = useEditor()
   const [settings, setSettings] = useState<SuperPenSettings>({ ...DEFAULT_SETTINGS })
   const [showAdvanced, setShowAdvanced] = useState(false)
+
+  const signalColor = useValue('signalColor', () => currentCustomColorSignal.get(), [])
+  const signalThickness = useValue('signalThickness', () => currentThicknessSignal.get(), [])
+  const signalOpacity = useValue('signalOpacity', () => currentOpacitySignal.get(), [])
+
+  useEffect(() => {
+    currentThicknessSignal.set(settings.size)
+    currentOpacitySignal.set(settings.opacity)
+    currentCustomColorSignal.set(settings.color)
+  }, [])
+
+  useEffect(() => {
+    currentThicknessSignal.set(settings.size)
+  }, [settings.size])
+
+  useEffect(() => {
+    currentOpacitySignal.set(settings.opacity)
+  }, [settings.opacity])
 
   const getTool = useCallback((): SuperPenTool | null => {
     try {
@@ -85,9 +104,12 @@ export function SuperPenToolbar() {
         {COLORS.map(c => (
           <button
             key={c}
-            onClick={() => updateSetting('color', c)}
+            onClick={() => {
+              currentCustomColorSignal.set(c)
+              updateSetting('color', c)
+            }}
             className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-              settings.color === c ? 'border-blue-500 scale-110' : 'border-transparent'
+              signalColor === c ? 'border-blue-500 scale-110' : 'border-transparent'
             }`}
             style={{ backgroundColor: c, boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #ccc' : undefined }}
             title={c}
@@ -95,8 +117,11 @@ export function SuperPenToolbar() {
         ))}
         <input
           type="color"
-          value={settings.color}
-          onChange={e => updateSetting('color', e.target.value)}
+          value={signalColor}
+          onChange={e => {
+            currentCustomColorSignal.set(e.target.value)
+            updateSetting('color', e.target.value)
+          }}
           className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
           title="Custom color"
         />
@@ -105,12 +130,16 @@ export function SuperPenToolbar() {
       <div className="flex flex-col gap-1">
         <div className="flex justify-between text-xs text-gray-500">
           <span>Size</span>
-          <span>{settings.size}px</span>
+          <span>{signalThickness}px</span>
         </div>
         <input
           type="range" min={1} max={20} step={0.5}
-          value={settings.size}
-          onChange={e => updateSetting('size', Number(e.target.value))}
+          value={signalThickness}
+          onChange={e => {
+            const v = Number(e.target.value)
+            currentThicknessSignal.set(v)
+            updateSetting('size', v)
+          }}
           className="w-full h-1 accent-blue-500"
         />
       </div>
@@ -118,12 +147,16 @@ export function SuperPenToolbar() {
       <div className="flex flex-col gap-1">
         <div className="flex justify-between text-xs text-gray-500">
           <span>Opacity</span>
-          <span>{Math.round(settings.opacity * 100)}%</span>
+          <span>{Math.round(signalOpacity * 100)}%</span>
         </div>
         <input
           type="range" min={0.05} max={1} step={0.05}
-          value={settings.opacity}
-          onChange={e => updateSetting('opacity', Number(e.target.value))}
+          value={signalOpacity}
+          onChange={e => {
+            const v = Number(e.target.value)
+            currentOpacitySignal.set(v)
+            updateSetting('opacity', v)
+          }}
           className="w-full h-1 accent-blue-500"
         />
       </div>
