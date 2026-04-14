@@ -314,36 +314,37 @@ function AppContent() {
     // 1. Toggle Camera
     editor.setCameraOptions({ isLocked: newLockedState });
 
-    // 2. Find and Toggle Background
-    const currentPageId = editor.getCurrentPageId();
-    const shapeIds = editor.getSortedChildIdsForParent(currentPageId);
-    let backgroundShape = shapeIds
-      .map((id: any) => editor.getShape(id))
-      .find((s: any) => s.meta?.isPageBackground);
-
-    // Fallback heuristics (largest image)
-    if (!backgroundShape) {
-      const images = shapeIds
+    // 2. Lock/Unlock ALL slides' backgrounds
+    const allPages = editor.getPages();
+    
+    for (const page of allPages) {
+      const shapeIds = editor.getSortedChildIdsForParent(page.id);
+      let backgroundShape = shapeIds
         .map((id: any) => editor.getShape(id))
-        .filter((s: any) => s.type === "image");
+        .find((s: any) => s.meta?.isPageBackground);
 
-      if (images.length > 0) {
-        // Sort by area (w * h) desc
-        backgroundShape = images.sort(
-          (a: any, b: any) => b.props.w * b.props.h - a.props.w * a.props.h,
-        )[0];
+      // Fallback: largest image on the page
+      if (!backgroundShape) {
+        const images = shapeIds
+          .map((id: any) => editor.getShape(id))
+          .filter((s: any) => s.type === "image");
+
+        if (images.length > 0) {
+          backgroundShape = images.sort(
+            (a: any, b: any) => b.props.w * b.props.h - a.props.w * a.props.h,
+          )[0];
+        }
       }
-    }
 
-    if (backgroundShape) {
-      editor.updateShape({
-        ...backgroundShape,
-        isLocked: newLockedState,
-        // Ensure it's marked as background if we are locking it
-        meta: newLockedState
-          ? { ...backgroundShape.meta, isPageBackground: true }
-          : backgroundShape.meta,
-      });
+      if (backgroundShape) {
+        editor.updateShape({
+          ...backgroundShape,
+          isLocked: newLockedState,
+          meta: newLockedState
+            ? { ...backgroundShape.meta, isPageBackground: true }
+            : backgroundShape.meta,
+        });
+      }
     }
   }, [editor]);
 
@@ -724,6 +725,23 @@ function AppContent() {
   const handleSlideImport = async (file: File, importMode: 'replace' | 'append') => {
     const importStartTime = performance.now();
     setIsImporting(true);
+    setImportProgress("Unlocking all pages...");
+
+    // Unlock all pages before importing
+    const allPages = editor.getPages();
+    for (const page of allPages) {
+      const shapeIds = editor.getSortedChildIdsForParent(page.id);
+      for (const shapeId of shapeIds) {
+        const shape = editor.getShape(shapeId);
+        if (shape && shape.isLocked) {
+          editor.updateShape({ ...shape, isLocked: false });
+        }
+      }
+    }
+
+    // Also unlock camera
+    editor.setCameraOptions({ isLocked: false });
+
     setImportProgress("Reading file...");
 
     try {
