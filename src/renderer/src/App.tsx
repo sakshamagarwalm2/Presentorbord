@@ -1460,20 +1460,24 @@ function AppContent() {
               <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
                 <button
                   onClick={() => setNavPosition("right")}
-                  className="w-3.5 h-3.5 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 flex-shrink-0 cursor-pointer shadow-sm"
+                  className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer`}
                   title="Switch Toolbar Position"
-                />
+                >
+                  <ChevronRight size={width < 1100 ? 16 : 18} className="text-black dark:text-white" />
+                </button>
               </div>
             </>
           ) : (
             <>
-              {/* Right side: Purple, Zoom, Plus, PageNav */}
+              {/* Right side: Arrow, Zoom, Plus, PageNav */}
               <div className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center`}>
                 <button
                   onClick={() => setNavPosition("left")}
-                  className="w-3.5 h-3.5 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 flex-shrink-0 cursor-pointer shadow-sm"
+                  className={`${width < 1100 ? 'w-8 h-8' : 'w-9 h-9'} flex items-center justify-center rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer`}
                   title="Switch Toolbar Position"
-                />
+                >
+                  <ChevronLeft size={width < 1100 ? 16 : 18} className="text-black dark:text-white" />
+                </button>
               </div>
               {(toolbarSettings?.zoomInOut === "main") && (
                 <>

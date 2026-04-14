@@ -99,13 +99,15 @@ export function NavigationPanel({
     >
       {position === "left" ? (
         <>
-          {/* Left side: Purple, Lock, Minimize, Close */}
+          {/* Left side: Arrow, Lock, Minimize, Close */}
           {onToggleNavPosition && (
             <button
               onClick={onToggleNavPosition}
-              className="w-4 h-4 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110"
+              className={`${btnClass}`}
               title="Switch Toolbar Position"
-            />
+            >
+              <ChevronLeft size={iconSize} className="text-black dark:text-white" />
+            </button>
           )}
           <button
             onClick={() => {
@@ -332,9 +334,11 @@ export function NavigationPanel({
           {onToggleNavPosition && (
             <button
               onClick={onToggleNavPosition}
-              className="w-4 h-4 bg-purple-500 hover:bg-purple-600 rounded-full transition-all hover:scale-110 ml-0.5"
+              className={`${btnClass}`}
               title="Switch Toolbar Position"
-            />
+            >
+              <ChevronRight size={iconSize} className="text-black dark:text-white" />
+            </button>
           )}
         </>
       )}
