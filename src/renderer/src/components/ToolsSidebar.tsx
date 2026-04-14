@@ -24,6 +24,8 @@ import {
   MoreHorizontal,
   Info,
   PanelBottom,
+  Timer,
+  Wrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
@@ -60,6 +62,7 @@ interface ToolsSidebarProps {
   onToggle: (open: boolean) => void;
   toolbarSettings?: ToolbarSettings;
   onToolbarSettingsChange?: (settings: ToolbarSettings) => void;
+  onOpenTimer?: () => void;
 }
 
 interface Bookmark {
@@ -78,10 +81,11 @@ export function ToolsSidebar({
   onToggle,
   toolbarSettings,
   onToolbarSettingsChange,
+  onOpenTimer,
 }: ToolsSidebarProps) {
   const editor = useEditor();
   const [showAbout, setShowAbout] = useState(false);
-  const [showMathTools, setShowMathTools] = useState(false);
+  const [showTools, setShowTools] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsView, setSettingsView] = useState<"root" | "embeds">("root");
   const [showCustomize, setShowCustomize] = useState(false);
@@ -92,7 +96,7 @@ export function ToolsSidebar({
 
   // Close all dropdowns
   const closeAllDropdowns = () => {
-    setShowMathTools(false);
+    setShowTools(false);
     setShowSettings(false);
     setShowCustomize(false);
     setShowBookmarks(false);
@@ -100,9 +104,9 @@ export function ToolsSidebar({
   };
 
   // Open one dropdown and close others
-  const openDropdown = (dropdown: "math") => {
+  const openDropdown = (dropdown: "tools") => {
     closeAllDropdowns();
-    if (dropdown === "math") setShowMathTools(true);
+    if (dropdown === "tools") setShowTools(true);
   };
 
   const defaultSettings: ToolbarSettings = {
@@ -260,24 +264,32 @@ return (
           {/* Tools */}
           <div className="flex flex-col gap-2 w-full px-1.5">
 
-            {/* Math Group */}
+            {/* Tools Group */}
             <div className="relative">
               <ToolButton
-                icon={Sigma}
-                label="Math"
-                isActive={showMathTools}
-                onClick={() => showMathTools ? setShowMathTools(false) : openDropdown("math")}
+                icon={Wrench}
+                label="Tools"
+                isActive={showTools}
+                onClick={() => showTools ? setShowTools(false) : openDropdown("tools")}
               />
 
-              {/* Math Sub-menu - horizontal row right next to button */}
-              {showMathTools && (
-                <div className="absolute right-full top-0 ml-3 flex items-center gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 px-1.5 py-1 z-[99999] whitespace-nowrap">
+              {/* Tools Sub-menu */}
+              {showTools && (
+                <div className="absolute right-full top-0 ml-3 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap">
+                  <ToolButton
+                    icon={Timer}
+                    label="Timer"
+                    onClick={() => {
+                      onOpenTimer?.();
+                      setShowTools(false);
+                    }}
+                  />
                   <ToolButton
                     icon={CalcIcon}
                     label="Calculator"
                     onClick={() => {
                       openSystemCalculator();
-                      setShowMathTools(false);
+                      setShowTools(false);
                     }}
                   />
                   <ToolButton
@@ -285,7 +297,7 @@ return (
                     label="Graph"
                     onClick={() => {
                       openGraph();
-                      setShowMathTools(false);
+                      setShowTools(false);
                     }}
                   />
                 </div>

@@ -25,6 +25,7 @@ import { NavigationPanel } from "./components/NavigationPanel";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { PageSelectionDialog } from "./components/PageSelectionDialog";
 import { AllSlidesGrid } from "./components/AllSlidesGrid";
+import { TimerWidget } from "./components/TimerWidget";
 import { jsPDF } from "jspdf";
 import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
@@ -975,6 +976,7 @@ function AppContent() {
 
   const [exitDialogVisible, setExitDialogVisible] = useState(false);
   const [isAllSlidesGridVisible, setIsAllSlidesGridVisible] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgressExport] = useState("");
@@ -1356,6 +1358,7 @@ function AppContent() {
         onToggle={setRightSidebarOpen}
         toolbarSettings={toolbarSettings}
         onToolbarSettingsChange={handleToolbarSettingsChange}
+        onOpenTimer={() => setShowTimer(true)}
       />
       <DrawingToolbar 
         showRecentColors={showRecentColors} 
@@ -1699,6 +1702,11 @@ function AppContent() {
           >
             Add Protractor
           </button>
+        </div>
+      )}
+      {showTimer && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[99998]">
+          <TimerWidget onClose={() => setShowTimer(false)} />
         </div>
       )}
     </>
