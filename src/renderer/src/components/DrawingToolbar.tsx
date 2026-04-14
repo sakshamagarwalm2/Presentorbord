@@ -920,20 +920,20 @@ function SelectGroupButton({
             )
           })}
 
-          {/* Lock Page - only show if not moved to nav panel */}
+          {/* Lock Page - always show in dropdown (unless moved to nav) */}
           {(!toolbarSettings || toolbarSettings.lockPage !== "nav") && (
             <button
               onClick={() => { onToggleLock(); setIsOpen(false) }}
               className={`
-                flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm
+                flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px]
                 ${isCameraLocked
                   ? 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30'
                   : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
                 }
               `}
             >
-              {isCameraLocked ? <Lock size={16} /> : <Unlock size={16} />}
-              {isCameraLocked ? "Unlock Page" : "Lock Page"}
+              {isCameraLocked ? <Lock size={14} /> : <Unlock size={14} />}
+              {isCameraLocked ? "Unlock" : "Lock"}
             </button>
           )}
         </div>
@@ -1417,17 +1417,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             toolbarSettings={toolbarSettings}
             isCompact={isCompact}
           />
-
-          {/* Lock Page only button - show when lock is in main but hand is in nav */}
-          {(toolbarSettings?.handTool === "nav" && toolbarSettings?.lockPage === "main") && (
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
-              className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-150 ${isCameraLocked ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'}`}
-              title={isCameraLocked ? "Unlock Page" : "Lock Page"}
-            >
-              {isCameraLocked ? <Lock size={iconSize} /> : <Unlock size={iconSize} />}
-            </button>
-          )}
 
           {/* Palette toggle */}
           {(!toolbarSettings || toolbarSettings.colorPalette === "main") && (
