@@ -44,12 +44,6 @@ export function fitSlideToViewport(editor: Editor): void {
 
   if (!viewport || viewport.w === 0 || viewport.h === 0) return;
 
-  console.log(`[slideCamera] Fitting page ${pageId}`, {
-    slide: `${slideBounds.w}x${slideBounds.h}`,
-    viewport: `${viewport.w}x${viewport.h}`,
-    foundBackground: slideBounds.found
-  });
-
   try {
     editor.zoomToBounds(
       { x: slideBounds.x, y: slideBounds.y, w: slideBounds.w, h: slideBounds.h },
@@ -91,8 +85,6 @@ export function fitAllSlidesToViewport(editor: Editor): void {
   const pages = editor.getPages();
   const originalPageId = editor.getCurrentPageId();
   
-  console.log(`[slideCamera] Fitting all ${pages.length} slides...`);
-
   try {
     editor.run(() => {
       for (const page of pages) {
@@ -101,7 +93,6 @@ export function fitAllSlidesToViewport(editor: Editor): void {
       }
       editor.setCurrentPage(originalPageId);
     }, { history: 'ignore' });
-    console.log('[slideCamera] All slides fitted successfully.');
   } catch (err) {
     console.error('[slideCamera] Error in fitAllSlidesToViewport:', err);
   }

@@ -458,7 +458,6 @@ function AppContent() {
         // If a geometric shape is created and we're not in select mode, track it
         if (shapeTypesToSelect.includes(shape.type) && currentTool !== 'select' && !shape.meta?.isPageBackground) {
           lastCreatedShapeId = shape.id;
-          console.log(`[Auto-Select] New shape ${shape.type} created. Waiting for mouse release to select...`);
         }
       }
     );
@@ -469,10 +468,8 @@ function AppContent() {
         const shapeId = lastCreatedShapeId;
         lastCreatedShapeId = null; // Clear immediately to avoid double-triggers
 
-        console.log(`[Auto-Select] Mouse released. Finalizing selection for: ${shapeId}`);
         setTimeout(() => {
           if (editor.getShape(shapeId)) {
-            console.log(`[Auto-Select] Selecting shape and switching to select tool: ${shapeId}`);
             editor.setSelectedShapes([shapeId]);
             editor.setCurrentTool('select');
           }
@@ -502,16 +499,16 @@ function AppContent() {
     const cleanup = editor.sideEffects.registerBeforeDeleteHandler(
       "shape",
       (shape) => {
-        // If a shape is a page-level image, prevent its deletion
-        // We check for the explicit meta flag
-        if (shape.meta?.isPageBackground) {
-          return false; // Prevent deletion of background
+        // If a shape is a page-level image AND is locked, prevent its deletion
+        // We check for the explicit meta flag AND lock status
+        if (shape.meta?.isPageBackground && shape.isLocked) {
+          return false; // Prevent deletion of locked background
         }
         return; // Allow deletion
       },
     );
 
-    // Retroactively lock any existing unlocked page-level images AND add meta
+    // Retroactively tag any existing page-level images as backgrounds (but don't lock them)
     // This acts as a migration for existing projects
     const pages = editor.getPages();
     for (const page of pages) {
@@ -519,21 +516,17 @@ function AppContent() {
       for (const id of shapeIds) {
         const shape = editor.getShape(id);
         // Heuristic: It's a background if it's an image, direct child of page,
-        // and either already locked OR positioned at 0,0 (typical for imports)
+        // and positioned at 0,0 (typical for imports)
         if (shape && shape.type === "image") {
-          const looksLikeBackground =
-            shape.isLocked || (shape.x === 0 && shape.y === 0);
+          const looksLikeBackground = (shape.x === 0 && shape.y === 0);
 
-          if (looksLikeBackground) {
-            // Apply meta tagging and ensure locked
-            if (!shape.meta?.isPageBackground || !shape.isLocked) {
-              editor.updateShape({
-                id: shape.id,
-                type: shape.type,
-                isLocked: true,
-                meta: { ...shape.meta, isPageBackground: true },
-              });
-            }
+          if (looksLikeBackground && !shape.meta?.isPageBackground) {
+            // Apply meta tagging only, keep unlocked
+            editor.updateShape({
+              id: shape.id,
+              type: shape.type,
+              meta: { ...shape.meta, isPageBackground: true },
+            });
           }
         }
       }
@@ -714,8 +707,6 @@ function AppContent() {
             },
             meta: {},
           });
-          
-          editor.setCameraOptions({ isLocked: true });
         });
       }, { history: 'ignore' });
 
@@ -738,7 +729,6 @@ function AppContent() {
       const isPdf = file.type === "application/pdf" || file.name.endsWith(".pdf");
       const isPptx = file.name.endsWith(".pptx") || file.name.endsWith(".ppt");
       const fileBaseName = file.name.replace(/\.(pdf|pptx?)$/i, "");
-      console.log("[Import] fileBaseName:", fileBaseName);
       setImportedFileBaseName(fileBaseName);
 
       if (!isPdf && !isPptx) {
@@ -898,21 +888,21 @@ function AppContent() {
                 },
               }]);
 
-              editor.createShape({
-                type: "image",
-                parentId: pageId as any,
-                x: 0,
-                y: 0,
-                isLocked: true,
-                props: {
-                  assetId,
-                  w,
-                  h,
-                },
-                meta: {
-                  isPageBackground: true,
-                },
-              });
+          editor.createShape({
+            type: "image",
+            parentId: pageId as any,
+            x: 0,
+            y: 0,
+            isLocked: false,
+            props: {
+              assetId,
+              w,
+              h,
+            },
+            meta: {
+              isPageBackground: true,
+            },
+          });
             });
           } catch (renderError) {
             window.api.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
@@ -930,7 +920,6 @@ function AppContent() {
           requestAnimationFrame(() =>
             requestAnimationFrame(() => {
               fitSlideToViewport(editor);
-              editor.setCameraOptions({ isLocked: true });
             })
           );
         }
@@ -1207,7 +1196,6 @@ function AppContent() {
           doc.addImage(dataUrl, "JPEG", 0, 0, 1920, 1080);
         }
       }
-      console.log("[Export] importedFileBaseName:", importedFileBaseName);
       doc.save(importedFileBaseName ? `${importedFileBaseName}_presenter.pdf` : "presentation.pdf");
     } catch (e) {
       console.error("PDF Export Error", e);

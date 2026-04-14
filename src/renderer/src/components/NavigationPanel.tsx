@@ -74,12 +74,7 @@ export function NavigationPanel({
   };
 
   const handleFitToScreen = () => {
-    console.log('[NavigationPanel] Fit to screen button clicked');
-    if (!editor) {
-      console.warn('[NavigationPanel] Editor not available in handleFitToScreen');
-      return;
-    }
-    requestAnimationFrame(() => animateSlideToViewport(editor));
+    animateSlideToViewport(editor);
   };
 
   const handleNextPage = () => {
