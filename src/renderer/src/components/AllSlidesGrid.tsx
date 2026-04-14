@@ -1,5 +1,5 @@
 import { useEditor, useValue } from "@tldraw/tldraw";
-import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown, Check, Maximize } from "lucide-react";
+import { X, LayoutGrid, Plus, Upload, Download, Copy, Trash2, FileImage, FileText, ChevronUp, ChevronDown, Check, Maximize, GripVertical } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { fitAllSlidesToViewport } from "../utils/slideCamera";
 
@@ -336,8 +336,8 @@ export function AllSlidesGrid({
               }}
               onDragOver={(idx) => setDropTargetIndex(idx)}
               onDrop={() => {
-                if (draggedId) {
-                  handleDrop(draggedId, index);
+                if (draggedId && dropTargetIndex !== null) {
+                  handleDrop(draggedId, dropTargetIndex);
                 }
               }}
             />
@@ -393,9 +393,8 @@ function GridItem({
 }) {
   const editor = useEditor();
   const itemRef = useRef<HTMLDivElement>(null);
-  const longPressTimer = useRef<number | null>(null);
-  const isPointerDragging = useRef(false);
-  const startPos = useRef({ x: 0, y: 0 });
+  const isDraggingActive = useRef(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
 
   const imageAssetSrc = useValue(
     `grid-thumbnail-${page.id}`,
@@ -416,61 +415,27 @@ function GridItem({
 
   const thumbnail = (thumbnailCache[page.id]) || imageAssetSrc;
 
-  const handleDragStart = (e: React.DragEvent) => {
-    if (isSelectionMode) return;
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", page.id);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isSelectionMode || e.button !== 0) return;
+    
+    e.stopPropagation();
+
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    isDraggingActive.current = true;
+    
+    console.log(`[AllSlidesGrid] Drag STARTED via Handle (${e.pointerType})`);
+    
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    
     onDragStart();
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    if (isSelectionMode) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    onDragOver(index);
-  };
-
-  const handleNativeDrop = (e: React.DragEvent) => {
-    if (isSelectionMode) return;
-    e.preventDefault();
-    onDrop();
-  };
-
-  // Pointer/touch drag support
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isSelectionMode || e.pointerType === "mouse") return;
-
-    // Don't start drag if clicking buttons
-    if ((e.target as HTMLElement).closest('button')) return;
-
-    startPos.current = { x: e.clientX, y: e.clientY };
-    isPointerDragging.current = false;
-
-    // Capture on currentTarget (the slide div) instead of e.target
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    // Increased to 350ms for better distinction from taps on smart boards
-    longPressTimer.current = window.setTimeout(() => {
-      isPointerDragging.current = true;
-      onDragStart();
-    }, 350);
-  };
-
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (isSelectionMode || e.pointerType === "mouse") return;
-    if (!isPointerDragging.current) {
-      const dist = Math.hypot(e.clientX - startPos.current.x, e.clientY - startPos.current.y);
-      if (dist > 10) {
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
-      }
-      return;
-    }
+    if (isSelectionMode || !isDraggingActive.current) return;
 
-    // During drag, prevent default to stop scrolling
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
 
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const gridItem = el?.closest("[data-grid-index]");
@@ -479,10 +444,11 @@ function GridItem({
       onDragOver(targetIndex);
     }
 
+    // Auto-scroll the grid container
     const scrollContainer = itemRef.current?.closest(".overflow-y-auto") as HTMLElement;
     if (scrollContainer) {
       const rect = scrollContainer.getBoundingClientRect();
-      const scrollZone = 100;
+      const scrollZone = 80;
       const scrollSpeed = 12;
       if (e.clientY < rect.top + scrollZone) {
         scrollContainer.scrollTop -= scrollSpeed;
@@ -493,60 +459,50 @@ function GridItem({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (isSelectionMode || e.pointerType === "mouse") return;
-
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    if (isPointerDragging.current) {
-      isPointerDragging.current = false;
+    if (isDraggingActive.current) {
+      isDraggingActive.current = false;
+      console.log(`[AllSlidesGrid] Drag DROPPED (${e.pointerType})`);
       onDrop();
+      e.stopPropagation();
     }
-
-    onDragEnd();
 
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
-    } catch (err) {
-      // Ignore capture release errors
+    } catch (err) {}
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    if (isDraggingActive.current) {
+      console.log(`[AllSlidesGrid] Drag CANCELLED (${e.pointerType})`);
+      isDraggingActive.current = false;
+      onDragEnd();
     }
+    
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {}
   };
 
   return (
     <div
       ref={itemRef}
       data-grid-index={index}
-      draggable={!isSelectionMode}
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={handleDragOver}
-      onDrop={handleNativeDrop}
-      onContextMenu={(e) => isPointerDragging.current && e.preventDefault()}
+      onClick={onClick}
       className={`group relative flex flex-col gap-2 animate-in zoom-in-95 duration-200 
-        ${isSelectionMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}
+        ${isSelectionMode ? "cursor-pointer" : "cursor-default"}
         ${isDragging ? "opacity-40 scale-95" : ""}
       `}
       style={{
         animationDelay: `${index * 20}ms`,
-        touchAction: isPointerDragging.current ? 'none' : 'auto'
+        touchAction: 'pan-y',
+        userSelect: 'none'
       }}
     >
       <div
-        onClick={onClick}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onContextMenu={(e) => {
-          // Prevent context menu during long press to allow drag to start
-          if (longPressTimer.current || isPointerDragging.current) {
-            e.preventDefault();
-          }
-        }}
         className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all duration-300
           ${isSelectionMode
             ? isItemSelected
@@ -562,7 +518,7 @@ function GridItem({
         {thumbnail ? (
           <img
             src={thumbnail}
-            className="w-full h-full object-contain bg-white dark:bg-gray-900"
+            className="w-full h-full object-contain bg-white dark:bg-gray-900 pointer-events-none"
             alt={`Slide ${index + 1}`}
           />
         ) : (
@@ -571,10 +527,8 @@ function GridItem({
           </div>
         )}
 
-        {/* Hover Overlay */}
         <div className="absolute inset-0 bg-orange-500/0 group-hover:bg-orange-500/5 transition-colors" />
 
-        {/* Selection Checkbox */}
         {isSelectionMode && (
           <div
             onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
@@ -588,9 +542,10 @@ function GridItem({
           </div>
         )}
 
-        {/* Actions Toolbar (Top right on hover) */}
         {!isSelectionMode && (
-          <div className="absolute top-2 right-2 flex gap-1 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 z-20">
+          <div className={`absolute top-2 right-2 flex gap-1 transition-all duration-200 z-20
+            ${isSelected ? "opacity-100 translate-y-0" : "opacity-0 group-hover:translate-y-0 group-hover:opacity-100 translate-y-2"}
+          `}>
             {!isFirst && (
               <button
                 onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
@@ -609,6 +564,18 @@ function GridItem({
                 <ChevronDown size={14} />
               </button>
             )}
+            <div
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 rounded bg-black/50 text-white cursor-grab active:cursor-grabbing shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]"
+              title="Drag to Reorder"
+              style={{ touchAction: 'none' }}
+            >
+              <GripVertical size={14} />
+            </div>
             <button
               onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
               className="p-1.5 rounded bg-black/50 text-white hover:bg-black/70 shadow-lg backdrop-blur flex items-center justify-center min-w-[24px] min-h-[24px]"
@@ -628,7 +595,6 @@ function GridItem({
           </div>
         )}
 
-        {/* Slide Number Badge */}
         <div className={`absolute bottom-2 right-2 px-2 py-1 rounded-md text-xs font-bold shadow-sm transition-colors z-10
           ${isSelected && !isSelectionMode ? "bg-orange-500 text-white" : "bg-black/60 text-white group-hover:bg-orange-500"}
         `}>

@@ -390,11 +390,9 @@ function PageItem({
 }) {
   const editor = useEditor();
   const itemRef = useRef<HTMLDivElement>(null);
-  const longPressTimer = useRef<number | null>(null);
-  const isPointerDragging = useRef(false);
-  const startY = useRef(0);
+  const isStylusDragging = useRef(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
 
-  // Find an image asset thumbnail (for PDF pages)
   const imageAssetSrc = useValue(
     `thumbnail-${page.id}`,
     () => {
@@ -415,58 +413,31 @@ function PageItem({
   const thumbnail = cachedThumbnail || imageAssetSrc;
   const slideNumber = index + 1;
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", page.id);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only handle left click/primary pointer
+    if (e.button !== 0) return;
+    
+    e.stopPropagation(); // Prevent triggering selection on the parent container
+
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    isStylusDragging.current = true;
+    
+    console.log(`[Sidebar] Drag STARTED via Handle (${e.pointerType})`);
+    
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
+    
     onDragStart();
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    onDragOver(index);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    onDrop();
-  };
-
-  // Pointer/touch drag support
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.pointerType === "mouse") return;
-
-    // Don't start drag if clicking buttons
-    if ((e.target as HTMLElement).closest('button')) return;
-
-    startY.current = e.clientY;
-    isPointerDragging.current = false;
-
-    // Capture on currentTarget (the slide div) instead of e.target
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    // Increased to 350ms for more responsive feel with stylus/smart board
-    longPressTimer.current = window.setTimeout(() => {
-      isPointerDragging.current = true;
-      onDragStart();
-    }, 350);
-  };
-
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (e.pointerType === "mouse") return;
-    if (!isPointerDragging.current) {
-      if (Math.abs(e.clientY - startY.current) > 5) {
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
-      }
-      return;
-    }
+    if (!isStylusDragging.current) return;
 
-    // During drag, prevent default to stop scrolling
-    e.preventDefault();
+    // If we are dragging, prevent default behavior
+    if (e.cancelable) e.preventDefault();
 
+    // Find what's under the pointer
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const pageItem = el?.closest("[data-page-index]");
     if (pageItem) {
@@ -474,11 +445,12 @@ function PageItem({
       onDragOver(targetIndex);
     }
 
+    // Handle auto-scrolling the sidebar
     const scrollContainer = itemRef.current?.closest(".sidebar-pages") as HTMLElement;
     if (scrollContainer) {
       const rect = scrollContainer.getBoundingClientRect();
       const scrollZone = 60;
-      const scrollSpeed = 8;
+      const scrollSpeed = 10;
       if (e.clientY < rect.top + scrollZone) {
         scrollContainer.scrollTop -= scrollSpeed;
       } else if (e.clientY > rect.bottom - scrollZone) {
@@ -488,27 +460,32 @@ function PageItem({
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
-    if (e.pointerType === "mouse") return;
-
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    if (isPointerDragging.current) {
-      isPointerDragging.current = false;
+    if (isStylusDragging.current) {
+      isStylusDragging.current = false;
+      console.log(`[Sidebar] Drag DROPPED (${e.pointerType})`);
       onDrop();
+      e.stopPropagation();
     }
-
-    onDragEnd();
 
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) {
         e.currentTarget.releasePointerCapture(e.pointerId);
       }
-    } catch (err) {
-      // Ignore capture release errors
+    } catch (err) {}
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    if (isStylusDragging.current) {
+      console.log(`[Sidebar] Drag CANCELLED (${e.pointerType})`);
+      isStylusDragging.current = false;
+      onDragEnd();
     }
+    
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch (err) {}
   };
 
   return (
@@ -516,42 +493,26 @@ function PageItem({
       ref={itemRef}
       data-page-index={index}
       data-selected={isSelected}
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
       onClick={onClick}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onContextMenu={(e) => {
-        // Prevent context menu during long press to allow drag to start
-        if (longPressTimer.current || isPointerDragging.current) {
-          e.preventDefault();
-        }
-      }}
-      className={`group relative cursor-grab active:cursor-grabbing transition-all overflow-hidden
-                ${isDragging ? "opacity-40 scale-95" : ""}
+      className={`group relative transition-all overflow-hidden
+                ${isDragging ? "opacity-40 scale-95" : "cursor-pointer"}
                 ${isDropTarget && !isDragging ? "ring-4 ring-orange-400 ring-offset-2 dark:ring-offset-gray-900" : ""}
                 ${isSelected ? "border-2 border-orange-500 ring-4 ring-orange-500/30 scale-[1.02] shadow-xl shadow-orange-500/20 dark:shadow-orange-500/10 z-10" : "hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-600"}
             `}
       style={{
-        touchAction: isPointerDragging.current ? 'none' : 'auto'
+        touchAction: 'pan-y', // Allow vertical scrolling on the slide item
+        userSelect: 'none'
       }}
     >
-      {/* Drop indicator line */}
       {isDropTarget && !isDragging && (
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-orange-500 z-10" />
       )}
 
-      {/* Thumbnail */}
       {thumbnail ? (
         <div className="w-full aspect-video bg-white dark:bg-gray-700">
           <img
             src={thumbnail}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain pointer-events-none"
             draggable={false}
           />
         </div>
@@ -563,20 +524,18 @@ function PageItem({
         </div>
       )}
 
-      {/* Slide number badge */}
       <div
         className={`absolute top-1 left-1 min-w-[20px] h-5 flex items-center justify-center rounded text-[10px] font-bold px-1 ${isSelected ? "bg-orange-500 text-white shadow-lg shadow-orange-500/40" : "bg-black/50 text-white"}`}
       >
         {slideNumber}
       </div>
 
-      {/* Drag handle + delete on hover */}
       <div
         className={`absolute top-1 right-1 flex gap-1 transition-opacity ${isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
       >
         {!isFirst && (
           <button
-            onClick={onMoveUp}
+            onClick={(e) => { e.stopPropagation(); onMoveUp(e); }}
             className="p-1 rounded bg-black/50 text-white hover:bg-black/70 flex items-center justify-center min-w-[20px] min-h-[20px]"
             title="Move Up"
           >
@@ -585,7 +544,7 @@ function PageItem({
         )}
         {!isLast && (
           <button
-            onClick={onMoveDown}
+            onClick={(e) => { e.stopPropagation(); onMoveDown(e); }}
             className="p-1 rounded bg-black/50 text-white hover:bg-black/70 flex items-center justify-center min-w-[20px] min-h-[20px]"
             title="Move Down"
           >
@@ -593,12 +552,17 @@ function PageItem({
           </button>
         )}
         <div
-          className="p-1 rounded bg-black/50 text-white cursor-grab flex items-center justify-center min-w-[20px] min-h-[20px]"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          className="p-1 rounded bg-black/50 text-white cursor-grab active:cursor-grabbing flex items-center justify-center min-w-[20px] min-h-[20px]"
+          style={{ touchAction: 'none' }} // Crucial: handle is exclusively for dragging
         >
           <GripVertical size={14} />
         </div>
         <button
-          onClick={(e) => onDelete(page.id, e)}
+          onClick={(e) => { e.stopPropagation(); onDelete(page.id, e); }}
           className="p-1 rounded bg-red-500/70 text-white hover:bg-red-500 flex items-center justify-center min-w-[20px] min-h-[20px]"
           title="Delete Page"
         >
