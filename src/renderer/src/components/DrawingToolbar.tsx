@@ -235,42 +235,31 @@ function PenGroupButton({
   }
 
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
-  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
   const iconSize = isCompact ? 16 : 18
 
   return (
     <div className="relative" ref={flyoutRef}>
-      {/* Main button */}
-      <div className="flex items-center">
-        <button
-          onClick={() => handleSelect(selectedTool)}
-          className={`
-            relative flex items-center justify-center
-            ${btnSizeClass} rounded-l-xl transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} shadow-md ${theme.shadow}`
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-            }
-          `}
-          title={selectedTool.label}
-        >
-          <Icon size={iconSize} />
-        </button>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`
-            flex items-center justify-center
-            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
-              : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
-            }
-          `}
-          title="More drawing tools"
-        >
-          <ChevronDown size={12} />
-        </button>
-      </div>
+      {/* Main button - click to select, click again when active to open dropdown */}
+      <button
+        onClick={() => {
+          if (isGroupActive) {
+            setIsOpen(!isOpen)
+          } else {
+            handleSelect(selectedTool)
+          }
+        }}
+        className={`
+          relative flex items-center justify-center
+          ${btnSizeClass} rounded-xl transition-all duration-150
+          ${isGroupActive
+            ? `${theme.bg} shadow-md ${theme.shadow}`
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+          }
+        `}
+        title={selectedTool.label}
+      >
+        <Icon size={iconSize} />
+      </button>
 
       {/* Flyout */}
       {isOpen && (
@@ -368,42 +357,31 @@ function EraserGroupButton({
   const ActiveIcon = getActiveIcon()
 
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
-  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
   const iconSize = isCompact ? 16 : 18
 
   return (
     <div className="relative" ref={flyoutRef}>
-      {/* Split button */}
-      <div className="flex items-center">
-        <button
-          onClick={onSelectTool}
-          className={`
-            relative flex items-center justify-center
-            ${btnSizeClass} rounded-l-xl transition-all duration-150
-            ${isActive
-              ? `${theme.bg} shadow-md ${theme.shadow}`
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-            }
-          `}
-          title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
-        >
-          <ActiveIcon size={iconSize} />
-        </button>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`
-            flex items-center justify-center
-            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
-            ${isActive
-              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
-              : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
-            }
-          `}
-          title="Eraser options"
-        >
-          <ChevronDown size={12} />
-        </button>
-      </div>
+      {/* Main button - click to select, click again when active to open dropdown */}
+      <button
+        onClick={() => {
+          if (isActive) {
+            setIsOpen(!isOpen)
+          } else {
+            onSelectTool()
+          }
+        }}
+        className={`
+          relative flex items-center justify-center
+          ${btnSizeClass} rounded-xl transition-all duration-150
+          ${isActive
+            ? `${theme.bg} shadow-md ${theme.shadow}`
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+          }
+        `}
+        title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
+      >
+        <ActiveIcon size={iconSize} />
+      </button>
 
       {/* Flyout */}
       {isOpen && (
@@ -577,42 +555,31 @@ function ShapeGroupButton({
   }
 
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
-  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
   const iconSize = isCompact ? 16 : 18
 
   return (
     <div className="relative" ref={flyoutRef}>
-      {/* Split button */}
-      <div className="flex items-center">
-        <button
-          onClick={handleMainClick}
-          className={`
-            relative flex items-center justify-center
-            ${btnSizeClass} rounded-l-xl transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} shadow-md ${theme.shadow}`
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-            }
-          `}
-          title={selectedShape.label}
-        >
-          <Icon size={iconSize} />
-        </button>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`
-            flex items-center justify-center
-            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
-              : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
-            }
-          `}
-          title="More shapes"
-        >
-          <ChevronDown size={12} />
-        </button>
-      </div>
+      {/* Main button - click to select, click again when active to open dropdown */}
+      <button
+        onClick={() => {
+          if (isGroupActive) {
+            setIsOpen(!isOpen)
+          } else {
+            handleMainClick()
+          }
+        }}
+        className={`
+          relative flex items-center justify-center
+          ${btnSizeClass} rounded-xl transition-all duration-150
+          ${isGroupActive
+            ? `${theme.bg} shadow-md ${theme.shadow}`
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+          }
+        `}
+        title={selectedShape.label}
+      >
+        <Icon size={iconSize} />
+      </button>
 
       {/* Flyout – grid layout for shapes */}
       {isOpen && (
@@ -855,42 +822,31 @@ function SelectGroupButton({
   const Icon = selectedTool.icon
 
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
-  const dropdownWidthClass = isCompact ? "w-4" : "w-5"
   const iconSize = isCompact ? 16 : 18
 
   return (
     <div className="relative" ref={flyoutRef}>
-      {/* Main button */}
-      <div className="flex items-center">
-        <button
-          onClick={() => onSelect(selectedTool.id)}
-          className={`
-            relative flex items-center justify-center
-            ${btnSizeClass} rounded-l-xl transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} shadow-md ${theme.shadow}`
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
-            }
-          `}
-          title={selectedTool.label}
-        >
-          <Icon size={iconSize} />
-        </button>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className={`
-            flex items-center justify-center
-            ${dropdownWidthClass} ${isCompact ? 'h-8' : 'h-9'} rounded-r-xl border-l transition-all duration-150
-            ${isGroupActive
-              ? `${theme.bg} ${theme.border || 'border-blue-400'}`
-              : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 border-gray-200 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300 dark:border-gray-600'
-            }
-          `}
-          title="More select tools"
-        >
-          <ChevronDown size={12} />
-        </button>
-      </div>
+      {/* Main button - click to select, click again when active to open dropdown */}
+      <button
+        onClick={() => {
+          if (isGroupActive) {
+            setIsOpen(!isOpen)
+          } else {
+            onSelect(selectedTool.id)
+          }
+        }}
+        className={`
+          relative flex items-center justify-center
+          ${btnSizeClass} rounded-xl transition-all duration-150
+          ${isGroupActive
+            ? `${theme.bg} shadow-md ${theme.shadow}`
+            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+          }
+        `}
+        title={selectedTool.label}
+      >
+        <Icon size={iconSize} />
+      </button>
 
       {/* Flyout */}
       {isOpen && (
