@@ -118,10 +118,11 @@ export function ToolsSidebar({
     penTools: "main",
     eraser: "main",
     shapes: "main",
-    handTool: "main",
-    lockPage: "main",
+    handTool: "nav",
+    lockPage: "nav",
     addPage: "main",
-    zoomInOut: "nav",
+    pageNav: "main",
+    zoomInOut: "hidden",
     fitToScreen: "nav",
   };
 

@@ -967,11 +967,11 @@ function AppContent() {
     penTools: "main",
     eraser: "main",
     shapes: "main",
-    handTool: "main",
-    lockPage: "main",
+    handTool: "nav",
+    lockPage: "nav",
     addPage: "main",
-    pageNav: "nav",
-    zoomInOut: "nav",
+    pageNav: "main",
+    zoomInOut: "hidden",
     fitToScreen: "nav",
   };
 
