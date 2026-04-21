@@ -82,19 +82,40 @@ class AreaEraserDragging extends StateNode {
 			const bounds = this.editor.getShapePageBounds(shape)
             if (!bounds) continue
 
-            // Check more points for better precision with area eraser
-            const pointsToCheck = [
+            const pointsToCheck: { x: number; y: number }[] = []
+
+            if (shape.type === 'super-pen' || shape.type === 'draw' || shape.type === 'custom-draw') {
+                const props = shape.props as any
+                let localPoints: { x: number; y: number }[] = []
+                
+                if (props.points) {
+                    localPoints = props.points
+                } else if (props.segments) {
+                    localPoints = props.segments.flatMap((s: any) => s.points)
+                }
+
+                if (localPoints.length > 0) {
+                    const transform = this.editor.getShapePageTransform(shape)
+                    // Sample points if there are too many for performance
+                    const step = Math.max(1, Math.floor(localPoints.length / 50))
+                    for (let i = 0; i < localPoints.length; i += step) {
+                        pointsToCheck.push(transform.applyToPoint(localPoints[i]))
+                    }
+                }
+            }
+
+            // Always include bounds points as fallback or for non-stroke shapes
+            pointsToCheck.push(
                 { x: bounds.minX, y: bounds.minY },
                 { x: bounds.maxX, y: bounds.minY },
                 { x: bounds.minX, y: bounds.maxY },
                 { x: bounds.maxX, y: bounds.maxY },
                 { x: bounds.midX, y: bounds.midY },
-                // Add quarter points for better detection
                 { x: (bounds.minX + bounds.midX) / 2, y: (bounds.minY + bounds.midY) / 2 },
                 { x: (bounds.maxX + bounds.midX) / 2, y: (bounds.minY + bounds.midY) / 2 },
                 { x: (bounds.minX + bounds.midX) / 2, y: (bounds.maxY + bounds.midY) / 2 },
                 { x: (bounds.maxX + bounds.midX) / 2, y: (bounds.maxY + bounds.midY) / 2 },
-            ]
+            )
 			
 			if (pointsToCheck.some(p => this.isPointInPolygon(p, this.points))) {
 				shapesToErase.push(shape.id)

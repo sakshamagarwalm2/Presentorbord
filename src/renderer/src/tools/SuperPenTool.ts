@@ -221,12 +221,8 @@ class Drawing extends StateNode {
 
     const finalPoints = this.pipeline.finish()
 
-    if (finalPoints.length < 2) {
-      this.editor.updateShape<TSuperPenShape>({
-        id: this.shapeId,
-        type: 'super-pen',
-        props: { isComplete: true },
-      })
+    if (finalPoints.length === 0) {
+      this.editor.deleteShape(this.shapeId)
     } else {
       // Normalize coordinates: set x,y to top-left and make points relative
       let minX = Infinity
@@ -235,6 +231,10 @@ class Drawing extends StateNode {
         if (p.x < minX) minX = p.x
         if (p.y < minY) minY = p.y
       }
+
+      // Special case for single point to avoid Infinity if all points are the same
+      if (minX === Infinity) minX = finalPoints[0].x
+      if (minY === Infinity) minY = finalPoints[0].y
 
       this.editor.updateShape<TSuperPenShape>({
         id: this.shapeId,

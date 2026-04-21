@@ -153,13 +153,13 @@ function erasePointsNearCursor(editor: Editor, cursorPoint: Vec2d, radius: numbe
 					currentRun.push(point)
 				} else {
 					modified = true
-					if (currentRun.length >= 2) {
+					if (currentRun.length > 0) {
 						newSegments.push({ type: segment.type || 'free', points: [...currentRun] })
 					}
 					currentRun = []
 				}
 			}
-			if (currentRun.length >= 2) {
+			if (currentRun.length > 0) {
 				newSegments.push({ type: segment.type || 'free', points: [...currentRun] })
 			}
 		}

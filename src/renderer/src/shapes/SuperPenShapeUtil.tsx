@@ -5,6 +5,7 @@ import {
   SvgExportContext,
   Circle2d,
   Polyline2d,
+  Polygon2d,
   Vec,
   TLResizeInfo,
 } from 'tldraw'
@@ -201,12 +202,42 @@ export class SuperPenShapeUtil extends ShapeUtil<TSuperPenShape> {
   }
 
   override getGeometry(shape: TSuperPenShape) {
-    const pts = shape.props.points
-    if (!pts || pts.length < 2) {
-      return new Circle2d({ x: 0, y: 0, radius: 2, isFilled: true })
+    const { points, size, mode, isComplete, dash } = shape.props
+    if (!points || points.length === 0) {
+      return new Circle2d({ x: 0, y: 0, radius: size / 2, isFilled: true })
     }
-    return new Polyline2d({
-      points: pts.map((p) => new Vec(p.x, p.y)),
+
+    if (points.length < 2) {
+      return new Circle2d({
+        x: points[0].x,
+        y: points[0].y,
+        radius: size / 2,
+        isFilled: true,
+      })
+    }
+
+    // For multiple points, we want a geometry that matches the visible stroke.
+    // Polyline2d is okay for thin lines, but for thick strokes it's better to use the outline.
+    const hasPressure = detectRealPressure(points)
+    const options = getFreehandOptions(mode, size, isComplete, dash, hasPressure)
+    
+    let outlinePoints: number[][]
+    if (mode === 'marker') {
+      outlinePoints = getMarkerOutlinePoints(points, size, options)
+    } else {
+      const inputPoints = points.map(p => [p.x, p.y, p.z])
+      outlinePoints = getStroke(inputPoints, options)
+    }
+
+    if (outlinePoints.length < 3) {
+        return new Polyline2d({
+            points: points.map((p) => new Vec(p.x, p.y)),
+        })
+    }
+
+    return new Polygon2d({
+        points: outlinePoints.map(([x, y]) => new Vec(x, y)),
+        isFilled: true
     })
   }
 
