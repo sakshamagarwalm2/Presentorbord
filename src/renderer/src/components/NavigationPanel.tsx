@@ -144,7 +144,7 @@ export function NavigationPanel({
               <Menu size={iconSize} />
             </button>
             {moreMenuOpen && (
-              <div className="absolute bottom-full mb-2 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[150px] z-[99999]">
+              <div className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-1 flex flex-col gap-1 min-w-[150px] z-[99999]">
                 {MORE_TOOLS.map((tool) => {
                   const TIcon = tool.icon as React.FC<any>;
                   const isActive = activeTool === tool.id;
