@@ -30,6 +30,7 @@ export function Sidebar({
   duplicatePage,
   handleExportImage,
   handleExportPdf,
+  side = "left",
 }: {
   onImport: () => void;
   isOpen: boolean;
@@ -40,6 +41,7 @@ export function Sidebar({
   duplicatePage: () => void;
   handleExportImage: () => void;
   handleExportPdf: () => void;
+  side?: "left" | "right";
 }) {
   const editor = useEditor();
   const pages = useValue("pages", () => {
@@ -198,19 +200,26 @@ export function Sidebar({
         <button
           data-sidebar
           onClick={() => onToggle(true)}
-          className="absolute left-3 top-3 z-[99999] p-1.5 bg-gradient-to-r from-orange-400 to-pink-500 backdrop-blur-md rounded-lg hover:from-orange-300 hover:to-pink-400 transition-all shadow-lg shadow-orange-500/30"
+          className={`absolute ${side === 'left' ? 'left-3' : 'right-3'} top-3 z-[99999] p-1.5 bg-gradient-to-r from-orange-400 to-pink-500 backdrop-blur-md rounded-lg hover:from-orange-300 hover:to-pink-400 transition-all shadow-lg shadow-orange-500/30`}
           title="Expand Sidebar"
         >
-          <ChevronRight
-            size={16}
-            className="text-white drop-shadow-md"
-          />
+          {side === 'left' ? (
+            <ChevronRight
+              size={16}
+              className="text-white drop-shadow-md"
+            />
+          ) : (
+            <ChevronLeft
+              size={16}
+              className="text-white drop-shadow-md"
+            />
+          )}
         </button>
       )}
 
       <div
         data-sidebar
-        className={`absolute top-0 left-0 bottom-0 z-[99998] transform transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : "-translate-x-96 opacity-0 pointer-events-none"}`}
+        className={`absolute top-0 ${side === 'left' ? 'left-0' : 'right-0'} bottom-0 z-[99998] transform transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : (side === 'left' ? "-translate-x-96" : "translate-x-96") + " opacity-0 pointer-events-none"}`}
       >
         <div className="w-72 h-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg flex flex-col">
           <div className="px-2 py-2 flex justify-between items-center">
@@ -251,7 +260,7 @@ export function Sidebar({
                   <Upload size={14} />
                 </button>
                 {showExportMenu && (
-                  <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-[100000] overflow-hidden">
+                  <div className={`absolute top-full ${side === 'left' ? 'left-0' : 'right-0'} mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-[100000] overflow-hidden`}>
                     <button
                       onClick={onExportImage}
                       className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
@@ -295,7 +304,7 @@ export function Sidebar({
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
                 title="Collapse"
               >
-                <ChevronLeft size={14} />
+                {side === 'left' ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
               </button>
             </div>
           </div>

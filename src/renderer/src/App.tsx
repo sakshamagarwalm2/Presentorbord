@@ -1363,6 +1363,7 @@ function AppContent() {
         duplicatePage={duplicatePage}
         handleExportImage={handleExportImage}
         handleExportPdf={handleExportPdf}
+        side={navPosition === "right" ? "left" : "right"}
       />
       <ToolsSidebar
         onImportClick={handleImportClick}
@@ -1377,6 +1378,7 @@ function AppContent() {
         toolbarSettings={toolbarSettings}
         onToolbarSettingsChange={handleToolbarSettingsChange}
         onOpenTimer={() => setShowTimer(true)}
+        side={navPosition === "right" ? "right" : "left"}
       />
       <DrawingToolbar 
         showRecentColors={showRecentColors} 

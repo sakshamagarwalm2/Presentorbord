@@ -63,6 +63,7 @@ interface ToolsSidebarProps {
   toolbarSettings?: ToolbarSettings;
   onToolbarSettingsChange?: (settings: ToolbarSettings) => void;
   onOpenTimer?: () => void;
+  side?: "left" | "right";
 }
 
 interface Bookmark {
@@ -82,6 +83,7 @@ export function ToolsSidebar({
   toolbarSettings,
   onToolbarSettingsChange,
   onOpenTimer,
+  side = "right",
 }: ToolsSidebarProps) {
   const editor = useEditor();
   const [showAbout, setShowAbout] = useState(false);
@@ -237,17 +239,21 @@ return (
         <button
           data-sidebar
           onClick={() => onToggle(true)}
-          className="absolute right-3 top-2 z-[99999] p-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 backdrop-blur-md rounded-lg hover:from-cyan-300 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/30"
+          className={`absolute ${side === 'right' ? 'right-3' : 'left-3'} top-2 z-[99999] p-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 backdrop-blur-md rounded-lg hover:from-cyan-300 hover:to-blue-400 transition-all shadow-lg shadow-cyan-500/30`}
           title="Expand Tools"
         >
-          <ChevronLeft size={16} className="text-white drop-shadow-md" />
+          {side === 'right' ? (
+            <ChevronLeft size={16} className="text-white drop-shadow-md" />
+          ) : (
+            <ChevronRight size={16} className="text-white drop-shadow-md" />
+          )}
         </button>
       )}
 
-      {/* Main Sidebar - Right Side */}
+      {/* Main Sidebar */}
       <div
         data-sidebar
-        className={`absolute top-2 right-3 z-[99998] transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : "translate-x-64 opacity-0 pointer-events-none"}`}
+        className={`absolute top-2 ${side === 'right' ? 'right-3' : 'left-3'} z-[99998] transition-all duration-300 ${isOpen ? "translate-x-0 opacity-100" : (side === 'right' ? "translate-x-64" : "-translate-x-64") + " opacity-0 pointer-events-none"}`}
       >
         <div className="w-14 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-2xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col items-center py-2 gap-2">
           {/* Header / Collapse */}
@@ -257,7 +263,7 @@ return (
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 transition-colors"
               title="Collapse"
             >
-              <ChevronRight size={16} />
+              {side === 'right' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
           )}
 
@@ -271,11 +277,12 @@ return (
                 label="Tools"
                 isActive={showTools}
                 onClick={() => showTools ? setShowTools(false) : openDropdown("tools")}
+                side={side}
               />
 
               {/* Tools Sub-menu */}
               {showTools && (
-                <div className="absolute right-full top-0 ml-3 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap">
+                <div className={`absolute ${side === 'right' ? 'right-full mr-3' : 'left-full ml-3'} top-0 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap`}>
                   <ToolButton
                     icon={Timer}
                     label="Timer"
@@ -283,6 +290,7 @@ return (
                       onOpenTimer?.();
                       setShowTools(false);
                     }}
+                    side={side === 'right' ? 'left' : 'right'} // Label should be on opposite side of sub-menu popout
                   />
                   <ToolButton
                     icon={CalcIcon}
@@ -291,6 +299,7 @@ return (
                       openSystemCalculator();
                       setShowTools(false);
                     }}
+                    side={side === 'right' ? 'left' : 'right'}
                   />
                   <ToolButton
                     icon={LineChart}
@@ -299,19 +308,20 @@ return (
                       openGraph();
                       setShowTools(false);
                     }}
+                    side={side === 'right' ? 'left' : 'right'}
                   />
                 </div>
               )}
             </div>
 
-            <ToolButton icon={Globe} label="Browser" onClick={openBrowser} />
+            <ToolButton icon={Globe} label="Browser" onClick={openBrowser} side={side} />
 
             <div className="relative">
-              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} />
+              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} side={side} />
 
               {/* Bookmarks dropdown */}
               {showBookmarks && (
-                <div className="absolute right-full top-0 ml-3 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap w-52">
+                <div className={`absolute ${side === 'right' ? 'right-full mr-3' : 'left-full ml-3'} top-0 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap w-52`}>
                   {/* Add bookmark input */}
                   <div className="flex items-center gap-1">
                     <input
@@ -361,6 +371,7 @@ return (
                   onToggle(true);
                   setShowCustomize(true);
                 }}
+                side={side}
               />
 
               {/* About Button */}
@@ -371,6 +382,7 @@ return (
                   onToggle(true);
                   setShowAbout(true);
                 }}
+                side={side}
               />
 </div>
           </div>
@@ -629,11 +641,13 @@ function ToolButton({
   label,
   isActive,
   onClick,
+  side = "right",
 }: {
   icon: any;
   label: string;
   isActive?: boolean;
   onClick: () => void;
+  side?: "left" | "right";
 }) {
   return (
     <button
@@ -642,7 +656,7 @@ function ToolButton({
       title={label}
     >
       <Icon size={18} strokeWidth={1.5} />
-      <span className="text-[9px] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute bg-gray-800 text-white px-2 py-0.5 rounded-md right-full mr-2 whitespace-nowrap pointer-events-none z-[100]">
+      <span className={`text-[9px] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute bg-gray-800 text-white px-2 py-0.5 rounded-md ${side === 'right' ? 'right-full mr-2' : 'left-full ml-2'} whitespace-nowrap pointer-events-none z-[100]`}>
         {label}
       </span>
     </button>
