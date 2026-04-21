@@ -964,7 +964,10 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
       case 'lock':
         editor.updateShapes(editor.getSelectedShapes().map(shape => ({ ...shape, isLocked: true })))
         break
-      case 'unlock-all':
+      case 'unlock':
+        editor.updateShapes(editor.getSelectedShapes().map(shape => ({ ...shape, isLocked: false })))
+        break
+      case 'unlock-all': {
         const currentPageId = editor.getCurrentPageId()
         const shapeIds = editor.getSortedChildIdsForParent(currentPageId)
         const shapesToUnlock = shapeIds
@@ -979,6 +982,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           })))
         }
         break
+      }
     }
   }
 
@@ -1267,7 +1271,9 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             <div className="flex items-center gap-1 mr-1 relative" ref={dropdownRef}>
               <button
                 onClick={() => {
-                  setShowCopyPasteDropdown(!showCopyPasteDropdown)
+                  const newState = !showCopyPasteDropdown;
+                  console.log("[DrawingToolbar] Toggling copy/paste dropdown. New state:", newState);
+                  setShowCopyPasteDropdown(newState)
                   setDuplicateCount(0) // reset offset when opening
                 }}
                 className={`${btnSize} flex items-center justify-center rounded-xl transition-all duration-200 text-gray-500 hover:bg-blue-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-400`}
@@ -1332,7 +1338,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                   </button>
                   <button
                     onClick={() => {
-                      handleAction('lock')
+                      handleAction('unlock')
                       setShowCopyPasteDropdown(false)
                     }}
                     disabled={selectedShapeIds.length === 0}

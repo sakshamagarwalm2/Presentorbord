@@ -10,11 +10,12 @@ import {
   ZERO_INDEX_KEY,
   DefaultColorStyle,
 } from "@tldraw/tldraw";
+console.log("!!! APP.TSX FILE LOADED !!!");
 import "@tldraw/tldraw/tldraw.css";
 import { fitSlideToViewport, animateSlideToViewport } from "./utils/slideCamera";
 
 import { useSubjectMode } from "./store/useSubjectMode";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useGeometrySnapping } from "./utils/useGeometrySnapping";
 
 import { Sidebar } from "./components/Sidebar";
@@ -68,115 +69,7 @@ import {
 } from "./store/styleSignals";
 
 // Context Menu Overrides
-const overrides: TLUiOverrides = {
-  // @ts-ignore - contextMenu might not be in the type definition but is supported
-  contextMenu: (editor: any, contextMenu: any, { actions }: any) => {
-    const selectedShapes = editor.getSelectedShapes();
-
-    // Filter out images (PDF slides and imported images)
-    const copyableShapes = selectedShapes.filter(
-      (shape: any) => shape.type !== "image",
-    );
-
-    // Only show if we have copyable shapes selected
-    if (copyableShapes.length === 0) return contextMenu;
-
-    const copyToSlideAction = {
-      id: "copy-to-slide",
-      label: "Copy to Slide",
-      readonlyOk: false,
-      onSelect: () => {
-        // Dispatch custom event to notify App component
-        window.dispatchEvent(
-          new CustomEvent("request-copy-to-slide", {
-            detail: { shapeIds: copyableShapes.map((s: any) => s.id) },
-          }),
-        );
-      },
-    };
-
-    // Insert at the beginning or specific position
-
-    const lockSelectedAction = {
-      id: "lock-selected",
-      label: "Lock Selected",
-      readonlyOk: false,
-      onSelect: () => {
-        editor.updateShapes(
-          selectedShapes.map((s: any) => ({ ...s, isLocked: true })),
-        );
-      },
-    };
-
-    const unlockAllAction = {
-      id: "unlock-all",
-      label: "Unlock All (Non-Background)",
-      readonlyOk: false,
-      onSelect: () => {
-        const currentPageId = editor.getCurrentPageId();
-        const shapeIds = editor.getSortedChildIdsForParent(currentPageId);
-        const shapesToUnlock = shapeIds
-          .map((id: any) => editor.getShape(id))
-          .filter((s: any) => s && s.isLocked && !s.meta?.isPageBackground) // Skip background
-          .map((s: any) => ({ ...s, isLocked: false }));
-
-        if (shapesToUnlock.length > 0) {
-          editor.updateShapes(shapesToUnlock);
-        }
-      },
-    };
-
-    // Consolidated "Lock Page" Action
-    // This handles both the Viewport (Camera) and the Background Image
-    // The actual logic is now in handleTogglePageLock in AppContent,
-    // this action will trigger it.
-    const isCameraLockedInContextMenu = editor.getCameraOptions().isLocked; // Get current state for label
-
-    const togglePageLockAction = {
-      id: "toggle-page-lock",
-      label: isCameraLockedInContextMenu ? "Unlock Page" : "Lock Page",
-      readonlyOk: true,
-      onSelect: () => {
-        // Dispatch custom event to notify App component
-        window.dispatchEvent(new CustomEvent("request-toggle-page-lock"));
-      },
-    };
-
-    // New Action: Set Selected as Background
-    const setAsBackgroundAction =
-      selectedShapes.length === 1 && selectedShapes[0].type === "image"
-        ? {
-          id: "set-as-background",
-          label: "Set as Page Background",
-          readonlyOk: false,
-          onSelect: () => {
-            const shape = selectedShapes[0];
-            editor.updateShape({
-              ...shape,
-              isLocked: true,
-              meta: { ...shape.meta, isPageBackground: true },
-            });
-          },
-        }
-        : null;
-
-    const newActions = [];
-
-    // 1. Page Lock (First, as requested)
-    newActions.push(togglePageLockAction);
-
-    // 2. Selected Shape Actions
-    if (selectedShapes.length > 0) {
-      newActions.push(lockSelectedAction);
-      if (setAsBackgroundAction) newActions.push(setAsBackgroundAction);
-    }
-
-    // 3. Unlock All
-    newActions.push(unlockAllAction);
-
-    return [copyToSlideAction, ...newActions, ...contextMenu];
-  },
-};
+// Moved into App component to use useMemo
 
 function useWindowSize() {
   const [size, setSize] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -204,6 +97,17 @@ function AppContent() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Prevent browser context menu globally
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      console.log("[AppContent] Right-click detected at:", { x: e.clientX, y: e.clientY });
+      // We prevent default to block the browser's menu
+      e.preventDefault(); 
+    };
+    window.addEventListener("contextmenu", handleContextMenu);
+    return () => window.removeEventListener("contextmenu", handleContextMenu);
+  }, []);
 
   // Poll zoom level and page info
   useEffect(() => {
@@ -1028,6 +932,17 @@ function AppContent() {
     requestAnimationFrame(() => editor.zoomToFit());
   }, [editor]);
 
+  // Listen for custom add page event from context menu
+  useEffect(() => {
+    const handleAddPageRequest = () => {
+      addPage();
+    };
+
+    window.addEventListener("request-add-page", handleAddPageRequest);
+    return () =>
+      window.removeEventListener("request-add-page", handleAddPageRequest);
+  }, [addPage]);
+
   const deletePage = useCallback((id: string) => {
     const pages = editor.getPages();
     if (pages.length <= 1) return;
@@ -1737,16 +1652,78 @@ const components: TLComponents = {
   HelperButtons: null,
 };
 
+// Define overrides outside to be sure they are stable
+const overrides: TLUiOverrides = {
+  actions: (editor, actions) => {
+    console.log("!!! ACTIONS OVERRIDE HIT !!!");
+    
+    actions["copy-annotations-custom"] = {
+      id: "copy-annotations-custom",
+      label: "Copy",
+      onSelect: () => {
+        const selectedShapes = editor.getSelectedShapes();
+        const annotations = selectedShapes.filter((s: any) => s.type !== "image");
+        localStorage.setItem("annotation-clipboard", JSON.stringify(annotations));
+        alert("Annotations copied!");
+      },
+    };
+
+    actions["unlock-all-custom"] = {
+      id: "unlock-all-custom",
+      label: "Unlock All",
+      onSelect: () => {
+        const shapes = editor.getSortedChildIdsForParent(editor.getCurrentPageId())
+          .map(id => editor.getShape(id))
+          .filter((s: any) => s && s.isLocked && !s.meta?.isPageBackground);
+        editor.updateShapes(shapes.map((s: any) => ({ ...s, isLocked: false })));
+        alert("All annotations unlocked!");
+      },
+    };
+
+    return actions;
+  },
+  contextMenu: (editor, schema, helpers) => {
+    console.log("!!! CONTEXT MENU OVERRIDE HIT !!!", schema);
+    
+    // Completely replace the menu
+    return [
+      {
+        id: "custom-group",
+        type: "group",
+        checkbox: false,
+        disabled: false,
+        readonlyOk: true,
+        children: [
+          {
+            id: "copy-item",
+            type: "item",
+            readonlyOk: false,
+            disabled: false,
+            actionItem: helpers.actions["copy-annotations-custom"]
+          },
+          {
+            id: "unlock-item",
+            type: "item",
+            readonlyOk: false,
+            disabled: false,
+            actionItem: helpers.actions["unlock-all-custom"]
+          }
+        ]
+      }
+    ];
+  },
+};
+
 function App(): JSX.Element {
+  console.log("[App] Rendering");
+  
   return (
     <div className="tldraw__editor" style={{ position: "fixed", inset: 0 }}>
-      {/* Custom Close Button Removed - Moved to NavigationPanel */}
       <Tldraw
-        persistenceKey="presentorbord-drawing-state"
         shapeUtils={customShapeUtils}
         tools={customTools}
         components={components}
-        overrides={overrides}
+        overrides={[overrides]}
         options={{ maxPages: 700 }}
       >
         <AppContent />
