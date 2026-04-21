@@ -100,12 +100,11 @@ export function NavigationPanel({
   };
 
   const handleSidebarClick = () => {
-    console.log('[Sidebar] handleSidebarClick called', { isSidebarOpen });
+    const side = position === 'left' ? 'LEFT side of screen' : 'RIGHT side of screen';
+    console.log('[NavigationPanel] Page nav button clicked - panel is on:', side);
     if (isSidebarOpen) {
-      console.log('[Sidebar] Calling onCloseSidebar');
       onCloseSidebar?.();
     } else {
-      console.log('[Sidebar] Calling onOpenSidebar');
       onOpenSidebar?.();
     }
   };
