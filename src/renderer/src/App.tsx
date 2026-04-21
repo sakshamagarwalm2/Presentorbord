@@ -958,6 +958,7 @@ function AppContent() {
   const [navPosition, setNavPosition] = useState<"left" | "right">("right");
   const [showRecentColors, setShowRecentColors] = useState(true);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  console.log('[App] Render, leftSidebarOpen:', leftSidebarOpen);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   const defaultToolbarSettings: ToolbarSettings = {
@@ -1259,11 +1260,13 @@ function AppContent() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      console.log('[ClickOutside] Triggered, target:', target.className, target.tagName);
       // If the click is inside a sidebar, do nothing
       if (target.closest("[data-sidebar]")) return;
       // If the click is on any UI overlay (toolbar, nav panel, etc.), do nothing
       if (target.closest("[data-no-collapse]")) return;
       // Otherwise, collapse both sidebars
+      console.log('[ClickOutside] Closing sidebars');
       setLeftSidebarOpen(false);
       setRightSidebarOpen(false);
     };
@@ -1394,6 +1397,9 @@ function AppContent() {
         onAddPage={addPage}
         isCompact={width < 1100}
         onToggleSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+        onOpenSidebar={() => { console.log('[App] Setting sidebar OPEN'); setLeftSidebarOpen(true); }}
+        onCloseSidebar={() => { console.log('[App] Setting sidebar CLOSED'); setLeftSidebarOpen(false); }}
+        isSidebarOpen={leftSidebarOpen}
         activeTool={editor?.getCurrentToolId()}
         onSelectTool={(toolId) => editor?.setCurrentTool(toolId)}
         onAction={(action) => {
@@ -1440,9 +1446,10 @@ function AppContent() {
                     <ChevronLeft size={width < 1100 ? 16 : 18} />
                   </button>
                   <button
-                    onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+                    data-no-collapse
+                    onClick={() => { console.log('[App] Inline toggle, current:', leftSidebarOpen); leftSidebarOpen ? (console.log('[App] Setting sidebar CLOSED'), setLeftSidebarOpen(false)) : (console.log('[App] Setting sidebar OPEN'), setLeftSidebarOpen(true)); }}
                     className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
-                    title="Open Slides Panel"
+                    title={leftSidebarOpen ? "Close Slides Panel" : "Open Slides Panel"}
                   >
                     {currentPageIndex + 1} / {totalPages}
                   </button>
@@ -1567,9 +1574,10 @@ function AppContent() {
                     <ChevronLeft size={width < 1100 ? 16 : 18} />
                   </button>
                   <button
-                    onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+                    data-no-collapse
+                    onClick={() => { console.log('[App] Inline toggle, current:', leftSidebarOpen); leftSidebarOpen ? (console.log('[App] Setting sidebar CLOSED'), setLeftSidebarOpen(false)) : (console.log('[App] Setting sidebar OPEN'), setLeftSidebarOpen(true)); }}
                     className={`${width < 1100 ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
-                    title="Open Slides Panel"
+                    title={leftSidebarOpen ? "Close Slides Panel" : "Open Slides Panel"}
                   >
                     {currentPageIndex + 1} / {totalPages}
                   </button>

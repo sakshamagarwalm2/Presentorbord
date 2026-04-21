@@ -13,6 +13,9 @@ export function NavigationPanel({
   onAddPage,
   isCompact,
   onToggleSidebar,
+  onCloseSidebar,
+  onOpenSidebar,
+  isSidebarOpen,
   activeTool,
   onSelectTool,
   onAction,
@@ -26,6 +29,9 @@ export function NavigationPanel({
   onAddPage?: () => void;
   isCompact?: boolean;
   onToggleSidebar?: () => void;
+  onCloseSidebar?: () => void;
+  onOpenSidebar?: () => void;
+  isSidebarOpen?: boolean;
   activeTool?: string;
   onSelectTool?: (toolId: string) => void;
   onAction?: (action: string) => void;
@@ -90,6 +96,17 @@ export function NavigationPanel({
     if (currentPageIndex > 0) {
       editor.run(() => editor.setCurrentPage(pages[currentPageIndex - 1].id), { history: 'ignore' });
       requestAnimationFrame(() => animateSlideToViewport(editor));
+    }
+  };
+
+  const handleSidebarClick = () => {
+    console.log('[Sidebar] handleSidebarClick called', { isSidebarOpen });
+    if (isSidebarOpen) {
+      console.log('[Sidebar] Calling onCloseSidebar');
+      onCloseSidebar?.();
+    } else {
+      console.log('[Sidebar] Calling onOpenSidebar');
+      onOpenSidebar?.();
     }
   };
 
@@ -273,11 +290,12 @@ export function NavigationPanel({
               >
                 <ChevronLeft size={iconSize} />
               </button>
-              {onToggleSidebar ? (
+              {onToggleSidebar || onOpenSidebar || onCloseSidebar ? (
                 <button
-                  onClick={onToggleSidebar}
+                  data-no-collapse
+                  onClick={handleSidebarClick}
                   className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
-                  title="Open Slides Panel"
+                  title={isSidebarOpen ? "Close Slides Panel" : "Open Slides Panel"}
                 >
                   {currentPageIndex + 1} / {totalPages}
                 </button>
@@ -308,11 +326,12 @@ export function NavigationPanel({
               >
                 <ChevronLeft size={iconSize} />
               </button>
-              {onToggleSidebar ? (
+              {onToggleSidebar || onOpenSidebar || onCloseSidebar ? (
                 <button
-                  onClick={onToggleSidebar}
+                  data-no-collapse
+                  onClick={handleSidebarClick}
                   className={`${isCompact ? 'text-[10px]' : 'text-xs'} font-medium text-gray-500 dark:text-gray-400 min-w-[4ch] text-center hover:text-blue-500 dark:hover:text-blue-400 transition-colors`}
-                  title="Open Slides Panel"
+                  title={isSidebarOpen ? "Close Slides Panel" : "Open Slides Panel"}
                 >
                   {currentPageIndex + 1} / {totalPages}
                 </button>
