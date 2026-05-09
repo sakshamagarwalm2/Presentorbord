@@ -1,6 +1,6 @@
 import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
 import { Check, SlidersHorizontal, Plus } from 'lucide-react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   currentThicknessSignal,
   currentOpacitySignal,
@@ -20,19 +20,19 @@ interface ColorTheme {
 }
 
 const COLOR_THEMES: Record<string, ColorTheme> = {
-  black: { bg: 'bg-black text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
-  grey: { bg: 'bg-zinc-500 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
-  'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-300' },
-  violet: { bg: 'bg-violet-600 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-500' },
-  blue: { bg: 'bg-blue-500 text-white', shadow: 'shadow-blue-200 dark:shadow-blue-900/40', border: 'border-blue-400' },
-  'light-blue': { bg: 'bg-sky-400 text-white', shadow: 'shadow-sky-200 dark:shadow-sky-900/40', border: 'border-sky-300' },
-  yellow: { bg: 'bg-yellow-400 text-black', shadow: 'shadow-yellow-200 dark:shadow-yellow-900/40', border: 'border-yellow-300' },
-  orange: { bg: 'bg-orange-500 text-white', shadow: 'shadow-orange-200 dark:shadow-orange-900/40', border: 'border-orange-400' },
-  green: { bg: 'bg-green-500 text-white', shadow: 'shadow-green-200 dark:shadow-green-900/40', border: 'border-green-400' },
-  'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-900/40', border: 'border-emerald-300' },
-  red: { bg: 'bg-red-500 text-white', shadow: 'shadow-red-200 dark:shadow-red-900/40', border: 'border-red-400' },
-  'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-900/40', border: 'border-rose-300' },
-  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
+  black: { bg: 'bg-neutral-600 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-700/50', border: 'border-neutral-500' },
+  grey: { bg: 'bg-neutral-400 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-700/50', border: 'border-neutral-400' },
+  'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-700/50', border: 'border-violet-400' },
+  violet: { bg: 'bg-violet-500 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-700/50', border: 'border-violet-500' },
+  blue: { bg: 'bg-blue-400 text-white', shadow: 'shadow-blue-200 dark:shadow-blue-700/50', border: 'border-blue-400' },
+  'light-blue': { bg: 'bg-sky-400 text-white', shadow: 'shadow-sky-200 dark:shadow-sky-700/50', border: 'border-sky-400' },
+  yellow: { bg: 'bg-yellow-400 text-black', shadow: 'shadow-yellow-200 dark:shadow-yellow-600/50', border: 'border-yellow-400' },
+  orange: { bg: 'bg-orange-400 text-white', shadow: 'shadow-orange-200 dark:shadow-orange-700/50', border: 'border-orange-400' },
+  green: { bg: 'bg-green-400 text-white', shadow: 'shadow-green-200 dark:shadow-green-700/50', border: 'border-green-400' },
+  'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-700/50', border: 'border-emerald-400' },
+  red: { bg: 'bg-red-400 text-white', shadow: 'shadow-red-200 dark:shadow-red-700/50', border: 'border-red-400' },
+  'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-700/50', border: 'border-rose-400' },
+  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-700/50', border: 'border-gray-300' },
 }
 
 const FILL_ICONS: Record<string, React.FC<any>> = {
@@ -73,9 +73,18 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   // Use the custom signal if active, otherwise fallback to tldraw's style
   const currentColor = useValue('color', () => {
     const customHex = currentCustomColorSignal.get()
-    // Reverse lookup: if the hex matches a built-in color, use its name
-    const colorName = Object.keys(COLOR_MAP).find(k => COLOR_MAP[k] === customHex)
+    
+    // CASE-INSENSITIVE reverse lookup: if the hex matches a built-in color, use its name
+    const colorName = Object.keys(COLOR_MAP).find(
+      k => COLOR_MAP[k].toLowerCase() === customHex.toLowerCase()
+    )
+    
     if (colorName) return colorName
+
+    // If customHex exists and is NOT in COLOR_MAP (a true custom color), use it directly
+    if (customHex) {
+      return customHex
+    }
 
     const shared = editor.getSharedStyles().get(DefaultColorStyle)
     if (shared && shared.type === 'shared') return shared.value
@@ -86,6 +95,17 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const colorInputRef = useRef<HTMLInputElement>(null)
 
   const isCustomColorActive = !DefaultColorStyle.values.includes(currentColor as any)
+
+  // Debug logging
+  useEffect(() => {
+    if (isVisible) {
+      console.log('[StylePanel] Visible. State:', {
+        currentColor,
+        isCustomColorActive,
+        customColor,
+      })
+    }
+  }, [currentColor, isCustomColorActive, customColor, isVisible])
 
   const currentFill = useValue('fill', () => {
     const shared = editor.getSharedStyles().get(DefaultFillStyle)
@@ -129,18 +149,15 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null
 
   const handleColorChange = (color: string) => {
+    console.log('[StylePanel] handleColorChange (Direct):', color)
     const selected = editor.getSelectedShapes()
     const convertedColor = COLOR_MAP[color] || color
-    console.log('[StylePanel] handleColorChange:', color, 'Converted:', convertedColor, 'Selected shapes:', selected.length)
     
-    // Always update our custom signal for next shapes (tool sync)
     currentCustomColorSignal.set(convertedColor)
+    localStorage.setItem('last-used-color', convertedColor)
 
-    // 1. Update super-pen shapes specifically since they use a custom color prop
     const superPenShapes = selected.filter(s => s.type === 'super-pen')
     if (superPenShapes.length > 0) {
-      console.log('[StylePanel] Updating super-pen shapes color to:', convertedColor)
-
       editor.updateShapes(superPenShapes.map(s => ({
         id: s.id,
         type: 'super-pen',
@@ -148,21 +165,13 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       })))
     }
 
-    // 2. Update all selected shapes using standard style (this covers custom-draw and others)
     if (selected.length > 0) {
-      // ONLY set if it's a valid tldraw color key (like "red", not "#ff0000")
       if (DefaultColorStyle.values.includes(color as any)) {
-        console.log('[StylePanel] Setting style for selected shapes:', color)
         editor.setStyleForSelectedShapes(DefaultColorStyle, color as any)
-      } else {
-        console.log('[StylePanel] Skipping tldraw style update for hex color (standard shapes dont support hex colors natively)')
       }
     }
 
-    // 3. Always update the style for the next shapes to ensure tool synchronization
-    // ONLY set if it's a valid tldraw color key to avoid the ValidationError
     if (DefaultColorStyle.values.includes(color as any)) {
-      console.log('[StylePanel] Setting style for next shapes:', color)
       editor.setStyleForNextShapes(DefaultColorStyle, color as any)
     }
   }
@@ -170,7 +179,14 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value
     setCustomColor(newColor)
-    handleColorChange(newColor)
+    
+    // Debounce the actual application of the color to prevent excessive traffic
+    const timeoutId = setTimeout(() => {
+      console.log('[StylePanel] Applying debounced custom color:', newColor)
+      handleColorChange(newColor)
+    }, 200)
+    
+    return () => clearTimeout(timeoutId)
   }
 
   const handleFillChange = (fill: string) => {
@@ -231,8 +247,8 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const theme = COLOR_THEMES[currentColor] || { bg: 'bg-blue-500 text-white', shadow: 'shadow-blue-200' }
 
   return (
-    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 w-[260px] flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200">
-
+    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-3 w-[260px] flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-200 relative">
+      
       {/* Colors Grid */}
       <div>
         <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Color</p>

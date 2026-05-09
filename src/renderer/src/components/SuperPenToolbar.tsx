@@ -13,8 +13,8 @@ const PEN_MODES = [
 ] as const
 
 const COLORS = [
-  '#1a1a1a', '#ef4444', '#3b82f6', '#22c55e',
-  '#f97316', '#a855f7', '#ec4899', '#ffffff',
+  '#525252', '#f87171', '#60a5fa', '#4ade80',
+  '#fb923c', '#c084fc', '#f472b6', '#ffffff',
 ]
 
 export function SuperPenToolbar() {
@@ -109,9 +109,9 @@ export function SuperPenToolbar() {
               updateSetting('color', c)
             }}
             className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${
-              signalColor === c ? 'border-blue-500 scale-110' : 'border-transparent'
+              signalColor === c ? 'border-blue-400 scale-110' : 'border-gray-300 dark:border-gray-600'
             }`}
-            style={{ backgroundColor: c, boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #ccc' : undefined }}
+            style={{ backgroundColor: c, boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #999' : undefined }}
             title={c}
           />
         ))}
@@ -122,7 +122,7 @@ export function SuperPenToolbar() {
             currentCustomColorSignal.set(e.target.value)
             updateSetting('color', e.target.value)
           }}
-          className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent"
+          className="w-6 h-6 rounded cursor-pointer border-2 border-gray-300 dark:border-gray-600 bg-transparent"
           title="Custom color"
         />
       </div>

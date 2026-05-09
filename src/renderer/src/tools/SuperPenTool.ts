@@ -61,9 +61,7 @@ class Drawing extends StateNode {
   private historyMarkId: string | null = null
 
   private getCurrentColor(): string {
-    const finalColor = currentCustomColorSignal.get()
-    console.log('[SuperPenTool] getCurrentColor from signal:', finalColor)
-    return finalColor
+    return currentCustomColorSignal.get()
   }
 
   private getCurrentThickness(): number {
@@ -121,8 +119,6 @@ class Drawing extends StateNode {
     const size = this.getCurrentThickness()
     const opacity = this.getCurrentOpacity()
     const dash = this.getCurrentDash()
-
-    console.log(`[Drawing] Super Pen Stroke Started: Mode=${mode}, Size=${size}, Opacity=${opacity}`)
 
     this.editor.createShape<TSuperPenShape>({
       id: this.shapeId,

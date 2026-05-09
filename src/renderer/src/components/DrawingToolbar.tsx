@@ -55,19 +55,19 @@ interface ColorTheme {
 }
 
 const COLOR_THEMES: Record<string, ColorTheme> = {
-  black: { bg: 'bg-black text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
-  grey: { bg: 'bg-zinc-500 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-900/40', border: 'border-zinc-400' },
-  'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-300' },
-  violet: { bg: 'bg-violet-600 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-900/40', border: 'border-violet-500' },
-  blue: { bg: 'bg-blue-500 text-white', shadow: 'shadow-blue-200 dark:shadow-blue-900/40', border: 'border-blue-400' },
-  'light-blue': { bg: 'bg-sky-400 text-white', shadow: 'shadow-sky-200 dark:shadow-sky-900/40', border: 'border-sky-300' },
-  yellow: { bg: 'bg-yellow-400 text-black', shadow: 'shadow-yellow-200 dark:shadow-yellow-900/40', border: 'border-yellow-300' },
-  orange: { bg: 'bg-orange-500 text-white', shadow: 'shadow-orange-200 dark:shadow-orange-900/40', border: 'border-orange-400' },
-  green: { bg: 'bg-green-500 text-white', shadow: 'shadow-green-200 dark:shadow-green-900/40', border: 'border-green-400' },
-  'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-900/40', border: 'border-emerald-300' },
-  red: { bg: 'bg-red-500 text-white', shadow: 'shadow-red-200 dark:shadow-red-900/40', border: 'border-red-400' },
-  'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-900/40', border: 'border-rose-300' },
-  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-900/40', border: 'border-gray-300' },
+  black: { bg: 'bg-neutral-600 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-700/50', border: 'border-neutral-500' },
+  grey: { bg: 'bg-neutral-400 text-white', shadow: 'shadow-zinc-200 dark:shadow-zinc-700/50', border: 'border-neutral-400' },
+  'light-violet': { bg: 'bg-violet-400 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-700/50', border: 'border-violet-400' },
+  violet: { bg: 'bg-violet-500 text-white', shadow: 'shadow-violet-200 dark:shadow-violet-700/50', border: 'border-violet-500' },
+  blue: { bg: 'bg-blue-400 text-white', shadow: 'shadow-blue-200 dark:shadow-blue-700/50', border: 'border-blue-400' },
+  'light-blue': { bg: 'bg-sky-400 text-white', shadow: 'shadow-sky-200 dark:shadow-sky-700/50', border: 'border-sky-400' },
+  yellow: { bg: 'bg-yellow-400 text-black', shadow: 'shadow-yellow-200 dark:shadow-yellow-600/50', border: 'border-yellow-400' },
+  orange: { bg: 'bg-orange-400 text-white', shadow: 'shadow-orange-200 dark:shadow-orange-700/50', border: 'border-orange-400' },
+  green: { bg: 'bg-green-400 text-white', shadow: 'shadow-green-200 dark:shadow-green-700/50', border: 'border-green-400' },
+  'light-green': { bg: 'bg-emerald-400 text-black', shadow: 'shadow-emerald-200 dark:shadow-emerald-700/50', border: 'border-emerald-400' },
+  red: { bg: 'bg-red-400 text-white', shadow: 'shadow-red-200 dark:shadow-red-700/50', border: 'border-red-400' },
+  'light-red': { bg: 'bg-rose-400 text-black', shadow: 'shadow-rose-200 dark:shadow-rose-700/50', border: 'border-rose-400' },
+  white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-700/50', border: 'border-gray-300' },
 }
 
 /* ------------------------------------------------------------------ */
@@ -155,18 +155,21 @@ function PenGroupButton({
   activeTheme,
   editor,
   isCompact,
+  customColorHex,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
   activeTheme?: ColorTheme
   editor: any
   isCompact?: boolean
+  customColorHex?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(PEN_GROUP[0])
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
+  const isCustomColor = !!customColorHex
 
   // Close flyout on outside click
   useEffect(() => {
@@ -204,7 +207,14 @@ function PenGroupButton({
   const isGroupActive = PEN_GROUP.some((t) => t.id === activeTool) || activeTool === 'draw' || activeTool === 'super-pen'
   const Icon = selectedTool.icon
 
+  useEffect(() => {
+    if (isGroupActive) {
+      console.log(`[PenGroupButton] Active! Tool: ${activeTool}, Color: ${isCustomColor ? customColorHex : 'Theme'}`)
+    }
+  }, [isGroupActive, activeTool, isCustomColor, customColorHex])
+
   const handleSelect = (tool: ToolDef) => {
+    console.log('[PenGroupButton] handleSelect:', tool.id)
     setSelectedTool(tool)
 
     if (tool.type === 'super-pen') {
@@ -252,10 +262,16 @@ function PenGroupButton({
           relative flex items-center justify-center
           ${btnSizeClass} rounded-xl transition-all duration-150
           ${isGroupActive
-            ? `${theme.bg} shadow-md ${theme.shadow}`
+            ? isCustomColor
+              ? 'shadow-md'
+              : `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
           }
         `}
+        style={isGroupActive && isCustomColor ? { 
+          backgroundColor: customColorHex,
+          boxShadow: theme.shadow
+        } : undefined}
         title={selectedTool.label}
       >
         <Icon size={iconSize} />
@@ -318,6 +334,7 @@ function EraserGroupButton({
   onClearPage,
   activeTheme,
   isCompact,
+  customColorHex,
 }: {
   activeTool: string
   eraserMode: 'shape' | 'precision' | 'area'
@@ -328,11 +345,13 @@ function EraserGroupButton({
   onClearPage: () => void
   activeTheme?: ColorTheme
   isCompact?: boolean
+  customColorHex?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
+  const isCustomColor = !!customColorHex
 
   // Close flyout on outside click
   useEffect(() => {
@@ -346,6 +365,12 @@ function EraserGroupButton({
   }, [])
 
   const isActive = activeTool === 'eraser' || activeTool === 'precision-eraser' || activeTool === 'area-eraser'
+
+  useEffect(() => {
+    if (isActive) {
+      console.log(`[EraserGroupButton] Active! Mode: ${eraserMode}, Size: ${eraserSize}`)
+    }
+  }, [isActive, eraserMode, eraserSize])
 
   const getActiveIcon = () => {
     switch (eraserMode) {
@@ -374,10 +399,17 @@ function EraserGroupButton({
           relative flex items-center justify-center
           ${btnSizeClass} rounded-xl transition-all duration-150
           ${isActive
-            ? `${theme.bg} shadow-md ${theme.shadow}`
+            ? isCustomColor
+              ? 'shadow-md'
+              : `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
           }
         `}
+        style={isActive && isCustomColor ? { 
+          backgroundColor: customColorHex,
+          boxShadow: theme.shadow,
+          '--tw-ring-color': customColorHex 
+        } as React.CSSProperties : undefined}
         title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
       >
         <ActiveIcon size={iconSize} />
@@ -498,11 +530,13 @@ function ShapeGroupButton({
   editor,
   activeTheme,
   isCompact,
+  customColorHex,
 }: {
   activeTool: string
   editor: ReturnType<typeof useEditor>
   activeTheme?: ColorTheme
   isCompact?: boolean
+  customColorHex?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedShape, setSelectedShape] = useState<ShapeDef>(SHAPE_GROUP[0])
@@ -510,6 +544,7 @@ function ShapeGroupButton({
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
+  const isCustomColor = !!customColorHex
 
   // Close flyout on outside click
   useEffect(() => {
@@ -531,6 +566,12 @@ function ShapeGroupButton({
 
   const isGroupActive = SHAPE_GROUP.some((s) => s.id === activeTool)
   const Icon = selectedShape.icon
+
+  useEffect(() => {
+    if (isGroupActive) {
+      console.log(`[ShapeGroupButton] Active! Shape: ${selectedShape.id}, Geo: ${selectedShape.geoType || 'none'}`)
+    }
+  }, [isGroupActive, selectedShape, activeTool])
 
   const handleSelect = (shape: ShapeDef) => {
     setSelectedShape(shape)
@@ -568,14 +609,21 @@ function ShapeGroupButton({
             handleMainClick()
           }
         }}
-        className={`
+className={`
           relative flex items-center justify-center
           ${btnSizeClass} rounded-xl transition-all duration-150
           ${isGroupActive
-            ? `${theme.bg} shadow-md ${theme.shadow}`
+            ? isCustomColor
+              ? 'shadow-md'
+              : `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
           }
         `}
+        style={isGroupActive && isCustomColor ? { 
+          backgroundColor: customColorHex,
+          boxShadow: theme.shadow,
+          '--tw-ring-color': customColorHex 
+} as React.CSSProperties : undefined}
         title={selectedShape.label}
       >
         <Icon size={iconSize} />
@@ -669,15 +717,23 @@ function PaletteButton({
   onToggle,
   activeTheme,
   isCompact,
+  customColorHex,
 }: {
   isVisible: boolean
   onToggle: () => void
   activeTheme?: ColorTheme
   isCompact?: boolean
+  customColorHex?: string
 }) {
   const theme = activeTheme || COLOR_THEMES['blue']
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
   const iconSize = isCompact ? 16 : 18
+
+  useEffect(() => {
+    if (isVisible) {
+      console.log(`[PaletteButton] Style panel visible. Custom color: ${customColorHex || 'none'}`)
+    }
+  }, [isVisible, customColorHex])
 
   return (
     <button
@@ -686,10 +742,16 @@ function PaletteButton({
         relative flex flex-col items-center justify-center
         ${btnSizeClass} rounded-xl transition-all duration-150
         ${isVisible
-          ? `${theme.bg} shadow-md ${theme.shadow}`
+          ? customColorHex
+            ? 'shadow-md'
+            : `${theme.bg} shadow-md ${theme.shadow}`
           : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
         }
       `}
+      style={isVisible && customColorHex ? { 
+        backgroundColor: customColorHex,
+        boxShadow: theme.shadow
+      } : undefined}
       title={isVisible ? 'Hide Styles' : 'Show Styles'}
     >
       <Palette size={iconSize} />
@@ -774,6 +836,7 @@ function SelectGroupButton({
   onToggleLock,
   toolbarSettings,
   isCompact,
+  customColorHex,
 }: {
   activeTool: string
   onSelect: (toolId: string) => void
@@ -782,12 +845,14 @@ function SelectGroupButton({
   onToggleLock: () => void
   toolbarSettings?: ToolbarSettings
   isCompact?: boolean
+  customColorHex?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolDef>(SELECT_GROUP[0])
   const flyoutRef = useRef<HTMLDivElement>(null)
 
   const theme = activeTheme || COLOR_THEMES['blue']
+  const isCustomColor = !!customColorHex
 
   // Close flyout on outside click
   useEffect(() => {
@@ -821,6 +886,12 @@ function SelectGroupButton({
   const isGroupActive = SELECT_GROUP.some((t) => t.id === activeTool)
   const Icon = selectedTool.icon
 
+  useEffect(() => {
+    if (isGroupActive) {
+      console.log(`[SelectGroupButton] Active! Tool: ${activeTool}`)
+    }
+  }, [isGroupActive, activeTool])
+
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
   const iconSize = isCompact ? 16 : 18
 
@@ -839,10 +910,17 @@ function SelectGroupButton({
           relative flex items-center justify-center
           ${btnSizeClass} rounded-xl transition-all duration-150
           ${isGroupActive
-            ? `${theme.bg} shadow-md ${theme.shadow}`
+            ? isCustomColor
+              ? 'shadow-md'
+              : `${theme.bg} shadow-md ${theme.shadow}`
             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
           }
         `}
+        style={isGroupActive && isCustomColor ? { 
+          backgroundColor: customColorHex,
+          boxShadow: theme.shadow,
+          '--tw-ring-color': customColorHex 
+        } as React.CSSProperties : undefined}
         title={selectedTool.label}
       >
         <Icon size={iconSize} />
@@ -902,11 +980,131 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const editor = useEditor()
   const activeTool = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const currentColor = useValue('current color', () => {
+    // First check our custom color signal
+    const customHex = currentCustomColorSignal.get()
+    
+    // CASE-INSENSITIVE reverse lookup: if the hex matches a built-in color, use its name
+    const colorName = Object.keys(COLOR_MAP).find(
+      k => COLOR_MAP[k].toLowerCase() === customHex.toLowerCase()
+    )
+    
+    if (colorName) return colorName
+    
+    // If customHex exists and is NOT in COLOR_MAP (a true custom color), use it directly
+    if (customHex) return customHex
+
     const shared = editor.getSharedStyles().get(DefaultColorStyle)
     if (shared && shared.type === 'shared') return shared.value
     return editor.getStyleForNextShape(DefaultColorStyle)
   }, [editor])
+
+  // Helper functions - defined early for use below
+  const getColorHex = (key: string): string => COLOR_MAP[key] || key
+  const isCustomColorCheck = (colorKey: string): boolean => !Object.keys(COLOR_MAP).includes(colorKey)
+
+  // Build active color theme - use custom theme for hex colors
+  const isCurrentColorCustom = isCustomColorCheck(currentColor)
   const activeColorTheme = COLOR_THEMES[currentColor] || COLOR_THEMES['blue']
+  const activeColorHex = isCurrentColorCustom ? currentColor : getColorHex(currentColor)
+
+  // Recent Colors State - Initialize from localStorage if available
+  const [recentColors, setRecentColors] = useState<Array<{ key: string; hex: string }>>(() => {
+    const saved = localStorage.getItem('recent-colors')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      } catch (e) {
+        console.error('[DrawingToolbar] Failed to parse recent colors', e)
+      }
+    }
+    return [
+      { key: 'white', hex: '#ffffff' },
+      { key: 'yellow', hex: COLOR_MAP['yellow'] },
+      { key: 'blue', hex: COLOR_MAP['blue'] },
+    ]
+  })
+
+  // Update recent colors when current color changes
+  useEffect(() => {
+    if (!currentColor) return
+
+    const currentHex = isCustomColorCheck(currentColor) ? currentColor : getColorHex(currentColor)
+    const colorKey = isCustomColorCheck(currentColor) ? 'custom' : currentColor
+
+    // We use a small delay here to let debounced custom colors settle
+    // before pushing them to the recent list.
+    const timeoutId = setTimeout(() => {
+      setRecentColors(prev => {
+        // CASE-INSENSITIVE check to avoid updating if the color is already the most recent
+        if (prev.length > 0 && prev[0].hex.toLowerCase() === currentHex.toLowerCase()) {
+          return prev
+        }
+
+        console.log('[DrawingToolbar] Pushing to Recent Colors (Settled):', {
+          hex: currentHex,
+          key: colorKey
+        })
+
+        // Remove the color if it exists anywhere else in the list (unique hex only)
+        const next = prev.filter(c => c.hex.toLowerCase() !== currentHex.toLowerCase())
+        
+        // Add the new color to the front
+        next.unshift({ key: colorKey, hex: currentHex })
+        
+        // Keep only top 3
+        const result = next.slice(0, 3)
+        
+        // Persist to localStorage
+        localStorage.setItem('recent-colors', JSON.stringify(result))
+        
+        return result
+      })
+    }, 300) // 300ms settled check
+
+    return () => clearTimeout(timeoutId)
+  }, [currentColor])
+
+  const handleRecentColorClick = (color: string) => {
+    const selectedShapes = editor.getSelectedShapes()
+
+    const convertedColor = COLOR_MAP[color] || color
+
+    const namedColor = Object.keys(COLOR_MAP).find(k => COLOR_MAP[k]?.toLowerCase() === color.toLowerCase()) || color
+    const isColorCustom = !Object.keys(COLOR_MAP).includes(namedColor)
+
+    currentCustomColorSignal.set(convertedColor)
+    localStorage.setItem('last-used-color', convertedColor)
+
+    const superPenShapes = selectedShapes.filter(s => s.type === 'super-pen')
+    if (superPenShapes.length > 0) {
+      editor.updateShapes(superPenShapes.map(s => ({
+        id: s.id,
+        type: 'super-pen',
+        props: { ...s.props, color: convertedColor }
+      })))
+    }
+
+    if (selectedShapes.length > 0 && !isColorCustom) {
+      // @ts-ignore
+      editor.setStyleForSelectedShapes(DefaultColorStyle, namedColor)
+    }
+
+    if (!isColorCustom) {
+      // @ts-ignore
+      editor.setStyleForNextShapes(DefaultColorStyle, namedColor)
+    }
+
+    // If we are not in a drawing tool, switch to the default Pen
+    const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
+    if (!drawingTools.includes(activeTool)) {
+      console.log('[DrawingToolbar] Switching to super-pen tool and clearing selection')
+      editor.setCurrentTool('super-pen')
+      editor.updateInstanceState({ isToolLocked: true })
+      // Deselect everything when we switch to a drawing tool to prevent accidental edits
+      editor.selectNone()
+    }
+  }
 
   // Track camera lock state for the toolbar button
   const isCameraLocked = useValue('camera lock', () => editor.getCameraOptions().isLocked, [editor])
@@ -943,7 +1141,17 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   // Determine if precision eraser is currently active
   const isCustomEraserActive = eraserMode === 'precision' && activeTool === 'precision-eraser'
 
-
+  useEffect(() => {
+    console.log('[DrawingToolbar] Main State:', {
+      activeTool,
+      currentColor,
+      isCurrentColorCustom,
+      activeColorHex,
+      stylePanelVisible,
+      eraserMode,
+      eraserSize
+    })
+  }, [activeTool, currentColor, isCurrentColorCustom, activeColorHex, stylePanelVisible, eraserMode, eraserSize])
 
   // Activate stroke eraser hook (mainly for precision eraser cursor overlay)
   useStrokeEraser(editor, isCustomEraserActive, eraserSize, eraserMode)
@@ -1024,69 +1232,6 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
 
   const canUndo = useValue('canUndo', () => editor.getCanUndo(), [editor])
   const canRedo = useValue('canRedo', () => editor.getCanRedo(), [editor])
-
-  // Recent Colors State
-  const [recentColors, setRecentColors] = useState<string[]>(['white', 'yellow', 'blue'])
-
-  // Update recent colors when current color changes
-  useEffect(() => {
-    // We only want to track if it's a valid color in our themes
-    if (!COLOR_THEMES[currentColor]) return
-
-    setRecentColors(prev => {
-      // Remove if exists
-      const next = prev.filter(c => c !== currentColor)
-      // Add to front
-      next.unshift(currentColor)
-      // Keep max 3
-      return next.slice(0, 3)
-    })
-  }, [currentColor])
-
-  const handleRecentColorClick = (color: string) => {
-    const selectedShapes = editor.getSelectedShapes()
-    console.log('[DrawingToolbar] handleRecentColorClick:', color, 'Selected shapes:', selectedShapes.length)
-
-    const convertedColor = COLOR_MAP[color] || color
-    console.log('[DrawingToolbar] Converted color:', convertedColor)
-
-    // Update the custom color signal so SuperPenTool uses it
-    currentCustomColorSignal.set(convertedColor)
-
-    // 1. Update super-pen shapes specifically
-    const superPenShapes = selectedShapes.filter(s => s.type === 'super-pen')
-    if (superPenShapes.length > 0) {
-      console.log('[DrawingToolbar] Updating super-pen shapes color to:', convertedColor)
-
-      editor.updateShapes(superPenShapes.map(s => ({
-        id: s.id,
-        type: 'super-pen',
-        props: { ...s.props, color: convertedColor }
-      })))
-    }
-
-    // 2. Update all selected shapes using standard style
-    if (selectedShapes.length > 0) {
-      console.log('[DrawingToolbar] Setting style for selected shapes:', color)
-      // @ts-ignore
-      editor.setStyleForSelectedShapes(DefaultColorStyle, color)
-    }
-
-    // 3. Always update the tool's style
-    console.log('[DrawingToolbar] Setting style for next shapes:', color)
-    // @ts-ignore
-    editor.setStyleForNextShapes(DefaultColorStyle, color)
-
-    // If we are not in a drawing tool, switch to the default Pen
-    const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
-    if (!drawingTools.includes(activeTool)) {
-      console.log('[DrawingToolbar] Switching to super-pen tool and clearing selection')
-      editor.setCurrentTool('super-pen')
-      editor.updateInstanceState({ isToolLocked: true })
-      // Deselect everything when we switch to a drawing tool to prevent accidental edits
-      editor.selectNone()
-    }
-  }
 
   /* ------------------------------------------------------------------ */
   /*  Custom Copy/Paste Logic (Annotation Only)                          */
@@ -1244,20 +1389,22 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
         {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
         {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
           <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 ${isCompact ? 'p-0.5' : 'p-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200`}>
-            {recentColors.map(color => {
-              const theme = COLOR_THEMES[color]
-              const isActive = currentColor === color
+            {recentColors.map((colorItem) => {
+              const theme = COLOR_THEMES[colorItem.key] || COLOR_THEMES['blue']
+              const isActive = currentColor === colorItem.key || currentColor === colorItem.hex
+              const isCustom = colorItem.key === 'custom'
               return (
                 <button
-                  key={color}
-                  onClick={() => handleRecentColorClick(color)}
+                  key={colorItem.hex}
+                  onClick={() => handleRecentColorClick(colorItem.hex)}
                   className={`
                                 ${isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
-                                ${theme?.bg.split(' ')[0]} 
+                                ${isCustom ? '' : theme?.bg.split(' ')[0]}
                                 ${isActive ? 'scale-125' : 'hover:scale-125'}
                                 transition-all duration-200
                             `}
-                  title={`Use ${color}`}
+                  style={isCustom ? { backgroundColor: colorItem.hex } : undefined}
+                  title={`Use ${colorItem.hex}`}
                 />
               )
             })}
@@ -1375,6 +1522,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
             toolbarSettings={toolbarSettings}
             isCompact={isCompact}
+            customColorHex={isCurrentColorCustom ? activeColorHex : undefined}
           />
 
           {/* Palette toggle */}
@@ -1386,6 +1534,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                   onToggle={() => setStylePanelVisible((v) => !v)}
                   activeTheme={activeColorTheme}
                   isCompact={isCompact}
+                  customColorHex={isCurrentColorCustom ? activeColorHex : undefined}
                 />
               </div>
             </>
@@ -1394,7 +1543,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           {/* Pen group (pen / highlighter / laser) */}
           {(!toolbarSettings || toolbarSettings.penTools === "main") && (
             <>
-              <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} />
+              <PenGroupButton activeTool={activeTool} onSelect={selectTool} activeTheme={activeColorTheme} editor={editor} isCompact={isCompact} customColorHex={isCurrentColorCustom ? activeColorHex : undefined} />
             </>
           )}
 
@@ -1414,13 +1563,14 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
                 onClearPage={handleClearPage}
                 activeTheme={activeColorTheme}
                 isCompact={isCompact}
+                customColorHex={isCurrentColorCustom ? activeColorHex : undefined}
               />
             </>
           )}
 
           {/* Shapes group (arrow, rectangle, ellipse, triangle, etc.) */}
           {(!toolbarSettings || toolbarSettings.shapes === "main") && (
-            <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} isCompact={isCompact} />
+            <ShapeGroupButton activeTool={activeTool} editor={editor} activeTheme={activeColorTheme} isCompact={isCompact} customColorHex={isCurrentColorCustom ? activeColorHex : undefined} />
           )}
 
 
