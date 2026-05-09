@@ -1375,6 +1375,43 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     editor.setSelectedShapes(newShapes.map((s: any) => s.id))
   }
 
+  const RecentColorButton = ({ colorItem, isCompact }: { colorItem: { key: string, hex: string }, isCompact?: boolean }) => {
+    const theme = COLOR_THEMES[colorItem.key] || COLOR_THEMES['blue']
+    const isActive = currentColor === colorItem.key || currentColor === colorItem.hex
+    const isCustom = colorItem.key === 'custom'
+    
+    return (
+      <button
+        onClick={() => handleRecentColorClick(colorItem.hex)}
+        className={`
+          ${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'} rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
+          ${isCustom ? '' : theme?.bg.split(' ')[0]}
+          ${isActive ? 'ring-2 ring-offset-1 ring-blue-500 scale-110' : 'hover:scale-110'}
+          transition-all duration-200
+        `}
+        style={isCustom ? { backgroundColor: colorItem.hex } : undefined}
+        title={`Use ${colorItem.hex}`}
+      />
+    )
+  }
+
+  const RecentColorsPod = ({ side }: { side: 'left' | 'right' }) => {
+    if (!showRecentColors || stylePanelVisible || recentColors.length === 0) return null;
+    
+    return (
+      <div className={`
+        bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-full 
+        ${isCompact ? 'p-0.5 px-1 gap-1' : 'p-1 px-1.5 gap-1'} 
+        border border-gray-200/50 dark:border-gray-700/50 flex items-center
+        animate-in fade-in ${side === 'left' ? 'slide-in-from-left-4' : 'slide-in-from-right-4'} duration-300
+      `}>
+        {recentColors.map((c) => (
+          <RecentColorButton key={c.hex} colorItem={c} isCompact={isCompact} />
+        ))}
+      </div>
+    );
+  };
+
   const btnSize = isCompact ? "w-8 h-8" : "w-9 h-9";
   const iconSize = isCompact ? 16 : 18;
 
@@ -1383,34 +1420,12 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
       {/* Eraser cursor overlay for stroke/precision eraser */}
       <EraserCursorOverlay size={eraserSize} active={isCustomEraserActive} />
 
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto" style={style}>
+      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-[99999] pointer-events-auto flex items-center gap-2" style={style}>
+        
+        {/* Left Side Recent Colors Cluster */}
+        <RecentColorsPod side="left" />
 
-
-        {/* Recent Colors Dots (Only visible if StylePanel is NOT visible AND enabled) */}
-        {showRecentColors && !stylePanelVisible && recentColors.length > 0 && (
-          <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 ${isCompact ? 'p-0.5' : 'p-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in slide-in-from-bottom-2 duration-200`}>
-            {recentColors.map((colorItem) => {
-              const theme = COLOR_THEMES[colorItem.key] || COLOR_THEMES['blue']
-              const isActive = currentColor === colorItem.key || currentColor === colorItem.hex
-              const isCustom = colorItem.key === 'custom'
-              return (
-                <button
-                  key={colorItem.hex}
-                  onClick={() => handleRecentColorClick(colorItem.hex)}
-                  className={`
-                                ${isCompact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full border border-gray-300 dark:border-gray-600 shadow-sm
-                                ${isCustom ? '' : theme?.bg.split(' ')[0]}
-                                ${isActive ? 'scale-125' : 'hover:scale-125'}
-                                transition-all duration-200
-                            `}
-                  style={isCustom ? { backgroundColor: colorItem.hex } : undefined}
-                  title={`Use ${colorItem.hex}`}
-                />
-              )
-            })}
-          </div>
-        )}
-
+        {/* Main Toolbar */}
         <div className={`flex items-center ${isCompact ? 'gap-0.5' : 'gap-1'} bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg rounded-t-2xl p-1 border border-gray-200/50 dark:border-gray-700/50 border-b-0`}>
 
           {/* Custom Annotation Copy/Paste - Exclusive Logic */}
@@ -1597,8 +1612,11 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
           )}
         </div>
 
+        {/* Right Side Recent Colors Cluster (Mirror of Left) */}
+        <RecentColorsPod side="right" />
+
         {/* Custom Style Panel */}
-        <div ref={stylePanelRef} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
+        <div ref={stylePanelRef} className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3">
           <StylePanel isVisible={stylePanelVisible} />
         </div>
       </div>
