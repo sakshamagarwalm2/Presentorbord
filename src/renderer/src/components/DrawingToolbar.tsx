@@ -128,7 +128,7 @@ interface ShapeDef {
 }
 
 const SHAPE_GROUP: ShapeDef[] = [
-  { id: 'arrow', label: 'Arrow', icon: ArrowUpRight },
+  { id: 'custom-arrow', label: 'Arrow', icon: ArrowUpRight },
   { id: 'custom-line', label: 'Line', icon: Minus },
   { id: 'graph-axes-1', label: '1st Quad', icon: BarChart2 },
   { id: 'graph-axes-4', label: '4 Quad', icon: Crosshair },
@@ -681,7 +681,7 @@ className={`
                             type: s.type,
                             meta: { ...s.meta, thickness: size.value }
                           }
-                          if (s.type === 'arrow' || s.type === 'line' || s.type === 'geo') {
+                          if (s.type === 'custom-arrow' || s.type === 'custom-line' || s.type === 'arrow' || s.type === 'line' || s.type === 'geo') {
                             update.props = { ...s.props, size: size.style }
                           }
                           return update

@@ -5,7 +5,7 @@ const SNAP_ANGLE_RADIANS = 0.01745 // ~1 degree
 const SHOW_SUGGESTION_ANGLE = 0.174 // ~10 degrees - show suggestions within this range
 const SNAP_DISTANCE_MIN = 15 // minimum distance to snap
 
-class LineDrawing extends StateNode {
+class ArrowDrawing extends StateNode {
 	static override id = 'drawing'
 
 	private shapeId: TLShapeId | null = null
@@ -21,7 +21,7 @@ class LineDrawing extends StateNode {
 		this.editor.createShapes([
 			{
 				id: this.shapeId,
-				type: 'custom-line',
+				type: 'custom-arrow',
 				x: this.startPoint.x,
 				y: this.startPoint.y,
 				meta: {
@@ -30,6 +30,8 @@ class LineDrawing extends StateNode {
 				},
 				props: {
 					color: customColor || '#000000',
+					arrowStart: false,
+					arrowEnd: true,
 					points: [
 						{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
 						{ x: 0, y: 0, id: createShapeId().toString(), index: indices[1] },
@@ -38,7 +40,7 @@ class LineDrawing extends StateNode {
 			},
 		])
 
-		// Create horizontal guide shape
+		// Create horizontal guide
 		this.hGuideShapeId = createShapeId()
 		this.editor.createShapes([{
 			id: this.hGuideShapeId,
@@ -55,7 +57,7 @@ class LineDrawing extends StateNode {
 			},
 		}])
 
-		// Create vertical guide shape
+		// Create vertical guide
 		this.vGuideShapeId = createShapeId()
 		this.editor.createShapes([{
 			id: this.vGuideShapeId,
@@ -84,20 +86,18 @@ class LineDrawing extends StateNode {
 		const dy = y - this.startPoint.y
 		const distance = Math.sqrt(dx * dx + dy * dy)
 
-		// Calculate angle
 		const angle = Math.atan2(dy, dx)
 		const absAngle = Math.abs(angle)
-		const angleDeg = Math.abs(angle * 180 / Math.PI)
 
-		// Check if near horizontal (within 10 degrees = show suggestion, within 0.5 degrees = snap)
+		// Check horizontal
 		const isNearHorizontalSuggestion = absAngle < SHOW_SUGGESTION_ANGLE || absAngle > (Math.PI - SHOW_SUGGESTION_ANGLE)
 		const isNearHorizontalSnap = (absAngle < SNAP_ANGLE_RADIANS || absAngle > (Math.PI - SNAP_ANGLE_RADIANS)) && distance > SNAP_DISTANCE_MIN
 
-		// Check if near vertical
+		// Check vertical
 		const isNearVerticalSuggestion = Math.abs(absAngle - Math.PI / 2) < SHOW_SUGGESTION_ANGLE
 		const isNearVerticalSnap = Math.abs(absAngle - Math.PI / 2) < SNAP_ANGLE_RADIANS && distance > SNAP_DISTANCE_MIN
 
-		// Determine actual line position (snapped or not)
+		// Determine actual arrow position (snapped or not)
 		let lineDx = dx
 		let lineDy = dy
 
@@ -107,11 +107,11 @@ class LineDrawing extends StateNode {
 			lineDx = 0
 		}
 
-		// Update the main line
+		// Update arrow
 		this.editor.updateShapes([
 			{
 				id: this.shapeId,
-				type: 'custom-line',
+				type: 'custom-arrow',
 				props: {
 					points: [
 						{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
@@ -174,7 +174,7 @@ class LineDrawing extends StateNode {
 
 		if (this.shapeId) {
 			const shape = this.editor.getShape(this.shapeId)
-			if (shape && shape.type === 'custom-line') {
+			if (shape && shape.type === 'custom-arrow') {
 				const points = (shape.props as any).points
 				if (points && points.length >= 2) {
 					const p1 = points[0]
@@ -206,7 +206,7 @@ class LineDrawing extends StateNode {
 	}
 }
 
-class LineIdle extends StateNode {
+class ArrowIdle extends StateNode {
 	static override id = 'idle'
 
 	override onPointerDown: TLEventHandlers['onPointerDown'] = (info) => {
@@ -214,10 +214,10 @@ class LineIdle extends StateNode {
 	}
 }
 
-export class LineTool extends StateNode {
-	static override id = 'custom-line'
+export class CustomArrowTool extends StateNode {
+	static override id = 'custom-arrow'
 	static override initial = 'idle'
-	static override children = () => [LineIdle, LineDrawing]
+	static override children = () => [ArrowIdle, ArrowDrawing]
 	static override isLockable = true
 
 	override onEnter = () => {

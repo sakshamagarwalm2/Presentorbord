@@ -34,6 +34,8 @@ import { GraphAxes1ShapeUtil } from "./shapes/graph/GraphAxes1ShapeUtil";
 import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
 
 import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
+import { CustomLineShapeUtil } from "./shapes/CustomLineShapeUtil";
+import { CustomArrowShapeUtil } from "./shapes/CustomArrowShapeUtil";
 
 import { CustomLaserTool } from "./tools/CustomLaserTool";
 import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
@@ -43,6 +45,7 @@ import { SuperPenTool } from "./tools/SuperPenTool";
 import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
 import { AreaEraserTool } from "./tools/AreaEraserTool";
 import { LineTool } from "./tools/LineTool";
+import { CustomArrowTool } from "./tools/CustomArrowTool";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
 const customShapeUtils = [
@@ -50,6 +53,8 @@ const customShapeUtils = [
   GraphAxes4ShapeUtil,
   CustomDrawShapeUtil,
   SuperPenShapeUtil,
+  CustomLineShapeUtil,
+  CustomArrowShapeUtil,
 ];
 const customTools = [
   CustomLaserTool,
@@ -60,6 +65,7 @@ const customTools = [
   PrecisionEraserTool,
   AreaEraserTool,
   LineTool,
+  CustomArrowTool,
 ];
 import {
   currentThicknessSignal,

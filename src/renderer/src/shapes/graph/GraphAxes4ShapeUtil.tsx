@@ -8,6 +8,7 @@ import {
   TLResizeInfo,
 } from '@tldraw/tldraw'
 import { IGraphAxes4Shape } from './graph-shape-types'
+import { currentCustomColorSignal } from '../../store/styleSignals'
 
 export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
   static override type = 'graph-axes-4' as const
@@ -40,7 +41,9 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
   }
 
   override component(shape: IGraphAxes4Shape) {
-    const { w, h, color } = shape.props
+    const { w, h, color: shapeColor } = shape.props
+    const customColor = currentCustomColorSignal.get()
+    const color = customColor || shapeColor
     const cx = w / 2
     const cy = h / 2
     const tickSpacing = 50
@@ -59,7 +62,7 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
     const yTicksNegative = [] // Downwards
     for(let y = tickSpacing; y < (h/2); y += tickSpacing) yTicksNegative.push(y)
 
-    return (
+return (
       <HTMLContainer
         id={shape.id}
          style={{
@@ -67,40 +70,39 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
              width: '100%',
              height: '100%',
              overflow: 'visible',
-             color: `var(--color-${color})`
-        }}
+         }}
       >
         <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
             {/* X Axis: center horizontal */}
-            <line x1="0" y1={cy} x2={w} y2={cy} stroke="currentColor" strokeWidth={strokeWidth} />
+            <line x1="0" y1={cy} x2={w} y2={cy} stroke={color} strokeWidth={strokeWidth} />
             {/* Arrow X Positive */}
-            <path d={`M ${w - arrowSize},${cy - arrowSize/2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize/2}`} fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
+            <path d={`M ${w - arrowSize},${cy - arrowSize/2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize/2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
             
             {/* X Ticks Positive */}
             {xTicksPositive.map(dist => {
                 const x = cx + dist;
-                return <line key={`xp-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke="currentColor" strokeWidth={strokeWidth} />
+                return <line key={`xp-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke={color} strokeWidth={strokeWidth} />
             })}
              {/* X Ticks Negative */}
             {xTicksNegative.map(dist => {
                 const x = cx - dist;
-                return <line key={`xn-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke="currentColor" strokeWidth={strokeWidth} />
+                return <line key={`xn-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke={color} strokeWidth={strokeWidth} />
             })}
 
             {/* Y Axis: center vertical */}
-            <line x1={cx} y1={h} x2={cx} y2={0} stroke="currentColor" strokeWidth={strokeWidth} />
+            <line x1={cx} y1={h} x2={cx} y2={0} stroke={color} strokeWidth={strokeWidth} />
             {/* Arrow Y Positive (Up) */}
-            <path d={`M ${cx - arrowSize/2},${arrowSize} L ${cx},${0} L ${cx + arrowSize/2},${arrowSize}`} fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
+            <path d={`M ${cx - arrowSize/2},${arrowSize} L ${cx},${0} L ${cx + arrowSize/2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
 
             {/* Y Ticks Positive (Up) */}
              {yTicksPositive.map(dist => {
                 const y = cy - dist;
-                return <line key={`yp-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke="currentColor" strokeWidth={strokeWidth} />
+                return <line key={`yp-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke={color} strokeWidth={strokeWidth} />
             })}
              {/* Y Ticks Negative (Down) */}
              {yTicksNegative.map(dist => {
                 const y = cy + dist;
-                return <line key={`yn-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke="currentColor" strokeWidth={strokeWidth} />
+                return <line key={`yn-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke={color} strokeWidth={strokeWidth} />
             })}
         </svg>
       </HTMLContainer>
