@@ -1,11 +1,22 @@
-import { useEditor, useValue, createShapeId, DefaultColorStyle } from '@tldraw/tldraw'
-import { Copy, Layers, Trash2, Check, Scissors } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useEditor, useValue, createShapeId, DefaultColorStyle, DefaultSizeStyle } from '@tldraw/tldraw'
+import { Copy, Layers, Trash2, Check, Scissors, Maximize2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { currentCustomColorSignal } from '../store/styleSignals'
+
+const SIZES = [
+  { label: 'XS', value: 2, tldrawSize: 's' },
+  { label: 'S', value: 4, tldrawSize: 's' },
+  { label: 'M', value: 8, tldrawSize: 'm' },
+  { label: 'L', value: 16, tldrawSize: 'l' },
+  { label: 'XL', value: 32, tldrawSize: 'xl' },
+]
 
 export function SelectionBoxIcons() {
   const editor = useEditor()
   const [showCopyFeedback, setShowCopyFeedback] = useState(false)
+  const [showSizeOptions, setShowSizeOptions] = useState(false)
   const [recentColors, setRecentColors] = useState<Array<{ key: string; hex: string }>>([])
+  const sizeMenuRef = useRef<HTMLDivElement>(null)
   
   // Track selection bounds and rotation
   const selectionBounds = useValue('selection bounds', () => editor.getSelectionRotatedPageBounds(), [editor])
@@ -14,10 +25,23 @@ export function SelectionBoxIcons() {
   const isChanging = useValue('is changing', () => 
     editor.getInstanceState().isChangingIncremental || 
     editor.getInstanceState().isDragging ||
-    editor.getInstanceState().isEditingPath
+    editor.getInstanceState().isEditingPath ||
+    editor.getInstanceState().isPointing
   , [editor])
 
+  const currentToolId = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const selectedIds = useValue('selected ids', () => editor.getSelectedShapeIds(), [editor])
+
+  // Close size options on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sizeMenuRef.current && !sizeMenuRef.current.contains(e.target as Node)) {
+        setShowSizeOptions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Load recent colors from localStorage
   useEffect(() => {
@@ -32,23 +56,37 @@ export function SelectionBoxIcons() {
         console.error('Failed to parse recent colors', e)
       }
     }
-  }, [selectedIds]) // Re-load when selection changes
+  }, [selectedIds])
 
   // Reset feedback when selection changes or starts moving
   useEffect(() => {
-    if (isChanging) setShowCopyFeedback(false)
+    if (isChanging) {
+      setShowCopyFeedback(false)
+      setShowSizeOptions(false)
+    }
   }, [isChanging, selectedIds])
 
-  if (!selectionBounds || selectedIds.length === 0 || isChanging) {
+  if (!selectionBounds || selectedIds.length === 0 || isChanging || currentToolId !== 'select') {
     return null
   }
 
   // Convert page bounds to screen bounds
-  const topRight = editor.pageToViewport({ x: selectionBounds.maxX, y: selectionBounds.minY })
+  const topLeft = editor.pageToViewport({ x: selectionBounds.minX, y: selectionBounds.minY })
+  const bottomRight = editor.pageToViewport({ x: selectionBounds.maxX, y: selectionBounds.maxY })
   
-  // Calculate position: Top-right corner edge
-  const top = topRight.y
-  const left = topRight.x + 8
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const padding = 12
+  const menuWidth = 42
+  const menuHeight = recentColors.length > 0 ? 250 : 190
+
+  // Calculate position with viewport clamping
+  let top = Math.max(padding, Math.min(topLeft.y, viewportHeight - menuHeight - padding))
+  let left = bottomRight.x + 8
+  if (left + menuWidth > viewportWidth - padding) {
+    left = viewportWidth - menuWidth - padding
+  }
+  left = Math.max(padding, left)
 
   const handleCopy = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -99,29 +137,67 @@ export function SelectionBoxIcons() {
     if (selectedShapes.length === 0) return
 
     editor.run(() => {
-      // 1. Update Standard Shapes
+      // 1. Update Standard Styles (for built-in shapes)
       // @ts-ignore
       editor.setStyleForSelectedShapes(DefaultColorStyle, colorKey)
 
-      // 2. Update Custom Shapes (Super Pen, etc)
-      const shapesToUpdate = selectedShapes.filter(s => s.type === 'super-pen' || s.type === 'custom-draw')
-      if (shapesToUpdate.length > 0) {
-        editor.updateShapes(shapesToUpdate.map(s => {
-          if (s.type === 'super-pen') {
-            return {
-              id: s.id,
-              type: 'super-pen',
-              props: { ...(s as any).props, color: hex }
-            }
-          }
-          return {
-            id: s.id,
-            type: 'custom-draw',
-            props: { ...(s as any).props, color: hex } // CustomDraw uses color hex usually
-          }
-        }))
+      // 2. Update props.color for all shapes that have it (Graphs, Arrows, Lines, etc.)
+      const updates = selectedShapes.map(s => {
+        const shapeUpdates: any = { id: s.id, type: s.type, props: { ...s.props } }
+        let hasPropsUpdate = false
+
+        if ('color' in s.props) {
+          shapeUpdates.props.color = hex
+          hasPropsUpdate = true
+        }
+        
+        // Ensure super-pen and custom-draw are also explicitly updated if they use color
+        if (s.type === 'super-pen' || s.type === 'custom-draw') {
+          shapeUpdates.props.color = hex
+          hasPropsUpdate = true
+        }
+
+        return hasPropsUpdate ? shapeUpdates : null
+      }).filter(Boolean)
+
+      if (updates.length > 0) {
+        editor.updateShapes(updates as any)
+      }
+
+      // 3. Update the global signal so new shapes use this color
+      currentCustomColorSignal.set(hex)
+    })
+  }
+
+  const handleSizeChange = (size: typeof SIZES[0]) => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length === 0) return
+
+    editor.run(() => {
+      // 1. Update Standard Shapes (only those that support 'size' in props)
+      const shapesWithNativeSize = selected.filter(s => 'size' in s.props)
+      if (shapesWithNativeSize.length > 0) {
+        editor.setStyleForSelectedShapes(DefaultSizeStyle, size.tldrawSize as any)
+      }
+
+      // 2. Update all selected shapes via meta (for thickness)
+      editor.updateShapes(selected.map(s => ({
+        id: s.id,
+        type: s.type,
+        meta: { ...s.meta, thickness: size.value }
+      })))
+
+      // 3. Explicitly update Super Pen and any others that use 'size' as a numeric prop
+      const shapesToUpdateNumericSize = selected.filter(s => s.type === 'super-pen')
+      if (shapesToUpdateNumericSize.length > 0) {
+        editor.updateShapes(shapesToUpdateNumericSize.map(s => ({
+          id: s.id,
+          type: s.type,
+          props: { ...(s as any).props, size: size.value }
+        })))
       }
     })
+    setShowSizeOptions(false)
   }
 
   return (
@@ -161,6 +237,34 @@ export function SelectionBoxIcons() {
         <Layers size={18} />
       </button>
 
+      <div className="relative" ref={sizeMenuRef}>
+        <button 
+          onClick={() => setShowSizeOptions(!showSizeOptions)} 
+          className={`p-2 rounded-lg transition-all duration-200 w-full flex items-center justify-center ${
+            showSizeOptions
+              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
+          }`}
+          title="Change Size"
+        >
+          <Maximize2 size={18} />
+        </button>
+
+        {showSizeOptions && (
+          <div className="absolute left-full ml-2 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col gap-1 min-w-[40px] animate-in fade-in slide-in-from-left-2 duration-200">
+            {SIZES.map((size) => (
+              <button
+                key={size.label}
+                onClick={() => handleSizeChange(size)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all"
+              >
+                {size.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="mx-1 h-px bg-gray-200 dark:bg-gray-800 my-0.5" />
       
       <button 
@@ -179,7 +283,7 @@ export function SelectionBoxIcons() {
               <button
                 key={`${color.hex}-${i}`}
                 onClick={() => handleColorClick(color.key, color.hex)}
-                className="w-5 h-5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-110 transition-transform duration-200"
+                className="w-3.5 h-3.5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm hover:scale-125 transition-transform duration-200"
                 style={{ backgroundColor: color.hex }}
                 title={`Apply ${color.key} color`}
               />
