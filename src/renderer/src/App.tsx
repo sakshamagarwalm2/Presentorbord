@@ -868,17 +868,32 @@ function AppContent() {
             await new Promise(resolve => requestAnimationFrame(resolve));
           }
         }
-
-        const firstImportedPageId = newPageIds[0];
-        if (firstImportedPageId) {
-          editor.setCurrentPage(firstImportedPageId as any);
-          requestAnimationFrame(() =>
-            requestAnimationFrame(() => {
-              fitSlideToViewport(editor);
-            })
-          );
-        }
       }, { history: 'ignore' });
+
+      // Automatically optimize each page's view in the background
+      // This is done outside editor.run to ensure camera side-effects and UI updates process correctly
+      const allPages = [...editor.getPages()].sort((a, b) => (a.index > b.index ? 1 : -1));
+      for (let i = 0; i < allPages.length; i++) {
+        const page = allPages[i];
+        setImportProgress(`Optimizing view for slide ${i + 1} of ${allPages.length}...`);
+        
+        // Switch to the page
+        editor.setCurrentPage(page.id);
+        
+        // Give tldraw and the browser a small window to layout and stabilize the view
+        await new Promise(resolve => setTimeout(resolve, 60));
+        
+        // Fit to screen (instant)
+        fitSlideToViewport(editor);
+      }
+
+      // Return to the first page when done
+      if (allPages.length > 0) {
+        editor.setCurrentPage(allPages[0].id);
+        // Ensure the first page is also correctly fitted
+        await new Promise(resolve => setTimeout(resolve, 30));
+        fitSlideToViewport(editor);
+      }
 
       window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
