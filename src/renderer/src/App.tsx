@@ -27,6 +27,7 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { PageSelectionDialog } from "./components/PageSelectionDialog";
 import { AllSlidesGrid } from "./components/AllSlidesGrid";
 import { TimerWidget } from "./components/TimerWidget";
+import { SelectionBoxIcons } from "./components/SelectionBoxIcons";
 import { jsPDF } from "jspdf";
 import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
@@ -1643,6 +1644,7 @@ function AppContent() {
       {showTimer && (
         <TimerWidget onClose={() => setShowTimer(false)} />
       )}
+      <SelectionBoxIcons />
     </>
   );
 }
