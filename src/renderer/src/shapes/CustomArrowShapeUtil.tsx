@@ -1,5 +1,4 @@
 import { ShapeUtil, HTMLContainer, T, Rectangle2d, Geometry2d, TLBaseShape, Vec } from '@tldraw/tldraw'
-import { currentCustomColorSignal, currentThicknessSignal } from '../store/styleSignals'
 
 export type TCustomArrowShape = TLBaseShape<
   'custom-arrow',
@@ -68,10 +67,9 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
 
   override component(shape: TCustomArrowShape) {
     const { points, color, arrowStart, arrowEnd } = shape.props
-    const customColor = currentCustomColorSignal.get()
-    const effectiveColor = customColor || color
+    const effectiveColor = color
     
-    const thickness = (shape.meta?.thickness as number) || currentThicknessSignal.get() || 4
+    const thickness = (shape.meta?.thickness as number) || 4
 
     if (points.length < 2) return null
 

@@ -73,6 +73,7 @@ import {
   currentOpacitySignal,
   currentIsBrushSignal,
   currentBrushTypeSignal,
+  currentCustomColorSignal,
 } from "./store/styleSignals";
 
 // Context Menu Overrides
@@ -351,6 +352,22 @@ function AppContent() {
             window.api.log(`[Drawing] New Laser Pointer active`);
         }
 
+        if (shape.type === "graph-axes-1" || shape.type === "graph-axes-4") {
+          const color = currentCustomColorSignal.get() || "#ffffff";
+          const thickness = currentThicknessSignal.get() || 2;
+          return {
+            ...shape,
+            props: {
+              ...shape.props,
+              color,
+            },
+            meta: {
+              ...shape.meta,
+              thickness,
+            }
+          }
+        }
+
         return shape;
       },
     );
@@ -363,13 +380,19 @@ function AppContent() {
       (shape) => {
         const currentTool = editor.getCurrentToolId();
         const shapeTypesToSelect = [
-          'geo', 'arrow', 'line', 'custom-line', 
+          'geo', 'arrow', 'line', 'custom-line', 'custom-arrow',
           'graph-axes-1', 'graph-axes-4', 'text', 'note', 'frame',
           'protractor', 'ruler'
         ];
 
         // If a geometric shape is created and we're not in select mode, track it
-        if (shapeTypesToSelect.includes(shape.type) && currentTool !== 'select' && !shape.meta?.isPageBackground) {
+        // We MUST ignore guide shapes (used by arrow/line tools) as they are deleted on pointer up
+        if (
+          shapeTypesToSelect.includes(shape.type) && 
+          currentTool !== 'select' && 
+          !shape.meta?.isPageBackground &&
+          !shape.meta?.isGuide
+        ) {
           lastCreatedShapeId = shape.id;
         }
       }

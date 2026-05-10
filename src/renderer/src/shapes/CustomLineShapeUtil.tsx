@@ -1,5 +1,4 @@
 import { ShapeUtil, HTMLContainer, T, Rectangle2d, Geometry2d, TLBaseShape } from '@tldraw/tldraw'
-import { currentCustomColorSignal, currentThicknessSignal } from '../store/styleSignals'
 
 export type TCustomLineShape = TLBaseShape<
   'custom-line',
@@ -54,9 +53,8 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
 
   override component(shape: TCustomLineShape) {
     const { points, color } = shape.props
-    const customColor = currentCustomColorSignal.get()
-    const effectiveColor = customColor || color
-    const thickness = (shape.meta?.thickness as number) || currentThicknessSignal.get() || 4
+    const effectiveColor = color
+    const thickness = (shape.meta?.thickness as number) || 4
 
     // Check if this is a guide shape
     const isGuide = shape.meta?.isGuide as boolean

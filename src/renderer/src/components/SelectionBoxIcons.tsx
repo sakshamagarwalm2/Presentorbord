@@ -174,27 +174,40 @@ export function SelectionBoxIcons() {
     if (selected.length === 0) return
 
     editor.run(() => {
-      // 1. Update Standard Shapes (only those that support 'size' in props)
-      const shapesWithNativeSize = selected.filter(s => 'size' in s.props)
-      if (shapesWithNativeSize.length > 0) {
-        editor.setStyleForSelectedShapes(DefaultSizeStyle, size.tldrawSize as any)
-      }
+      // 1. Update the style for FUTURE shapes
+      editor.setStyleForNextShapes(DefaultSizeStyle, size.tldrawSize as any)
 
-      // 2. Update all selected shapes via meta (for thickness)
-      editor.updateShapes(selected.map(s => ({
-        id: s.id,
-        type: s.type,
-        meta: { ...s.meta, thickness: size.value }
-      })))
+      // 2. Build targeted updates for SELECTED shapes
+      const updates = selected.map(s => {
+        const shapeUpdates: any = { 
+          id: s.id, 
+          type: s.type, 
+          meta: { ...s.meta, thickness: size.value } 
+        }
 
-      // 3. Explicitly update Super Pen and any others that use 'size' as a numeric prop
-      const shapesToUpdateNumericSize = selected.filter(s => s.type === 'super-pen')
-      if (shapesToUpdateNumericSize.length > 0) {
-        editor.updateShapes(shapesToUpdateNumericSize.map(s => ({
-          id: s.id,
-          type: s.type,
-          props: { ...(s as any).props, size: size.value }
-        })))
+        // Whitelist shapes that support the Tldraw 's'|'m'|'l'|'xl' size prop
+        const supportsTldrawSize = [
+          'draw', 'geo', 'line', 'arrow', 'text', 'note', 'frame', 'highlight', 'video', 'custom-draw'
+        ].includes(s.type)
+        
+        const isSuperPen = s.type === 'super-pen'
+        const shouldNotHaveSize = ['custom-arrow', 'custom-line', 'graph-axes-1', 'graph-axes-4'].includes(s.type)
+
+        if (supportsTldrawSize && 'size' in s.props) {
+          shapeUpdates.props = { ...s.props, size: size.tldrawSize }
+        } else if (isSuperPen) {
+          shapeUpdates.props = { ...s.props, size: size.value }
+        } else if (shouldNotHaveSize && 'size' in s.props) {
+          // CLEANUP: Strip illegal size property if it exists from previous bugs
+          const { size: _, ...cleanProps } = s.props as any
+          shapeUpdates.props = cleanProps
+        }
+
+        return shapeUpdates
+      })
+
+      if (updates.length > 0) {
+        editor.updateShapes(updates as any)
       }
     })
     setShowSizeOptions(false)

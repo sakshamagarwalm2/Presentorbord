@@ -8,7 +8,6 @@ import {
   TLResizeInfo,
 } from '@tldraw/tldraw'
 import { IGraphAxes4Shape } from './graph-shape-types'
-import { currentCustomColorSignal } from '../../store/styleSignals'
 
 export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
   static override type = 'graph-axes-4' as const
@@ -41,9 +40,7 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
   }
 
   override component(shape: IGraphAxes4Shape) {
-    const { w, h, color: shapeColor } = shape.props
-    const customColor = currentCustomColorSignal.get()
-    const color = customColor || shapeColor
+    const { w, h, color } = shape.props
     const cx = w / 2
     const cy = h / 2
     const tickSpacing = 50
