@@ -85,7 +85,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
     const { props } = shape;
     const { color, segments } = props;
     const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() });
-    const strokeColor = theme[color].solid;
+    const strokeColor = theme[color]?.solid || color;
     const thickness = (shape.meta?.thickness as number) || 7;
     const isBrush = !!shape.meta?.isBrush;
     const brushType = (shape.meta?.brushType as string) || "normal";

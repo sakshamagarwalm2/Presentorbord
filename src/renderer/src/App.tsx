@@ -355,6 +355,7 @@ function AppContent() {
         if (shape.type === "graph-axes-1" || shape.type === "graph-axes-4") {
           const color = currentCustomColorSignal.get() || "#ffffff";
           const thickness = currentThicknessSignal.get() || 2;
+          console.log(`[App] Creating Graph: Type=${shape.type}, Color=${color}, Thickness=${thickness}`)
           return {
             ...shape,
             props: {
@@ -368,6 +369,7 @@ function AppContent() {
           }
         }
 
+        console.log(`[App] Creating Shape: Type=${shape.type}, PropsColor=${(shape.props as any)?.color}`)
         return shape;
       },
     );

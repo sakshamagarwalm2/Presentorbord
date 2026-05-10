@@ -8,6 +8,7 @@ import {
   currentCustomColorSignal
 } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
+import { getNearestNamedColor } from '../utils/colorUtils'
 
 /* ------------------------------------------------------------------ */
 /*  Color Definitions & Themes                                         */
@@ -156,6 +157,9 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     currentCustomColorSignal.set(convertedColor)
     localStorage.setItem('last-used-color', convertedColor)
 
+    // Match best named color for native shapes
+    const bestNamedKey = getNearestNamedColor(convertedColor)
+
     const superPenShapes = selected.filter(s => s.type === 'super-pen')
     if (superPenShapes.length > 0) {
       editor.updateShapes(superPenShapes.map(s => ({
@@ -166,14 +170,12 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     }
 
     if (selected.length > 0) {
-      if (DefaultColorStyle.values.includes(color as any)) {
-        editor.setStyleForSelectedShapes(DefaultColorStyle, color as any)
-      }
+      // @ts-ignore
+      editor.setStyleForSelectedShapes(DefaultColorStyle, bestNamedKey)
     }
 
-    if (DefaultColorStyle.values.includes(color as any)) {
-      editor.setStyleForNextShapes(DefaultColorStyle, color as any)
-    }
+    // @ts-ignore
+    editor.setStyleForNextShapes(DefaultColorStyle, bestNamedKey)
   }
 
   const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -43,6 +43,7 @@ import { StylePanel } from './StylePanel'
 import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
 import { currentEraserSizeSignal, currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
+import { getNearestNamedColor } from '../utils/colorUtils'
 
 /* ------------------------------------------------------------------ */
 /*  Color Themes                                                       */
@@ -1076,6 +1077,9 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     currentCustomColorSignal.set(convertedColor)
     localStorage.setItem('last-used-color', convertedColor)
 
+    // Match best named color for native shapes
+    const bestNamedKey = getNearestNamedColor(convertedColor)
+
     const superPenShapes = selectedShapes.filter(s => s.type === 'super-pen')
     if (superPenShapes.length > 0) {
       editor.updateShapes(superPenShapes.map(s => ({
@@ -1085,15 +1089,13 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
       })))
     }
 
-    if (selectedShapes.length > 0 && !isColorCustom) {
+    if (selectedShapes.length > 0) {
       // @ts-ignore
-      editor.setStyleForSelectedShapes(DefaultColorStyle, namedColor)
+      editor.setStyleForSelectedShapes(DefaultColorStyle, bestNamedKey)
     }
 
-    if (!isColorCustom) {
-      // @ts-ignore
-      editor.setStyleForNextShapes(DefaultColorStyle, namedColor)
-    }
+    // @ts-ignore
+    editor.setStyleForNextShapes(DefaultColorStyle, bestNamedKey)
 
     // If we are not in a drawing tool, switch to the default Pen
     const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
