@@ -20,13 +20,44 @@
     background-color: #000000 !important;
 }
 
-/* Ensure selection handles and UI overlays are interactive */
+/* --- Critical Fix for Tldraw Resizing Logic --- */
+
+/* 1. Restore Tldraw's internal event capture by allowing pointer events on overlays */
 .tl-overlays,
-.tl-ui-overlays,
-.tl-selection-proxy,
-.tl-corner-handle {
+.tl-ui-overlays {
     pointer-events: all !important;
 }
+
+/* 2. Make the selection box background and edges click-through so they don't steal handle events */
+.tl-selection__bg,
+.tl-selection__fg {
+    pointer-events: none !important;
+}
+
+/* 3. Enlarge and prioritize the corner handles (The Stylus "Dots") */
+.tl-corner-handle {
+    pointer-events: all !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* 4. Feedback for hover and use - SVG version */
+.tl-corner-handle:hover {
+    fill: #3b82f6 !important;
+    stroke: #ffffff !important;
+}
+
+/* 5. Cursors for the scaled handles */
+.tl-corner-handle-top-left, .tl-corner-handle-bottom-right { cursor: nwse-resize !important; }
+.tl-corner-handle-top-right, .tl-corner-handle-bottom-left { cursor: nesw-resize !important; }
+
+/* Keep selection proxy underneath the handles */
+.tl-selection-proxy {
+    pointer-events: all !important;
+    z-index: 1 !important;
+}
+
 
 body {
     background-color: #000000;

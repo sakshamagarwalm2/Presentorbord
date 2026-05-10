@@ -1298,6 +1298,108 @@ function AppContent() {
     };
   }, [editor]);
 
+  // Deep Interaction Debugging
+  useEffect(() => {
+    let isDraggingHandle = false;
+    let handleDownTime = 0;
+    
+    // Use capture phase to see all pointerdown events first
+    const handleCaptureDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const classStr = target.getAttribute?.('class') || '';
+      const isHandle = classStr.includes('tl-corner-handle');
+      
+      console.log(`[CAPTURE] DOWN on ${target.tagName}: "${classStr}" ${isHandle ? '*** HANDLE ***' : ''}`);
+      
+      // Prevent immediate deselection - keep selection alive
+      if (isHandle) {
+        const selectedBefore = editor.getSelectedShapeIds();
+        console.log(`[HANDLE] Preserving selection: ${selectedBefore.length} shapes`);
+        e.preventDefault(); // Prevent any default behavior
+      }
+    };
+
+    const handleGlobalPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const classStr = target.getAttribute?.('class') || '';
+      const tagName = target.tagName;
+      const isHandle = classStr.includes('tl-corner-handle');
+      
+      console.log(`[BUBBLE] DOWN:`, {
+        targetTag: tagName,
+        targetClass: classStr,
+        isCornerHandle: isHandle,
+        selection: editor.getSelectedShapeIds().length,
+        isResizing: editor.getInstanceState().isResizing,
+      });
+      
+      if (isHandle) {
+        isDraggingHandle = true;
+        console.log(`[Handle] CLICK DETECTED!`);
+      }
+    };
+
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (isDraggingHandle) {
+        console.log(`[Handle Drag] Move:`, {
+          x: e.clientX,
+          y: e.clientY,
+          buttons: e.buttons,
+          isResizing: editor.getInstanceState().isResizing,
+          isDragging: editor.getInstanceState().isDragging,
+          selection: editor.getSelectedShapeIds().length,
+        });
+      }
+    };
+
+    const handleGlobalPointerUp = (e: PointerEvent) => {
+      console.log(`[Pointer Debug] UP:`, {
+        targetTag: (e.target as HTMLElement).tagName,
+        targetClass: (e.target as HTMLElement).getAttribute?.('class') || '',
+        isResizing: editor.getInstanceState().isResizing,
+        isDragging: editor.getInstanceState().isDragging,
+        selection: editor.getSelectedShapeIds().length,
+      });
+      isDraggingHandle = false;
+    };
+
+    const handleGlobalPointerOver = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const classStr = target.getAttribute?.('class') || '';
+      const tagName = target.tagName;
+      const allClasses = target.getAttribute('class');
+      
+      console.log(`[Pointer Debug] OVER:`, { tag: tagName, class: allClasses });
+      
+      if (classStr.includes('tl-corner-handle')) {
+        console.log(`[Handle] Hover detected!`);
+        console.log(`[Handle] All classes: ${allClasses}`);
+        console.log(`[Handle] Current computed style:`, {
+          fill: getComputedStyle(target).fill,
+          stroke: getComputedStyle(target).stroke,
+          width: getComputedStyle(target).width,
+          height: getComputedStyle(target).height,
+          rx: target.getAttribute('rx'),
+          ry: target.getAttribute('ry'),
+        });
+      }
+    };
+
+    window.addEventListener('pointerdown', handleCaptureDown, true); // capture phase
+    window.addEventListener('pointerdown', handleGlobalPointerDown);
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointerover', handleGlobalPointerOver);
+    
+    return () => {
+      window.removeEventListener('pointerdown', handleCaptureDown, true);
+      window.removeEventListener('pointerdown', handleGlobalPointerDown);
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointerover', handleGlobalPointerOver);
+    };
+  }, [editor]);
+
   return (
     <>
       <Sidebar
@@ -1758,6 +1860,27 @@ function App(): JSX.Element {
         components={components}
         overrides={[overrides]}
         options={{ maxPages: 700 }}
+        onMount={(editor) => {
+          console.log("[Tldraw] Mounted - setting up resize debug");
+          
+          // Track resize state changes
+          editor.on('change', (change) => {
+            if (change.source === 'user') {
+              const isResizing = editor.getInstanceState().isResizing;
+              console.log(`[Tldraw] change: type=${change.type}, isResizing=${isResizing}`);
+            }
+          });
+          
+          // Track selection changes
+          editor.on('change', (change) => {
+            if (change.type === 'selection') {
+              console.log(`[Tldraw] Selection changed:`, {
+                selected: editor.getSelectedShapeIds(),
+                isResizing: editor.getInstanceState().isResizing,
+              });
+            }
+          });
+        }}
       >
         <AppContent />
       </Tldraw>
