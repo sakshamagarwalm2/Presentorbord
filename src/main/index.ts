@@ -21,9 +21,11 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+let mainWindow: BrowserWindow | null = null;
+
 function createWindow(): void {
   logger.log("Creating main window...");
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -41,12 +43,12 @@ function createWindow(): void {
 
   mainWindow.on("ready-to-show", () => {
     logger.log("Main window ready to show.");
-    mainWindow.show();
+    mainWindow?.show();
   });
 
   mainWindow.webContents.on("before-input-event", (event, input) => {
     if (input.key === "F12") {
-      mainWindow.webContents.toggleDevTools();
+      mainWindow?.webContents.toggleDevTools();
       event.preventDefault();
     }
   });
@@ -261,22 +263,70 @@ ipcMain.handle(
 
 ipcMain.handle("open-system-calculator", () => {
   const platform = process.platform;
-  let command = "";
 
   if (platform === "win32") {
-    command = "calc";
-  } else if (platform === "darwin") {
-    command = "open -a Calculator";
-  } else if (platform === "linux") {
-    command = "gnome-calculator";
-  }
-
-  if (command) {
-    exec(command, (error) => {
-      if (error) {
-        console.error("Failed to open calculator:", error);
+    logger.log("[Calculator] Attempting to focus or launch system calculator...");
+    
+    // We use a temporary file to avoid complex quoting/newline issues with PowerShell one-liners
+    const psScript = `
+      $code = @'
+      using System;
+      using System.Runtime.InteropServices;
+      public class Win32Utils {
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
       }
-    });
+'@
+      Add-Type -TypeDefinition $code
+      
+      # Try to find the Calculator process. 
+      # Modern Windows Calculator is often 'CalculatorApp'
+      $process = Get-Process | Where-Object { $_.MainWindowTitle -match 'Calculator' -or $_.ProcessName -eq 'CalculatorApp' -or $_.ProcessName -eq 'Calculator' } | Select-Object -First 1
+      
+      if ($process) {
+        $hwnd = $process.MainWindowHandle
+        if ($hwnd -ne [IntPtr]::Zero) {
+          # 9 = SW_RESTORE (restores and activates the window)
+          [Win32Utils]::ShowWindow($hwnd, 9) | Out-Null
+          [Win32Utils]::SetForegroundWindow($hwnd) | Out-Null
+          Write-Host "FOUND_AND_FOCUSED"
+          exit 0
+        }
+      }
+      
+      # Fallback to starting a new one
+      Start-Process calc
+      Write-Host "LAUNCHED_NEW"
+      exit 0
+    `;
+
+    const scriptPath = path.join(os.tmpdir(), `focus-calc-${Date.now()}.ps1`);
+    try {
+      fs.writeFileSync(scriptPath, psScript, { encoding: "utf8" });
+
+      exec(`powershell -ExecutionPolicy Bypass -File "${scriptPath}"`, (error, stdout) => {
+        // Cleanup temp file
+        try { fs.unlinkSync(scriptPath); } catch (_) {}
+
+        if (error) {
+          logger.log(`[Calculator] PowerShell Error: ${error.message}`);
+          // Last resort fallback
+          exec("start calc");
+        }
+        if (stdout) {
+          logger.log(`[Calculator] Result: ${stdout.trim()}`);
+        }
+      });
+    } catch (err: any) {
+      logger.log(`[Calculator] Failed to write script: ${err.message}`);
+      exec("start calc");
+    }
+  } else if (platform === "darwin") {
+    exec("open -a Calculator");
+  } else if (platform === "linux") {
+    exec("gnome-calculator");
   }
 });
 

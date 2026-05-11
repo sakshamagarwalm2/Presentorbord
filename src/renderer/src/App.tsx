@@ -28,6 +28,7 @@ import { PageSelectionDialog } from "./components/PageSelectionDialog";
 import { AllSlidesGrid } from "./components/AllSlidesGrid";
 import { TimerWidget } from "./components/TimerWidget";
 import { SelectionBoxIcons } from "./components/SelectionBoxIcons";
+import { StandaloneCalculator } from "./components/StandaloneCalculator";
 import { jsPDF } from "jspdf";
 import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
@@ -1866,7 +1867,7 @@ const overrides: TLUiOverrides = {
 
 function App(): JSX.Element {
   console.log("[App] Rendering");
-  
+
   return (
     <div className="tldraw__editor" style={{ position: "fixed", inset: 0 }}>
       <Tldraw

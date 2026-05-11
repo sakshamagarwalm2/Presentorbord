@@ -63,6 +63,7 @@ interface ToolsSidebarProps {
   toolbarSettings?: ToolbarSettings;
   onToolbarSettingsChange?: (settings: ToolbarSettings) => void;
   onOpenTimer?: () => void;
+  onOpenCalculator?: () => void;
   side?: "left" | "right";
 }
 
@@ -72,6 +73,7 @@ interface Bookmark {
 }
 
 export function ToolsSidebar({
+  onImportClick,
   onOpenProject,
   onSaveProject,
   showNavPanel,
@@ -83,6 +85,7 @@ export function ToolsSidebar({
   toolbarSettings,
   onToolbarSettingsChange,
   onOpenTimer,
+  onOpenCalculator,
   side = "right",
 }: ToolsSidebarProps) {
   const editor = useEditor();
@@ -294,15 +297,6 @@ return (
                     side={side === 'right' ? 'left' : 'right'} // Label should be on opposite side of sub-menu popout
                   />
                   <ToolButton
-                    icon={CalcIcon}
-                    label="Calculator"
-                    onClick={() => {
-                      openSystemCalculator();
-                      setShowTools(false);
-                    }}
-                    side={side === 'right' ? 'left' : 'right'}
-                  />
-                  <ToolButton
                     icon={LineChart}
                     label="Graph"
                     onClick={() => {
@@ -314,6 +308,13 @@ return (
                 </div>
               )}
             </div>
+
+            <ToolButton 
+              icon={CalcIcon} 
+              label="Calculator" 
+              onClick={openSystemCalculator} 
+              side={side} 
+            />
 
             <ToolButton icon={Globe} label="Browser" onClick={openBrowser} side={side} />
 
