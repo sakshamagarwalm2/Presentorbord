@@ -22,13 +22,13 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: write # Needed to push version bump and create release
+      contents: write
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed for git operations
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,21 +46,36 @@ jobs:
           }
         shell: pwsh
 
-      - name: Version Bump (Manual)
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none'
+      - name: Version Bump and Commit
+        id: bump_version
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          npm run dist:${{ github.event.inputs.bump }}
-          git add package.json README.md
-          git commit -m "chore: bump version to $(node -p "require('./package.json').version") [skip ci]"
-          git push
+          
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $bumpType = "${{ github.event.inputs.bump }}"
+          } else {
+            $bumpType = "patch"
+          }
+
+          if ($bumpType -ne "none") {
+            npm run dist:$bumpType
+            $version = node -p "require('./package.json').version"
+            echo "NEW_VERSION=v$version" >> $env:GITHUB_OUTPUT
+            git add package.json README.md
+            git commit -m "chore: bump version to v$version [skip ci]"
+            git tag "v$version"
+            git push origin main --tags
+          } else {
+            npm run build
+            echo "NEW_VERSION=none" >> $env:GITHUB_OUTPUT
+          }
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Package (Standard Push)
-        if: github.event_name == 'push'
-        run: npm run dist:patch
+      - name: Build and Package
+        run: npx electron-builder --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,10 +87,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Create GitHub Release
+        if: steps.bump_version.outputs.NEW_VERSION != 'none'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.bump_version.outputs.NEW_VERSION }}
+          name: Release ${{ steps.bump_version.outputs.NEW_VERSION }}
+          body: "Automatic build for version ${{ steps.bump_version.outputs.NEW_VERSION }}"
           files: OutputInstaller/*.exe
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
