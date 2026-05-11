@@ -37,7 +37,14 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install --no-optional
+        run: npm install
+
+      - name: Remove problematic native dependencies
+        run: |
+          if (Test-Path node_modules/canvas) {
+            Remove-Item -Recurse -Force node_modules/canvas
+          }
+        shell: pwsh
 
       - name: Version Bump (Manual)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none'
