@@ -59,15 +59,19 @@ jobs:
           }
 
           if ($bumpType -ne "none") {
-            npm run dist:$bumpType
+            # Only run the bump script, not the full dist (to save time)
+            node scripts/bump-version.js "--$bumpType"
             $version = node -p "require('./package.json').version"
             echo "NEW_VERSION=v$version" >> $env:GITHUB_OUTPUT
+            
             git add package.json README.md
             git commit -m "chore: bump version to v$version [skip ci]"
             git tag "v$version"
-            git push origin main --tags
+            
+            # Push to the current branch dynamically
+            $branch = "${{ github.ref_name }}"
+            git push origin $branch --tags
           } else {
-            npm run build
             echo "NEW_VERSION=none" >> $env:GITHUB_OUTPUT
           }
         shell: pwsh
@@ -75,7 +79,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Package
-        run: npx electron-builder --publish never
+        # Build the app once here
+        run: |
+          npm run build
+          npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

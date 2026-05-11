@@ -673,21 +673,13 @@ className={`
                     onClick={() => {
                       setSelectedSize(size)
                       currentThicknessSignal.set(size.value)
+                      
+                      // Set style for next shapes
                       editor.setStyleForNextShapes(DefaultSizeStyle, size.style)
-                      const selected = editor.getSelectedShapes()
-                      if (selected.length > 0) {
-                        editor.updateShapes(selected.map(s => {
-                          const update: any = {
-                            id: s.id,
-                            type: s.type,
-                            meta: { ...s.meta, thickness: size.value }
-                          }
-                          if (s.type === 'custom-arrow' || s.type === 'custom-line' || s.type === 'arrow' || s.type === 'line' || s.type === 'geo') {
-                            update.props = { ...s.props, size: size.style }
-                          }
-                          return update
-                        }))
-                      }
+                      
+                      // Note: We deliberately DON'T update currently selected shapes here
+                      // per user request: "Just for the next turn, whatever I draw, not to set on the current thing"
+                      // This also prevents validation errors on custom shapes that don't support the 'size' prop.
                     }}
                     className={`
                       flex-1 flex items-center justify-center py-1.5 rounded-lg text-xs font-medium transition-all
