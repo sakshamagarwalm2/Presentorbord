@@ -115,6 +115,7 @@ export function SelectionBoxIcons() {
     
     const annotations = selectedShapes.filter((s: any) => s.type !== "image")
     localStorage.setItem("annotation-clipboard", JSON.stringify(annotations))
+    window.dispatchEvent(new Event('storage'))
     
     setShowCopyFeedback(true)
     setTimeout(() => setShowCopyFeedback(false), 2000)

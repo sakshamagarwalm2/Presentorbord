@@ -1815,6 +1815,7 @@ const overrides: TLUiOverrides = {
         const selectedShapes = editor.getSelectedShapes();
         const annotations = selectedShapes.filter((s: any) => s.type !== "image");
         localStorage.setItem("annotation-clipboard", JSON.stringify(annotations));
+        window.dispatchEvent(new Event('storage'));
         alert("Annotations copied!");
       },
     };

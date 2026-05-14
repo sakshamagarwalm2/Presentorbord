@@ -1286,6 +1286,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     }))
 
     localStorage.setItem('annotation-clipboard', JSON.stringify(clipboardData))
+    window.dispatchEvent(new Event('storage'))
     setHasClipboardContent(true)
 
     // Show feedback
