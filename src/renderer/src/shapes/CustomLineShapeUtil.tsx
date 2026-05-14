@@ -1,4 +1,4 @@
-import { ShapeUtil, HTMLContainer, T, Rectangle2d, Geometry2d, TLBaseShape } from '@tldraw/tldraw'
+import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, SvgExportContext } from '@tldraw/tldraw'
 
 export type TCustomLineShape = TLBaseShape<
   'custom-line',
@@ -112,6 +112,34 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
         y={minY - padding}
         width={maxX - minX + padding * 2}
         height={maxY - minY + padding * 2}
+      />
+    )
+  }
+
+  override toSvg(shape: TCustomLineShape, _ctx: SvgExportContext) {
+    const { points, color } = shape.props
+    const isGuide = shape.meta?.isGuide as boolean
+    const thickness = isGuide ? 2 : (shape.meta?.thickness as number) || 4
+    const guideOpacity = isGuide ? 0.3 : 1
+
+    if (points.length < 2) {
+      return <SVGContainer id={shape.id} />
+    }
+
+    const p1 = points[0]
+    const p2 = points[points.length - 1]
+
+    return (
+      <line
+        x1={p1.x}
+        y1={p1.y}
+        x2={p2.x}
+        y2={p2.y}
+        stroke={color}
+        strokeWidth={thickness}
+        strokeLinecap="round"
+        opacity={guideOpacity}
+        strokeDasharray={isGuide ? '5,5' : undefined}
       />
     )
   }

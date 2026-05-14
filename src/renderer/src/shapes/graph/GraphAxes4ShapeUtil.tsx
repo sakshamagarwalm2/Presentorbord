@@ -1,11 +1,13 @@
 import {
   ShapeUtil,
   HTMLContainer,
+  SVGContainer,
   T,
   Rectangle2d,
   Geometry2d,
   resizeBox,
   TLResizeInfo,
+  SvgExportContext,
 } from '@tldraw/tldraw'
 import { IGraphAxes4Shape } from './graph-shape-types'
 
@@ -108,5 +110,42 @@ return (
 
   override indicator(shape: IGraphAxes4Shape) {
     return <rect width={shape.props.w} height={shape.props.h} />
+  }
+
+  override toSvg(shape: IGraphAxes4Shape, _ctx: SvgExportContext) {
+    const { w, h, color } = shape.props
+    const cx = w / 2
+    const cy = h / 2
+    const tickSpacing = 50
+    const tickLength = 8
+    const arrowSize = 10
+    const strokeWidth = (shape.meta?.thickness as number) || 2
+
+    const xTicks: any[] = []
+    for (let dist = tickSpacing; dist < (w / 2) - arrowSize; dist += tickSpacing) {
+      xTicks.push(
+        <line key={`xp-${cx + dist}`} x1={cx + dist} y1={cy - tickLength / 2} x2={cx + dist} y2={cy + tickLength / 2} stroke={color} strokeWidth={strokeWidth} />,
+        <line key={`xn-${cx - dist}`} x1={cx - dist} y1={cy - tickLength / 2} x2={cx - dist} y2={cy + tickLength / 2} stroke={color} strokeWidth={strokeWidth} />
+      )
+    }
+
+    const yTicks: any[] = []
+    for (let dist = tickSpacing; dist < (h / 2) - arrowSize; dist += tickSpacing) {
+      yTicks.push(
+        <line key={`yp-${cy - dist}`} x1={cx - tickLength / 2} y1={cy - dist} x2={cx + tickLength / 2} y2={cy - dist} stroke={color} strokeWidth={strokeWidth} />,
+        <line key={`yn-${cy + dist}`} x1={cx - tickLength / 2} y1={cy + dist} x2={cx + tickLength / 2} y2={cy + dist} stroke={color} strokeWidth={strokeWidth} />
+      )
+    }
+
+    return (
+      <SVGContainer id={shape.id}>
+        <line x1={0} y1={cy} x2={w} y2={cy} stroke={color} strokeWidth={strokeWidth} />
+        <path d={`M ${w - arrowSize},${cy - arrowSize / 2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize / 2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
+        {xTicks}
+        <line x1={cx} y1={h} x2={cx} y2={0} stroke={color} strokeWidth={strokeWidth} />
+        <path d={`M ${cx - arrowSize / 2},${arrowSize} L ${cx},${0} L ${cx + arrowSize / 2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
+        {yTicks}
+      </SVGContainer>
+    )
   }
 }

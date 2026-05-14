@@ -72,6 +72,12 @@ interface Bookmark {
   url: string;
 }
 
+const DEFAULT_BOOKMARKS: Bookmark[] = [
+  { name: "zperiod.app", url: "https://zperiod.app/?lang=hi" },
+  { name: "GeoGebra", url: "https://www.geogebra.org/calculator" },
+  { name: "PhET Simulations", url: "https://phet.colorado.edu/en/simulations/filter" }
+];
+
 export function ToolsSidebar({
   onImportClick,
   onOpenProject,
@@ -96,8 +102,9 @@ export function ToolsSidebar({
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeTab, setCustomizeTab] = useState<"drawing" | "navigation">("drawing");
   const [showBookmarks, setShowBookmarks] = useState(false);
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [customBookmarks, setCustomBookmarks] = useState<Bookmark[]>([]);
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
 
   // Close all dropdowns
   const closeAllDropdowns = () => {
@@ -138,10 +145,32 @@ export function ToolsSidebar({
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("tools-sidebar-bookmarks");
+    // Initial status check
+    // @ts-ignore
+    if (window.electron && window.electron.ipcRenderer) {
+      // @ts-ignore
+      window.electron.ipcRenderer.invoke("get-browser-status").then(setIsBrowserOpen);
+
+      // Listen for updates
+      // @ts-ignore
+      const removeListener = window.electron.ipcRenderer.on("browser-status-changed", (_, status) => {
+        setIsBrowserOpen(status);
+      });
+      return () => removeListener();
+    }
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("tools-sidebar-custom-bookmarks");
     if (saved) {
       try {
-        setBookmarks(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Filter out any default bookmarks that might have been saved in the old system
+        const filtered = parsed.filter((bm: Bookmark) => 
+          !DEFAULT_BOOKMARKS.some(dbm => dbm.url === bm.url)
+        );
+        setCustomBookmarks(filtered);
       } catch (e) {
         console.error("Failed to parse bookmarks", e);
       }
@@ -149,9 +178,9 @@ export function ToolsSidebar({
   }, []);
 
   const saveBookmarks = (newBookmarks: Bookmark[]) => {
-    setBookmarks(newBookmarks);
+    setCustomBookmarks(newBookmarks);
     localStorage.setItem(
-      "tools-sidebar-bookmarks",
+      "tools-sidebar-custom-bookmarks",
       JSON.stringify(newBookmarks),
     );
   };
@@ -163,22 +192,37 @@ export function ToolsSidebar({
       url = "https://" + url;
     }
 
+    // Check if it's already in defaults
+    if (DEFAULT_BOOKMARKS.some(dbm => dbm.url === url)) {
+      setNewBookmarkUrl("");
+      return;
+    }
+
     // Simple naming strategy: domain name or full URL
     let name = url.replace(/https?:\/\//, "");
     if (name.includes("/")) name = name.split("/")[0];
 
-    const newBookmarks = [...bookmarks, { name, url }];
+    const newBookmarks = [...customBookmarks, { name, url }];
     saveBookmarks(newBookmarks);
     setNewBookmarkUrl("");
   };
 
-  const removeBookmark = (index: number) => {
-    const newBookmarks = bookmarks.filter((_, i) => i !== index);
+  const removeBookmark = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    const newBookmarks = customBookmarks.filter((_, i) => i !== index);
     saveBookmarks(newBookmarks);
   };
 
   const openBookmark = (url: string) => {
+    // Force use of internal browser logic for bookmarks
     window.open(url, "_blank");
+    
+    // After requesting the open, ensure the window is focused
+    // (createInternalBrowser in main handles the heavy lifting, but we call focus just in case)
+    if (isBrowserOpen) {
+      // @ts-ignore
+      window.electron?.ipcRenderer.invoke("focus-internal-browser");
+    }
   };
 
   const toggleGrid = () => {
@@ -229,11 +273,13 @@ export function ToolsSidebar({
   };
 
   const openBrowser = () => {
-    window.open("https://google.com", "_blank");
-  };
-
-  const openGraph = () => {
-    window.open("https://www.desmos.com/calculator", "_blank");
+    // If browser is already open, just focus it
+    if (isBrowserOpen) {
+       // @ts-ignore
+       window.electron.ipcRenderer.invoke("focus-internal-browser");
+    } else {
+       window.open("https://google.com", "_blank");
+    }
   };
 
 return (
@@ -273,41 +319,14 @@ return (
 
           {/* Tools */}
           <div className="flex flex-col gap-2 w-full px-1.5">
-
-            {/* Tools Group */}
-            <div className="relative">
-              <ToolButton
-                icon={Wrench}
-                label="Tools"
-                isActive={showTools}
-                onClick={() => showTools ? setShowTools(false) : openDropdown("tools")}
-                side={side}
-              />
-
-              {/* Tools Sub-menu */}
-              {showTools && (
-                <div className={`absolute ${side === 'right' ? 'right-full mr-3' : 'left-full ml-3'} top-0 flex flex-col gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-1.5 z-[99999] whitespace-nowrap`}>
-                  <ToolButton
-                    icon={Timer}
-                    label="Timer"
-                    onClick={() => {
-                      onOpenTimer?.();
-                      setShowTools(false);
-                    }}
-                    side={side === 'right' ? 'left' : 'right'} // Label should be on opposite side of sub-menu popout
-                  />
-                  <ToolButton
-                    icon={LineChart}
-                    label="Graph"
-                    onClick={() => {
-                      openGraph();
-                      setShowTools(false);
-                    }}
-                    side={side === 'right' ? 'left' : 'right'}
-                  />
-                </div>
-              )}
-            </div>
+            <ToolButton
+              icon={Timer}
+              label="Timer"
+              onClick={() => {
+                onOpenTimer?.();
+              }}
+              side={side}
+            />
 
             <ToolButton 
               icon={CalcIcon} 
@@ -316,10 +335,16 @@ return (
               side={side} 
             />
 
-            <ToolButton icon={Globe} label="Browser" onClick={openBrowser} side={side} />
+            <ToolButton 
+              icon={Globe} 
+              label="Browser" 
+              onClick={openBrowser} 
+              side={side} 
+              isExternalActive={isBrowserOpen}
+            />
 
             <div className="relative">
-              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} side={side} />
+              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} side={side} isExternalActive={isBrowserOpen} />
 
               {/* Bookmarks dropdown */}
               {showBookmarks && (
@@ -344,20 +369,50 @@ return (
                   </div>
 
                   {/* Bookmarks list */}
-                  <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
-                    {bookmarks.length === 0 && (
+                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto mt-1 custom-scrollbar">
+                    {/* Render Default Bookmarks (No Delete Button) */}
+                    {DEFAULT_BOOKMARKS.map((bm, i) => (
+                      <div
+                        key={`def-${i}`}
+                        className="group flex items-center justify-between gap-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg px-2 py-1.5 transition-colors cursor-pointer"
+                        onClick={() => openBookmark(bm.url)}
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Globe size={14} className="text-blue-500 shrink-0" />
+                          <span className="text-sm truncate text-gray-700 dark:text-gray-200 font-medium">
+                            {bm.name}
+                          </span>
+                        </div>
+                        {/* No Delete Button for Defaults */}
+                      </div>
+                    ))}
+
+                    {/* Render Custom Bookmarks */}
+                    {customBookmarks.map((bm, i) => (
+                      <div
+                        key={`custom-${i}`}
+                        className="group flex items-center justify-between gap-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg px-2 py-1.5 transition-colors cursor-pointer"
+                        onClick={() => openBookmark(bm.url)}
+                      >
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Globe size={14} className="text-blue-500 shrink-0" />
+                          <span className="text-sm truncate text-gray-700 dark:text-gray-200 font-medium">
+                            {bm.name}
+                          </span>
+                        </div>
+                        <button
+                          onClick={(e) => removeBookmark(e, i)}
+                          className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {DEFAULT_BOOKMARKS.length === 0 && customBookmarks.length === 0 && (
                       <p className="text-xs text-gray-400 italic text-center py-2">No bookmarks</p>
                     )}
-                    {bookmarks.map((bm: Bookmark, i: number) => (
-                      <button
-                        key={i}
-                        onClick={() => openBookmark(bm.url)}
-                        className="flex items-center gap-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-2 py-1"
-                      >
-                        <Globe size={14} className="text-blue-500" />
-                        <span className="text-sm truncate">{bm.name}</span>
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}
@@ -644,12 +699,14 @@ function ToolButton({
   isActive,
   onClick,
   side = "right",
+  isExternalActive = false,
 }: {
   icon: any;
   label: string;
   isActive?: boolean;
   onClick: () => void;
   side?: "left" | "right";
+  isExternalActive?: boolean;
 }) {
   return (
     <button
@@ -658,6 +715,9 @@ function ToolButton({
       title={label}
     >
       <Icon size={18} strokeWidth={1.5} />
+      {isExternalActive && (
+        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full border border-white dark:border-gray-900 shadow-sm" />
+      )}
       <span className={`text-[9px] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute bg-gray-800 text-white px-2 py-0.5 rounded-md ${side === 'right' ? 'right-full mr-2' : 'left-full ml-2'} whitespace-nowrap pointer-events-none z-[100]`}>
         {label}
       </span>

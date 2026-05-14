@@ -36,6 +36,7 @@ import { GraphAxes1ShapeUtil } from "./shapes/graph/GraphAxes1ShapeUtil";
 import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
 
 import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
+import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 import { CustomLineShapeUtil } from "./shapes/CustomLineShapeUtil";
 import { CustomArrowShapeUtil } from "./shapes/CustomArrowShapeUtil";
 
@@ -48,7 +49,6 @@ import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
 import { AreaEraserTool } from "./tools/AreaEraserTool";
 import { LineTool } from "./tools/LineTool";
 import { CustomArrowTool } from "./tools/CustomArrowTool";
-import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 
 const customShapeUtils = [
   GraphAxes1ShapeUtil,
@@ -327,10 +327,10 @@ function AppContent() {
           const opacity = currentOpacitySignal.get();
           const isBrush = currentIsBrushSignal.get();
           const brushType = currentBrushTypeSignal.get();
-          
+
           const toolName = isBrush ? `Brush (${brushType})` : "Standard Pen/Pencil";
           window.api.log(`[Drawing] New Stroke Created: ${toolName} | Thickness: ${thickness} | Opacity: ${opacity}`);
-          
+
           return {
             ...shape,
             type: "custom-draw",
@@ -343,7 +343,7 @@ function AppContent() {
             },
           };
         }
-        
+
         if (shape.type === "super-pen") {
             const props = (shape as any).props;
             window.api.log(`[Drawing] New Super Pen Created: ${props.mode} | Size: ${props.size} | Opacity: ${props.opacity}`);

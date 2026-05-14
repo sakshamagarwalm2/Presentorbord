@@ -22,6 +22,60 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let mainWindow: BrowserWindow | null = null;
+let internalBrowserWindow: BrowserWindow | null = null;
+
+function createInternalBrowser(url: string): void {
+  // If a browser window is already open, just update its URL and bring to front
+  // This is much faster and solves the "double click" issue
+  if (internalBrowserWindow && !internalBrowserWindow.isDestroyed()) {
+    internalBrowserWindow.loadURL(url);
+    internalBrowserWindow.show();
+    internalBrowserWindow.focus();
+    return;
+  }
+
+  internalBrowserWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    autoHideMenuBar: true,
+    show: false,
+    title: "Presentorbord Browser",
+    icon: path.join(__dirname, "../../src/assets/presentor.ico"),
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+    },
+  });
+
+  internalBrowserWindow.loadURL(url);
+
+  internalBrowserWindow.on("ready-to-show", () => {
+    internalBrowserWindow?.show();
+    internalBrowserWindow?.focus();
+  });
+
+  internalBrowserWindow.on("closed", () => {
+    internalBrowserWindow = null;
+    mainWindow?.webContents.send("browser-status-changed", false);
+  });
+  
+  mainWindow?.webContents.send("browser-status-changed", true);
+}
+
+// ... existing code ...
+
+ipcMain.handle("focus-internal-browser", () => {
+  if (internalBrowserWindow && !internalBrowserWindow.isDestroyed()) {
+    internalBrowserWindow.show();
+    internalBrowserWindow.focus();
+    return true;
+  }
+  return false;
+});
+
+ipcMain.handle("get-browser-status", () => {
+  return internalBrowserWindow !== null && !internalBrowserWindow.isDestroyed();
+});
 
 function createWindow(): void {
   logger.log("Creating main window...");
@@ -54,8 +108,8 @@ function createWindow(): void {
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    logger.log(`External link opened: ${details.url}`);
-    shell.openExternal(details.url);
+    logger.log(`Internal browser opening link: ${details.url}`);
+    createInternalBrowser(details.url);
     return { action: "deny" };
   });
 

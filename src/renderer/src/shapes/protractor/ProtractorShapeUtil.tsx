@@ -4,6 +4,7 @@ import {
   T,
   Rectangle2d,
   resizeBox,
+  SvgExportContext,
 } from "@tldraw/tldraw";
 import { IProtractorShape } from "./protractor-shape-types";
 
@@ -174,5 +175,45 @@ export class ProtractorShapeUtil extends ShapeUtil<IProtractorShape> {
   override indicator(shape: IProtractorShape) {
     const { w, h } = shape.props;
     return <path d={`M 0 ${h} A ${w / 2} ${h} 0 0 1 ${w} ${h} Z`} />;
+  }
+
+  override toSvg(shape: IProtractorShape, _ctx: SvgExportContext) {
+    const { w, h } = shape.props
+
+    const ticks: any[] = []
+    for (let i = 0; i <= 180; i++) {
+      const angle = (i * Math.PI) / 180
+      const cx = w / 2
+      const cy = h
+      const isMajor = i % 10 === 0
+      const isMedium = i % 5 === 0
+      const length = isMajor ? 15 : isMedium ? 10 : 5
+      const tickR = (w / 2) - 2
+
+      const x1 = cx + tickR * Math.cos(-angle)
+      const y1 = cy + tickR * Math.sin(-angle)
+      const matchR = tickR - length
+      const x2 = cx + matchR * Math.cos(-angle)
+      const y2 = cy + matchR * Math.sin(-angle)
+
+      ticks.push(<line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="black" strokeWidth={isMajor ? 1.5 : 0.5} />)
+
+      if (isMajor && i !== 0 && i !== 180) {
+        const textR = (w / 2) - 25
+        const tx = cx + textR * Math.cos(-angle)
+        const ty = cy + textR * Math.sin(-angle)
+        ticks.push(<text key={`t-${i}`} x={tx} y={ty} fontSize={10} fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle" fill="black">{i}</text>)
+      }
+    }
+
+    return (
+      <g>
+        <path d={`M 0 ${h} A ${w / 2} ${h} 0 0 1 ${w} ${h} Z`} fill="rgba(255, 255, 255, 0.4)" stroke="rgba(0,0,0,0.5)" strokeWidth="1" />
+        {ticks}
+        <circle cx={w / 2} cy={h} r={3} fill="black" />
+        <line x1={w / 2} y1={h} x2={w / 2} y2={h - 10} stroke="black" />
+        <line x1={0} y1={h} x2={w} y2={h} stroke="black" />
+      </g>
+    )
   }
 }

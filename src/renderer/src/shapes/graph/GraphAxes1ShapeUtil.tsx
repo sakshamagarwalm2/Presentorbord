@@ -1,11 +1,13 @@
 import {
   ShapeUtil,
   HTMLContainer,
+  SVGContainer,
   T,
   Rectangle2d,
   Geometry2d,
   resizeBox,
   TLResizeInfo,
+  SvgExportContext,
 } from '@tldraw/tldraw'
 import { IGraphAxes1Shape } from './graph-shape-types'
 
@@ -98,5 +100,35 @@ export class GraphAxes1ShapeUtil extends ShapeUtil<IGraphAxes1Shape> {
 
   override indicator(shape: IGraphAxes1Shape) {
     return <rect width={shape.props.w} height={shape.props.h} />
+  }
+
+  override toSvg(shape: IGraphAxes1Shape, _ctx: SvgExportContext) {
+    const { w, h, color } = shape.props
+    const strokeWidth = (shape.meta?.thickness as number) || 2
+    const tickSpacing = 50
+    const tickLength = 6
+    const arrowSize = 10
+
+    const xTicks: any[] = []
+    for (let x = tickSpacing; x < w - arrowSize; x += tickSpacing) {
+      xTicks.push(<line key={`x-${x}`} x1={x} y1={h - tickLength} x2={x} y2={h} stroke={color} strokeWidth={strokeWidth} />)
+    }
+
+    const yTicks: any[] = []
+    for (let dist = tickSpacing; dist < h - arrowSize; dist += tickSpacing) {
+      const y = h - dist
+      yTicks.push(<line key={`y-${y}`} x1={0} y1={y} x2={tickLength} y2={y} stroke={color} strokeWidth={strokeWidth} />)
+    }
+
+    return (
+      <SVGContainer id={shape.id}>
+        <line x1={0} y1={h} x2={w} y2={h} stroke={color} strokeWidth={strokeWidth} />
+        <path d={`M ${w - arrowSize},${h - arrowSize / 2} L ${w},${h} L ${w - arrowSize},${h + arrowSize / 2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
+        {xTicks}
+        <line x1={0} y1={h} x2={0} y2={0} stroke={color} strokeWidth={strokeWidth} />
+        <path d={`M ${-arrowSize / 2},${arrowSize} L ${0},${0} L ${arrowSize / 2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
+        {yTicks}
+      </SVGContainer>
+    )
   }
 }

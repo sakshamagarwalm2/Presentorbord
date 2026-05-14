@@ -5,6 +5,7 @@ import {
   Rectangle2d,
   resizeBox,
   createShapeId,
+  SvgExportContext,
 } from "@tldraw/tldraw";
 import { ICompassShape } from "./compass-shape-types";
 
@@ -343,5 +344,20 @@ export class CompassShapeUtil extends ShapeUtil<ICompassShape> {
   override indicator(shape: ICompassShape) {
     const { w, h } = shape.props;
     return <rect width={w} height={h} rx={4} />;
+  }
+
+  override toSvg(shape: ICompassShape, _ctx: SvgExportContext) {
+    const { w, h, radius } = shape.props
+
+    return (
+      <g>
+        <line x1={0} y1={h / 2} x2={radius} y2={h / 2} stroke="#666" strokeWidth={4} strokeLinecap="round" />
+        <text x={radius / 2} y={h / 2 - 8} fontSize={12} fill="#333" textAnchor="middle" fontFamily="sans-serif">{(radius / 10).toFixed(1)} cm</text>
+        <path d={`M -2 ${h / 2 + 5} L 2 ${h / 2 + 5} L 0 ${h / 2 + 20} Z`} fill="#95a5a6" />
+        <rect x={radius - 8} y={h / 2 - 12} width={16} height={24} rx={4} fill="#2c3e50" />
+        <path d={`M ${radius - 4} ${h / 2 + 12} L ${radius + 4} ${h / 2 + 12} L ${radius} ${h / 2 + 25} Z`} fill="#f39c12" />
+        <polygon points={`${radius - 1},${h / 2 + 22} ${radius + 1},${h / 2 + 22} ${radius},${h / 2 + 25}`} fill="#333" />
+      </g>
+    )
   }
 }

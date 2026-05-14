@@ -1,4 +1,4 @@
-import { ShapeUtil, HTMLContainer, T, Rectangle2d, Geometry2d, TLBaseShape, Vec } from '@tldraw/tldraw'
+import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, Vec, SvgExportContext } from '@tldraw/tldraw'
 
 export type TCustomArrowShape = TLBaseShape<
   'custom-arrow',
@@ -192,6 +192,59 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
         width={maxX - minX + padding * 2}
         height={maxY - minY + padding * 2}
       />
+    )
+  }
+
+  override toSvg(shape: TCustomArrowShape, _ctx: SvgExportContext) {
+    const { points, color, arrowStart, arrowEnd } = shape.props
+    const thickness = (shape.meta?.thickness as number) || 4
+
+    if (points.length < 2) return <SVGContainer id={shape.id} />
+
+    const p1 = points[0]
+    const p2 = points[points.length - 1]
+    const dx = p2.x - p1.x
+    const dy = p2.y - p1.y
+    const len = Math.sqrt(dx * dx + dy * dy)
+    if (len === 0) return <SVGContainer id={shape.id} />
+
+    const arrowSize = 15
+    const arrowAngle = 0.5
+
+    const createEndArrowPath = () => {
+      const tipX = p2.x
+      const tipY = p2.y
+      const angle1 = Math.atan2(dy, dx) - arrowAngle
+      const angle2 = Math.atan2(dy, dx) + arrowAngle
+      const wing1X = tipX - Math.cos(angle1) * arrowSize
+      const wing1Y = tipY - Math.sin(angle1) * arrowSize
+      const wing2X = tipX - Math.cos(angle2) * arrowSize
+      const wing2Y = tipY - Math.sin(angle2) * arrowSize
+      return `M ${wing1X} ${wing1Y} L ${tipX} ${tipY} L ${wing2X} ${wing2Y}`
+    }
+
+    const createStartArrowPath = () => {
+      const tipX = p1.x
+      const tipY = p1.y
+      const angle1 = Math.atan2(-dy, -dx) - arrowAngle
+      const angle2 = Math.atan2(-dy, -dx) + arrowAngle
+      const wing1X = tipX - Math.cos(angle1) * arrowSize
+      const wing1Y = tipY - Math.sin(angle1) * arrowSize
+      const wing2X = tipX - Math.cos(angle2) * arrowSize
+      const wing2Y = tipY - Math.sin(angle2) * arrowSize
+      return `M ${wing1X} ${wing1Y} L ${tipX} ${tipY} L ${wing2X} ${wing2Y}`
+    }
+
+    return (
+      <SVGContainer id={shape.id}>
+        <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth={thickness} strokeLinecap="round" />
+        {arrowStart && (
+          <path d={createStartArrowPath()} stroke={color} strokeWidth={thickness} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        )}
+        {arrowEnd && (
+          <path d={createEndArrowPath()} stroke={color} strokeWidth={thickness} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        )}
+      </SVGContainer>
     )
   }
 }

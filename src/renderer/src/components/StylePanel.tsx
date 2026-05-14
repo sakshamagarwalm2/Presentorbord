@@ -153,7 +153,7 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     console.log('[StylePanel] handleColorChange (Direct):', color)
     const selected = editor.getSelectedShapes()
     const convertedColor = COLOR_MAP[color] || color
-    
+
     currentCustomColorSignal.set(convertedColor)
     localStorage.setItem('last-used-color', convertedColor)
 
@@ -181,13 +181,13 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const handleCustomColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = e.target.value
     setCustomColor(newColor)
-    
+
     // Debounce the actual application of the color to prevent excessive traffic
     const timeoutId = setTimeout(() => {
       console.log('[StylePanel] Applying debounced custom color:', newColor)
       handleColorChange(newColor)
     }, 200)
-    
+
     return () => clearTimeout(timeoutId)
   }
 

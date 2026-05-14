@@ -4,6 +4,7 @@ import {
   T,
   Rectangle2d,
   resizeBox,
+  SvgExportContext,
 } from "@tldraw/tldraw";
 import { IRulerShape } from "./ruler-shape-types";
 
@@ -154,5 +155,27 @@ export class RulerShapeUtil extends ShapeUtil<IRulerShape> {
 
   override indicator(shape: IRulerShape) {
     return <rect width={shape.props.w} height={shape.props.h} />;
+  }
+
+  override toSvg(shape: IRulerShape, _ctx: SvgExportContext) {
+    const { w, h } = shape.props
+
+    const ticks: any[] = []
+    for (let x = 0; x <= w; x += 10) {
+      if (x % 100 === 0) {
+        ticks.push(
+          <g key={x}>
+            <line x1={x} y1={h} x2={x} y2={h - 20} stroke="black" strokeWidth={2} />
+            <text x={x + 2} y={h - 25} fontSize={10} fontFamily="sans-serif" fill="black">{x / 10}</text>
+          </g>
+        )
+      } else if (x % 50 === 0) {
+        ticks.push(<line key={x} x1={x} y1={h} x2={x} y2={h - 15} stroke="black" strokeWidth={1.5} />)
+      } else {
+        ticks.push(<line key={x} x1={x} y1={h} x2={x} y2={h - 8} stroke="black" strokeWidth={1} />)
+      }
+    }
+
+    return <g>{ticks}</g>
   }
 }

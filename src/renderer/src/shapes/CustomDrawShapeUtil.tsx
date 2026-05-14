@@ -1,11 +1,13 @@
 import {
   HTMLContainer,
   ShapeUtil,
+  SVGContainer,
   TLDrawShape,
   getDefaultColorTheme,
   Polyline2d,
   Vec,
   TLResizeInfo,
+  SvgExportContext,
 } from "@tldraw/tldraw";
 
 // Helper to convert points to SVG path data
@@ -268,7 +270,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
     );
   }
 
-  override toSvg(shape: TLDrawShape) {
+  override toSvg(shape: TLDrawShape, _ctx: SvgExportContext) {
     const { props } = shape;
     const { color, segments } = props;
     const theme = getDefaultColorTheme({ isDarkMode: this.editor.user.getIsDarkMode() });
@@ -277,7 +279,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
     const isBrush = !!shape.meta?.isBrush;
     const brushType = (shape.meta?.brushType as string) || "normal";
 
-    if (segments.length === 0) return null;
+    if (segments.length === 0) return <SVGContainer id={shape.id} />;
 
     if (isBrush) {
       if (brushType === "normal") {
@@ -289,7 +291,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
             if (pts.length < 2) return;
             pts.forEach((p: any, i: number) => {
               const z = p.z !== undefined ? p.z : 0.5;
-              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0); 
+              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0);
               const size = (thickness * pressureEffect * widthScale) / 2;
               const dx = Math.cos(offsetAngle) * size;
               const dy = Math.sin(offsetAngle) * size;
@@ -298,7 +300,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
             });
             [...pts].reverse().forEach((p: any) => {
               const z = p.z !== undefined ? p.z : 0.5;
-              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0); 
+              const pressureEffect = Math.max(0.1, (z - 0.1) * 2.0);
               const size = (thickness * pressureEffect * widthScale) / 2;
               const dx = Math.cos(offsetAngle) * size;
               const dy = Math.sin(offsetAngle) * size;
@@ -309,12 +311,10 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
           return <path key={offsetAngle} d={d + reverseD + " Z"} fill={strokeColor} opacity={opacity} stroke="none" />;
         };
 
-        return (
-          <g>
-            {renderPenRibbon(0, 1.0, 0.95)}
-            {renderPenRibbon(Math.PI / 2, 0.8, 0.3)}
-          </g>
-        );
+        const r1 = renderPenRibbon(0, 1.0, 0.95);
+        const r2 = renderPenRibbon(Math.PI / 2, 0.8, 0.3);
+        if (!r1 && !r2) return <SVGContainer id={shape.id} />;
+        return <SVGContainer id={shape.id}>{[r1, r2].filter(Boolean)}</SVGContainer>;
       }
 
       if (brushType === "airbrush") {
@@ -329,10 +329,10 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
              </g>
            );
         });
-        return <g>{paths}</g>;
+        return <SVGContainer id={shape.id}>{paths}</SVGContainer>;
       }
 
-      const angle = Math.PI / 4; 
+      const angle = Math.PI / 4;
       const renderCalligraphyRibbon = (offsetT: number, opacity: number, widthScale: number) => {
         let leftD = "";
         let reverseRightD = "";
@@ -340,7 +340,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
           const pts = segment.points;
           pts.forEach((p: any, i: number) => {
             const z = p.z !== undefined ? p.z : 0.5;
-            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5); 
+            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5);
             const size = thickness * pressureEffect * widthScale;
             const dx = Math.cos(angle + Math.PI/2) * (size / 2);
             const dy = Math.sin(angle + Math.PI/2) * (size / 2);
@@ -351,7 +351,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
           });
           [...segment.points].reverse().forEach((p: any) => {
             const z = p.z !== undefined ? p.z : 0.5;
-            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5); 
+            const pressureEffect = Math.max(0.05, (z - 0.1) * 2.5);
             const size = thickness * pressureEffect * widthScale;
             const dx = Math.cos(angle + Math.PI/2) * (size / 2);
             const dy = Math.sin(angle + Math.PI/2) * (size / 2);
@@ -364,13 +364,14 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
         return <path key={offsetT} d={leftD + reverseRightD + " Z"} fill={strokeColor} opacity={opacity} stroke="none" />;
       };
 
-      return (
-        <g>
-          {renderCalligraphyRibbon(0, 0.8, 1.0)}
-          {renderCalligraphyRibbon(-0.15, 0.4, 0.6)}
-          {renderCalligraphyRibbon(0.15, 0.4, 0.6)}
-        </g>
-      );
+      const ribbons = [
+        renderCalligraphyRibbon(0, 0.8, 1.0),
+        renderCalligraphyRibbon(-0.15, 0.4, 0.6),
+        renderCalligraphyRibbon(0.15, 0.4, 0.6),
+      ].filter(Boolean);
+
+      if (ribbons.length === 0) return <SVGContainer id={shape.id} />;
+      return <SVGContainer id={shape.id}>{ribbons}</SVGContainer>;
     }
 
     const pathData = ptsToPath(segments[0].points);
