@@ -1,4 +1,13 @@
-import { StateNode, TLEventHandlers, TLStateNodeConstructor, TLShapeId } from '@tldraw/editor'
+import {
+	StateNode,
+	TLEventHandlers,
+	TLPointerEventInfo,
+	TLShapeId,
+	TLStateNodeConstructor,
+	SelectTool,
+	Vec,
+	pointInPolygon,
+} from '@tldraw/tldraw'
 
 class LassoDragging extends StateNode {
 	static override id = 'dragging'
@@ -61,7 +70,8 @@ class LassoDragging extends StateNode {
 
 		if (selectedIds.length > 0) {
 			this.editor.setHintingShapes(selectedIds)
-			this.editor.setCurrentTool('select')
+			this.editor.setHintingShapes([])
+			this.parent.transition('idle')
 		} else {
 			this.parent.transition('idle')
 		}
@@ -144,39 +154,173 @@ class LassoIdle extends StateNode {
 
 	override onEnter = () => {
 		console.log('LassoIdle: onEnter')
+		this.editor.setCursor({ type: 'cross', rotation: 0 })
 	}
 
 	override onPointerDown: TLEventHandlers['onPointerDown'] = (info) => {
 		console.log('LassoIdle: onPointerDown')
-        
-        // If clicking on a selected shape, switch to select tool so it can be moved
-        const { currentPagePoint } = this.editor.inputs
-        const shapeAtPoint = this.editor.getShapeAtPoint(currentPagePoint)
-        if (shapeAtPoint && this.editor.getSelectedShapeIds().includes(shapeAtPoint.id)) {
-            this.editor.setCurrentTool('select')
-            // Transition immediately to the pointer down state of the select tool if possible
-            // but usually just switching tool is enough for the next move
-            return
-        }
+
+		if (this.editor.getIsMenuOpen()) return
+
+		if (info.target === 'selection') {
+			this.handleSelectionPointerDown(info)
+			return
+		}
+
+		if (info.target === 'handle') {
+			this.parent.transition(this.editor.inputs.altKey ? 'pointing_shape' : 'pointing_handle', info)
+			return
+		}
+
+		if (info.target === 'shape') {
+			if (this.editor.isShapeOrAncestorLocked(info.shape)) {
+				this.parent.transition('dragging', info)
+			} else {
+				this.parent.transition('pointing_shape', info)
+			}
+			return
+		}
+
+		const { currentPagePoint } = this.editor.inputs
+		const shapeAtPoint = this.editor.getShapeAtPoint(currentPagePoint, {
+			margin: this.editor.options.hitTestMargin / this.editor.getZoomLevel(),
+			hitInside: true,
+			hitLocked: false,
+			renderingOnly: true,
+		})
+
+		if (shapeAtPoint && !this.editor.isShapeOrAncestorLocked(shapeAtPoint)) {
+			this.parent.transition('pointing_shape', {
+				...info,
+				target: 'shape',
+				shape: shapeAtPoint,
+			})
+			return
+		}
+
+		if (this.isPointInSelection(currentPagePoint)) {
+			this.parent.transition('pointing_selection', {
+				...info,
+				target: 'selection',
+			})
+			return
+		}
 
 		this.parent.transition('dragging', info)
 	}
+
+	override onKeyDown: TLEventHandlers['onKeyDown'] = (info) => {
+		const selectedIds = this.editor.getSelectedShapeIds()
+		if (selectedIds.length === 0) return
+
+		switch (info.code) {
+			case 'Delete':
+			case 'Backspace':
+				this.editor.deleteShapes(selectedIds)
+				break
+			case 'Escape':
+				this.editor.selectNone()
+				break
+			case 'ArrowLeft':
+			case 'ArrowRight':
+			case 'ArrowUp':
+			case 'ArrowDown':
+				this.nudgeSelectedShapes(info.code, info.shiftKey ? 10 : 1)
+				break
+		}
+	}
+
+	private handleSelectionPointerDown(info: TLPointerEventInfo & { target: 'selection' }) {
+		switch (info.handle) {
+			case 'top':
+			case 'right':
+			case 'bottom':
+			case 'left':
+			case 'top_left':
+			case 'top_right':
+			case 'bottom_left':
+			case 'bottom_right':
+				this.parent.transition('pointing_resize_handle', info)
+				break
+			case 'mobile_rotate':
+			case 'top_left_rotate':
+			case 'top_right_rotate':
+			case 'bottom_left_rotate':
+			case 'bottom_right_rotate':
+				this.parent.transition('pointing_rotate_handle', info)
+				break
+			default:
+				this.parent.transition('pointing_selection', info)
+		}
+	}
+
+	private isPointInSelection(point: Vec) {
+		const selectedShapeIds = this.editor.getSelectedShapeIds()
+		const onlySelectedShape = this.editor.getOnlySelectedShape()
+		const selectionBounds = this.editor.getSelectionRotatedPageBounds()
+
+		if (!selectionBounds) return false
+		if (
+			selectedShapeIds.length <= 1 &&
+			onlySelectedShape &&
+			this.editor.getShapeUtil(onlySelectedShape).hideSelectionBoundsBg(onlySelectedShape)
+		) {
+			return false
+		}
+
+		const selectionRotation = this.editor.getSelectionRotation()
+		if (!selectionRotation) return selectionBounds.containsPoint(point)
+
+		return pointInPolygon(
+			point,
+			selectionBounds.corners.map((corner) =>
+				Vec.RotWith(corner, selectionBounds.point, selectionRotation)
+			)
+		)
+	}
+
+	private nudgeSelectedShapes(code: string, step: number) {
+		const delta = new Vec(0, 0)
+		switch (code) {
+			case 'ArrowLeft':
+				delta.x -= step
+				break
+			case 'ArrowRight':
+				delta.x += step
+				break
+			case 'ArrowUp':
+				delta.y -= step
+				break
+			case 'ArrowDown':
+				delta.y += step
+				break
+		}
+		if (delta.x === 0 && delta.y === 0) return
+		this.editor.mark('nudge lasso selection')
+		this.editor.nudgeShapes(this.editor.getSelectedShapeIds(), delta)
+	}
 }
 
-export class LassoTool extends StateNode {
+export class LassoTool extends SelectTool {
 	static override id = 'lasso'
 	static override initial = 'idle'
-	static override children = (): TLStateNodeConstructor[] => [LassoIdle, LassoDragging]
+	static override children = (): TLStateNodeConstructor[] => [
+		LassoIdle,
+		LassoDragging,
+		...SelectTool.children().filter((Child) => Child.id !== 'idle'),
+	]
     static override isLockable = true // Allow tool lock
 
 	override onEnter = () => {
 		console.log('LassoTool: onEnter')
 		this.editor.setCursor({ type: 'cross', rotation: 0 })
+		super.onEnter?.()
 	}
 
     override onExit = () => {
         // Clear any hints when leaving the tool
         this.editor.setHintingShapes([])
+		super.onExit?.()
     }
 }
 

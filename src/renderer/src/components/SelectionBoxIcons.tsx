@@ -86,7 +86,7 @@ export function SelectionBoxIcons() {
     }
   }, [isChanging, selectedIds])
 
-  if (!selectionBounds || selectedIds.length === 0 || isChanging || currentToolId !== 'select') {
+  if (!selectionBounds || selectedIds.length === 0 || isChanging || !['select', 'lasso'].includes(currentToolId)) {
     return null
   }
 

@@ -29,6 +29,7 @@ import { AllSlidesGrid } from "./components/AllSlidesGrid";
 import { TimerWidget } from "./components/TimerWidget";
 import { SelectionBoxIcons } from "./components/SelectionBoxIcons";
 import { StandaloneCalculator } from "./components/StandaloneCalculator";
+import { LassoSelectionForeground } from "./components/LassoSelectionForeground";
 import { jsPDF } from "jspdf";
 import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
@@ -169,6 +170,8 @@ function AppContent() {
   useEffect(() => {
     editor.user.updateUserPreferences({ colorScheme: "dark" });
     editor.setStyleForNextShapes(DefaultColorStyle, 'white');
+    editor.setCurrentTool('lasso');
+    editor.updateInstanceState({ isToolLocked: true });
   }, [editor]);
 
   const setImportProgress = (msg: string) => {
@@ -410,7 +413,8 @@ function AppContent() {
         setTimeout(() => {
           if (editor.getShape(shapeId)) {
             editor.setSelectedShapes([shapeId]);
-            editor.setCurrentTool('select');
+            editor.setCurrentTool('lasso');
+            editor.updateInstanceState({ isToolLocked: true });
           }
         }, 50); // Small delay to let the drawing tool finish its state transition
       }
@@ -1699,6 +1703,7 @@ const components: TLComponents = {
   Toolbar: null,
   QuickActions: null,
   HelperButtons: null,
+  SelectionForeground: LassoSelectionForeground,
 };
 
 // Define overrides outside to be sure they are stable
