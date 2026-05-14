@@ -17,6 +17,7 @@ const FILL_MODES = [
   { id: 'none', label: 'None' },
   { id: 'semi', label: 'Translucent' },
   { id: 'solid', label: 'Solid' },
+  { id: 'fill', label: 'Opaque' },
   { id: 'pattern', label: 'Dotted' },
 ]
 
@@ -379,6 +380,7 @@ export function SelectionBoxIcons() {
                 >
                   <div className={`w-3 h-3 rounded-sm border border-gray-300 dark:border-gray-600 ${
                     fill.id === 'solid' ? 'bg-current opacity-100' :
+                    fill.id === 'fill' ? 'bg-current opacity-100 ring-2 ring-current' :
                     fill.id === 'semi' ? 'bg-current opacity-50' :
                     fill.id === 'pattern' ? 'bg-current opacity-20' : 'bg-transparent'
                   }`} />

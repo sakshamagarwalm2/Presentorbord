@@ -1,9 +1,9 @@
 import { StateNode, TLEventHandlers, TLShapeId, createShapeId, getIndices } from '@tldraw/editor'
 import { currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 
-const SNAP_ANGLE_RADIANS = 0.01745 // ~1 degree
-const SHOW_SUGGESTION_ANGLE = 0.174 // ~10 degrees - show suggestions within this range
-const SNAP_DISTANCE_MIN = 15 // minimum distance to snap
+const SNAP_ANGLE_RADIANS = 0.04745 // ~1 degree
+const SHOW_SUGGESTION_ANGLE = 0.300 // ~10 degrees - show suggestions within this range
+const SNAP_DISTANCE_MIN = 45 // minimum distance to snap
 
 class ArrowDrawing extends StateNode {
 	static override id = 'drawing'
