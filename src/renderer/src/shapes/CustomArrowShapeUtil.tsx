@@ -1,4 +1,4 @@
-import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, Vec, SvgExportContext } from '@tldraw/tldraw'
+import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, Vec, SvgExportContext, TLResizeInfo } from '@tldraw/tldraw'
 
 export type TCustomArrowShape = TLBaseShape<
   'custom-arrow',
@@ -63,7 +63,21 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
     })
   }
 
-  override canResize = (_shape: TCustomArrowShape) => false
+  override canResize = (_shape: TCustomArrowShape) => true
+
+  override onResize = (shape: TCustomArrowShape, info: TLResizeInfo<TCustomArrowShape>) => {
+    const { scaleX, scaleY } = info
+
+    return {
+      props: {
+        points: shape.props.points.map((point) => ({
+          ...point,
+          x: point.x * scaleX,
+          y: point.y * scaleY,
+        })),
+      },
+    }
+  }
 
   override component(shape: TCustomArrowShape) {
     const { points, color, arrowStart, arrowEnd } = shape.props

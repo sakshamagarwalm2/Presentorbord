@@ -1,4 +1,4 @@
-import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, SvgExportContext } from '@tldraw/tldraw'
+import { ShapeUtil, HTMLContainer, SVGContainer, T, Rectangle2d, Geometry2d, TLBaseShape, SvgExportContext, TLResizeInfo } from '@tldraw/tldraw'
 
 export type TCustomLineShape = TLBaseShape<
   'custom-line',
@@ -49,7 +49,21 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
     })
   }
 
-  override canResize = (_shape: TCustomLineShape) => false
+  override canResize = (_shape: TCustomLineShape) => true
+
+  override onResize = (shape: TCustomLineShape, info: TLResizeInfo<TCustomLineShape>) => {
+    const { scaleX, scaleY } = info
+
+    return {
+      props: {
+        points: shape.props.points.map((point) => ({
+          ...point,
+          x: point.x * scaleX,
+          y: point.y * scaleY,
+        })),
+      },
+    }
+  }
 
   override component(shape: TCustomLineShape) {
     const { points, color } = shape.props
