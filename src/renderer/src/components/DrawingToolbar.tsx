@@ -373,8 +373,10 @@ function EraserGroupButton({
     }
   }, [isActive, eraserMode, eraserSize])
 
+  const displayedEraserMode = isActive ? eraserMode : 'shape'
+
   const getActiveIcon = () => {
-    switch (eraserMode) {
+    switch (displayedEraserMode) {
       case 'precision': return Target
       case 'area': return Scissors
       default: return Eraser
@@ -411,7 +413,7 @@ function EraserGroupButton({
           boxShadow: theme.shadow,
           '--tw-ring-color': customColorHex 
         } as React.CSSProperties : undefined}
-        title={eraserMode === 'shape' ? 'Shape Eraser' : eraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
+        title={displayedEraserMode === 'shape' ? 'Shape Eraser' : displayedEraserMode === 'precision' ? 'Precision Eraser' : 'Area Eraser'}
       >
         <ActiveIcon size={iconSize} />
       </button>
@@ -574,26 +576,33 @@ function ShapeGroupButton({
     }
   }, [isGroupActive, selectedShape, activeTool])
 
-  const handleSelect = (shape: ShapeDef) => {
-    setSelectedShape(shape)
+  const syncNativeShapeColor = () => {
+    const selectedHex = currentCustomColorSignal.get()
+    if (selectedHex) {
+      editor.setStyleForNextShapes(DefaultColorStyle, getNearestNamedColor(selectedHex) as any)
+    }
+  }
+
+  const activateShapeTool = (shape: ShapeDef) => {
+    syncNativeShapeColor()
+    editor.updateInstanceState({ isToolLocked: false })
+
     if (shape.id === 'geo' && shape.geoType) {
       editor.setStyleForNextShapes(GeoShapeGeoStyle, shape.geoType as any)
       editor.setCurrentTool('geo')
     } else {
       editor.setCurrentTool(shape.id)
     }
-    // DO NOT LOCK for shapes/geo - let it auto-switch back to select
+  }
+
+  const handleSelect = (shape: ShapeDef) => {
+    setSelectedShape(shape)
+    activateShapeTool(shape)
     setIsOpen(false)
   }
 
   const handleMainClick = () => {
-    if (selectedShape.id === 'geo' && selectedShape.geoType) {
-      editor.setStyleForNextShapes(GeoShapeGeoStyle, selectedShape.geoType as any)
-      editor.setCurrentTool('geo')
-    } else {
-      editor.setCurrentTool(selectedShape.id)
-    }
-    // DO NOT LOCK for shapes/geo - let it auto-switch back to select
+    activateShapeTool(selectedShape)
   }
 
   const btnSizeClass = isCompact ? "w-8 h-8" : "w-9 h-9"
@@ -1132,6 +1141,13 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const [eraserMode, setEraserMode] = useState<'shape' | 'precision' | 'area'>('shape')
   const [eraserSize, setEraserSize] = useState(12)
 
+  useEffect(() => {
+    const isUsingEraserTool = ['eraser', 'precision-eraser', 'area-eraser'].includes(activeTool)
+    if (!isUsingEraserTool && eraserMode !== 'shape') {
+      setEraserMode('shape')
+    }
+  }, [activeTool, eraserMode])
+
   // Determine if precision eraser is currently active
   const isCustomEraserActive = eraserMode === 'precision' && activeTool === 'precision-eraser'
 
@@ -1202,13 +1218,8 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   }
 
   const handleEraserSelect = () => {
-    if (eraserMode === 'precision') {
-      editor.setCurrentTool('precision-eraser')
-    } else if (eraserMode === 'area') {
-      editor.setCurrentTool('area-eraser')
-    } else {
-      editor.setCurrentTool('eraser')
-    }
+    setEraserMode('shape')
+    editor.setCurrentTool('eraser')
     editor.updateInstanceState({ isToolLocked: true })
   }
 

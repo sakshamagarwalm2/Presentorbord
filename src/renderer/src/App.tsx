@@ -77,6 +77,31 @@ import {
   currentBrushTypeSignal,
   currentCustomColorSignal,
 } from "./store/styleSignals";
+import { getNearestNamedColor } from "./utils/colorUtils";
+
+const SHAPE_TYPES_TO_AUTO_SELECT = new Set([
+  "geo",
+  "arrow",
+  "line",
+  "custom-line",
+  "custom-arrow",
+  "graph-axes-1",
+  "graph-axes-4",
+  "text",
+  "note",
+  "frame",
+  "protractor",
+  "ruler",
+]);
+
+const NATIVE_COLOR_SHAPE_TYPES = new Set([
+  "geo",
+  "arrow",
+  "line",
+  "text",
+  "note",
+  "frame",
+]);
 
 // Context Menu Overrides
 // Moved into App component to use useMemo
@@ -169,7 +194,7 @@ function AppContent() {
   // Set dark mode as default on first mount
   useEffect(() => {
     editor.user.updateUserPreferences({ colorScheme: "dark" });
-    editor.setStyleForNextShapes(DefaultColorStyle, 'white');
+    editor.setStyleForNextShapes(DefaultColorStyle, getNearestNamedColor(currentCustomColorSignal.get()));
     editor.setCurrentTool('lasso');
     editor.updateInstanceState({ isToolLocked: true });
   }, [editor]);
@@ -373,6 +398,24 @@ function AppContent() {
           }
         }
 
+        if (NATIVE_COLOR_SHAPE_TYPES.has(shape.type) && "color" in ((shape as any).props ?? {})) {
+          const color = currentCustomColorSignal.get() || "#ffffff";
+          const namedColor = getNearestNamedColor(color);
+          console.log(`[App] Creating Native Shape: Type=${shape.type}, SelectedColor=${color}, MappedColor=${namedColor}`);
+
+          return {
+            ...shape,
+            props: {
+              ...shape.props,
+              color: namedColor,
+            },
+            meta: {
+              ...shape.meta,
+              selectedHexColor: color,
+            },
+          };
+        }
+
         console.log(`[App] Creating Shape: Type=${shape.type}, PropsColor=${(shape.props as any)?.color}`)
         return shape;
       },
@@ -385,17 +428,13 @@ function AppContent() {
       "shape",
       (shape) => {
         const currentTool = editor.getCurrentToolId();
-        const shapeTypesToSelect = [
-          'geo', 'arrow', 'line', 'custom-line', 'custom-arrow',
-          'graph-axes-1', 'graph-axes-4', 'text', 'note', 'frame',
-          'protractor', 'ruler'
-        ];
 
         // If a geometric shape is created and we're not in select mode, track it
         // We MUST ignore guide shapes (used by arrow/line tools) as they are deleted on pointer up
         if (
-          shapeTypesToSelect.includes(shape.type) && 
-          currentTool !== 'select' && 
+          SHAPE_TYPES_TO_AUTO_SELECT.has(shape.type) && 
+          currentTool !== 'select' &&
+          currentTool !== 'lasso' &&
           !shape.meta?.isPageBackground &&
           !shape.meta?.isGuide
         ) {
