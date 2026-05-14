@@ -72,7 +72,7 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
 
     // Check if this is a guide shape
     const isGuide = shape.meta?.isGuide as boolean
-    const guideOpacity = isGuide ? 0.3 : 1
+    const guideOpacity = 1
 
     if (points.length < 2) return null
 
@@ -134,7 +134,7 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
     const { points, color } = shape.props
     const isGuide = shape.meta?.isGuide as boolean
     const thickness = isGuide ? 2 : (shape.meta?.thickness as number) || 4
-    const guideOpacity = isGuide ? 0.3 : 1
+    const guideOpacity = 1
 
     if (points.length < 2) {
       return <SVGContainer id={shape.id} />

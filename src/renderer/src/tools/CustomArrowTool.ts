@@ -1,7 +1,7 @@
 import { StateNode, TLEventHandlers, TLShapeId, createShapeId, getIndices } from '@tldraw/editor'
 import { currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 
-const SNAP_ANGLE_RADIANS = 0.04745 // ~1 degree
+const SNAP_ANGLE_RADIANS = 0.0673 // ~5 degrees
 const SHOW_SUGGESTION_ANGLE = 0.300 // ~10 degrees - show suggestions within this range
 const SNAP_DISTANCE_MIN = 45 // minimum distance to snap
 
@@ -18,6 +18,7 @@ class ArrowDrawing extends StateNode {
 		this.startPoint = { x: this.editor.inputs.currentPagePoint.x, y: this.editor.inputs.currentPagePoint.y }
 		this.shapeId = createShapeId()
 		const customColor = currentCustomColorSignal.get()
+		const guideColor = customColor || '#000000'
 		this.editor.createShapes([
 			{
 				id: this.shapeId,
@@ -49,7 +50,7 @@ class ArrowDrawing extends StateNode {
 			y: this.startPoint.y,
 			meta: { isGuide: true, guideType: 'horizontal' },
 			props: {
-				color: '#000000',
+				color: guideColor,
 				points: [
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[1] },
@@ -66,7 +67,7 @@ class ArrowDrawing extends StateNode {
 			y: this.startPoint.y,
 			meta: { isGuide: true, guideType: 'vertical' },
 			props: {
-				color: '#000000',
+				color: guideColor,
 				points: [
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[1] },

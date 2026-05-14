@@ -1,8 +1,8 @@
 import { StateNode, TLEventHandlers, TLShapeId, createShapeId, getIndices } from '@tldraw/editor'
 import { currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 
-const SNAP_ANGLE_RADIANS = 0.01745 // ~1 degree
-const SHOW_SUGGESTION_ANGLE = 0.174 // ~10 degrees - show suggestions within this range
+const SNAP_ANGLE_RADIANS = 0.0873 // ~5 degrees
+const SHOW_SUGGESTION_ANGLE = 0.300 // ~17 degrees - show suggestions within this range
 const SNAP_DISTANCE_MIN = 15 // minimum distance to snap
 
 class LineDrawing extends StateNode {
@@ -18,6 +18,7 @@ class LineDrawing extends StateNode {
 		this.startPoint = { x: this.editor.inputs.currentPagePoint.x, y: this.editor.inputs.currentPagePoint.y }
 		this.shapeId = createShapeId()
 		const customColor = currentCustomColorSignal.get()
+		const guideColor = customColor || '#000000'
 		this.editor.createShapes([
 			{
 				id: this.shapeId,
@@ -47,7 +48,7 @@ class LineDrawing extends StateNode {
 			y: this.startPoint.y,
 			meta: { isGuide: true, guideType: 'horizontal' },
 			props: {
-				color: '#000000',
+				color: guideColor,
 				points: [
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[1] },
@@ -64,7 +65,7 @@ class LineDrawing extends StateNode {
 			y: this.startPoint.y,
 			meta: { isGuide: true, guideType: 'vertical' },
 			props: {
-				color: '#000000',
+				color: guideColor,
 				points: [
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[0] },
 					{ x: 0, y: 0, id: createShapeId().toString(), index: indices[1] },
@@ -87,9 +88,7 @@ class LineDrawing extends StateNode {
 		// Calculate angle
 		const angle = Math.atan2(dy, dx)
 		const absAngle = Math.abs(angle)
-		const angleDeg = Math.abs(angle * 180 / Math.PI)
-
-		// Check if near horizontal (within 10 degrees = show suggestion, within 0.5 degrees = snap)
+		// Check if near horizontal (within suggestion range, snap within 5 degrees)
 		const isNearHorizontalSuggestion = absAngle < SHOW_SUGGESTION_ANGLE || absAngle > (Math.PI - SHOW_SUGGESTION_ANGLE)
 		const isNearHorizontalSnap = (absAngle < SNAP_ANGLE_RADIANS || absAngle > (Math.PI - SNAP_ANGLE_RADIANS)) && distance > SNAP_DISTANCE_MIN
 
