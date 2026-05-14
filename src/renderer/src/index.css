@@ -34,23 +34,35 @@
     pointer-events: none !important;
 }
 
-/* 3. Enlarge and prioritize the corner handles (The Stylus "Dots") */
+/* 3. Keep the visible dots decorative so the larger tldraw hit-targets receive stylus events */
 .tl-corner-handle {
-    pointer-events: all !important;
+    pointer-events: none !important;
     display: block !important;
     opacity: 1 !important;
     visibility: visible !important;
+    fill: #ffffff !important;
+    stroke: #2563eb !important;
+    stroke-width: calc(2px * var(--tl-scale)) !important;
+    rx: 9999px !important;
+    ry: 9999px !important;
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(1.25);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
-/* 4. Feedback for hover and use - SVG version */
-.tl-corner-handle:hover {
-    fill: #3b82f6 !important;
-    stroke: #ffffff !important;
+/* 4. The app uses three resize dots around the selection, leaving top-right clear for tools */
+.tl-corner-handle[data-testid="selection.resize.top-right"] {
+    display: none !important;
 }
 
-/* 5. Cursors for the scaled handles */
-.tl-corner-handle-top-left, .tl-corner-handle-bottom-right { cursor: nwse-resize !important; }
-.tl-corner-handle-top-right, .tl-corner-handle-bottom-left { cursor: nesw-resize !important; }
+/* 5. Make sure the invisible resize targets stay active for pen / stylus input */
+[data-testid="selection.target.top-left"],
+[data-testid="selection.target.bottom-left"],
+[data-testid="selection.target.bottom-right"] {
+    pointer-events: all !important;
+    touch-action: none;
+}
 
 /* Keep selection proxy underneath the handles */
 .tl-selection-proxy {

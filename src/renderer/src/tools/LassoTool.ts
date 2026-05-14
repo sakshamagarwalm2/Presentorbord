@@ -61,11 +61,7 @@ class LassoDragging extends StateNode {
 
 		if (selectedIds.length > 0) {
 			this.editor.setHintingShapes(selectedIds)
-            if (!this.editor.inputs.shiftKey) {
-			    this.editor.setCurrentTool('select')
-            } else {
-                this.parent.transition('idle')
-            }
+			this.editor.setCurrentTool('select')
 		} else {
 			this.parent.transition('idle')
 		}
