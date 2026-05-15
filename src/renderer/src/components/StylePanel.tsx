@@ -48,8 +48,6 @@ const DASH_ICONS: Record<string, React.FC<any>> = {
   ),
 }
 
-const OPACITIES = [0.1, 0.25, 0.5, 0.75, 1]
-
 export function StylePanel({ isVisible }: { isVisible: boolean }) {
   const editor = useEditor()
   const [showCustomThickness, setShowCustomThickness] = useState(false)
@@ -278,34 +276,31 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        {/* Dash */}
-        <div className="flex-1">
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Dash</p>
-          <div className="grid grid-cols-4 gap-1">
-            {/* We map the normal dash styles plus our custom brush toggle */}
-            {[...DefaultDashStyle.values.filter(d => d !== 'draw'), 'brush'].map(dash => {
-              const Icon = DASH_ICONS[dash]
-              const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
-              if (!Icon) return null
-              return (
-                <button
-                  key={dash}
-                  onClick={() => handleDashChange(dash)}
-                  className={`
-                                aspect-square rounded-lg flex items-center justify-center transition-all
-                                ${isActive
-                      ? `${theme.bg} shadow-sm`
-                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                    }
-                            `}
-                  title={dash}
-                >
-                  <Icon />
-                </button>
-              )
-            })}
-          </div>
+      <div>
+        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Style</p>
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl gap-1">
+          {/* We map the normal dash styles plus our custom brush toggle */}
+          {[...DefaultDashStyle.values.filter(d => d !== 'draw'), 'brush'].map(dash => {
+            const Icon = DASH_ICONS[dash]
+            const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
+            if (!Icon) return null
+            return (
+              <button
+                key={dash}
+                onClick={() => handleDashChange(dash)}
+                className={`
+                  flex-1 py-1.5 rounded-lg flex items-center justify-center transition-all
+                  ${isActive
+                    ? `${theme.bg} shadow-sm scale-[1.02]`
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  }
+                `}
+                title={dash}
+              >
+                <Icon />
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -368,31 +363,6 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Opacity Buttons */}
-      <div>
-        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Opacity</p>
-        <div className="flex gap-1">
-          {OPACITIES.map(op => {
-            const isActive = Math.abs(currentOpacity - op) < 0.05
-            return (
-              <button
-                key={op}
-                onClick={() => handleOpacityChange(op)}
-                className={`
-                            flex-1 py-1.5 rounded-lg text-xs font-medium transition-all
-                            ${isActive
-                    ? `${theme.bg} shadow-sm`
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-                  }
-                        `}
-              >
-                {Math.round(op * 100)}%
-              </button>
-            )
-          })}
-        </div>
       </div>
 
     </div>

@@ -1,7 +1,7 @@
 import { useEditor, useValue, createShapeId, DefaultColorStyle, DefaultSizeStyle } from '@tldraw/tldraw'
-import { Copy, Layers, Trash2, Check, Scissors, Maximize2 } from 'lucide-react'
+import { Copy, Layers, Trash2, Check, Scissors, Maximize2, Droplets } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import { currentCustomColorSignal } from '../store/styleSignals'
+import { currentCustomColorSignal, currentOpacitySignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
 import { getNearestNamedColor } from '../utils/colorUtils'
 
@@ -13,12 +13,21 @@ const SIZES = [
   { label: 'XL', value: 32, tldrawSize: 'xl' },
 ]
 
+const OPACITIES = [
+  { label: '25%', value: 0.25 },
+  { label: '50%', value: 0.5 },
+  { label: '75%', value: 0.75 },
+  { label: '100%', value: 1.0 },
+]
+
 export function SelectionBoxIcons() {
   const editor = useEditor()
   const [showCopyFeedback, setShowCopyFeedback] = useState(false)
   const [showSizeOptions, setShowSizeOptions] = useState(false)
+  const [showOpacityOptions, setShowOpacityOptions] = useState(false)
   const [recentColors, setRecentColors] = useState<Array<{ key: string; hex: string }>>([])
   const sizeMenuRef = useRef<HTMLDivElement>(null)
+  const opacityMenuRef = useRef<HTMLDivElement>(null)
   
   // Track selection bounds and rotation
   const selectionBounds = useValue('selection bounds', () => editor.getSelectionRotatedPageBounds(), [editor])
@@ -39,6 +48,9 @@ export function SelectionBoxIcons() {
     const handleClickOutside = (e: MouseEvent) => {
       if (sizeMenuRef.current && !sizeMenuRef.current.contains(e.target as Node)) {
         setShowSizeOptions(false)
+      }
+      if (opacityMenuRef.current && !opacityMenuRef.current.contains(e.target as Node)) {
+        setShowOpacityOptions(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -65,6 +77,7 @@ export function SelectionBoxIcons() {
     if (isChanging) {
       setShowCopyFeedback(false)
       setShowSizeOptions(false)
+      setShowOpacityOptions(false)
     }
   }, [isChanging, selectedIds])
 
@@ -80,7 +93,7 @@ export function SelectionBoxIcons() {
   const viewportHeight = window.innerHeight
   const padding = 12
   const menuWidth = 42
-  const menuHeight = recentColors.length > 0 ? 350 : 280
+  const menuHeight = recentColors.length > 0 ? 380 : 310
 
   // Calculate position with viewport clamping
   let top = Math.max(padding, Math.min(topLeft.y, viewportHeight - menuHeight - padding))
@@ -218,6 +231,28 @@ export function SelectionBoxIcons() {
     setShowSizeOptions(false)
   }
 
+  const handleOpacityChange = (opacity: typeof OPACITIES[0]) => {
+    const selected = editor.getSelectedShapes()
+    if (selected.length === 0) return
+
+    editor.run(() => {
+      // 1. Update the signal for FUTURE shapes
+      currentOpacitySignal.set(opacity.value)
+
+      // 2. Update SELECTED shapes
+      const updates = selected.map(s => ({
+        id: s.id,
+        type: s.type,
+        opacity: opacity.value
+      }))
+
+      if (updates.length > 0) {
+        editor.updateShapes(updates as any)
+      }
+    })
+    setShowOpacityOptions(false)
+  }
+
   return (
     <div 
       className="fixed z-[100000] flex flex-col gap-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
@@ -277,6 +312,34 @@ export function SelectionBoxIcons() {
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all"
               >
                 {size.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="relative" ref={opacityMenuRef}>
+        <button 
+          onClick={() => setShowOpacityOptions(!showOpacityOptions)} 
+          className={`p-2 rounded-lg transition-all duration-200 w-full flex items-center justify-center ${
+            showOpacityOptions
+              ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+              : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
+          }`}
+          title="Change Opacity"
+        >
+          <Droplets size={18} />
+        </button>
+
+        {showOpacityOptions && (
+          <div className="absolute left-full ml-2 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col gap-1 min-w-[50px] animate-in fade-in slide-in-from-left-2 duration-200">
+            {OPACITIES.map((opacity) => (
+              <button
+                key={opacity.label}
+                onClick={() => handleOpacityChange(opacity)}
+                className="w-10 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all"
+              >
+                {opacity.label}
               </button>
             ))}
           </div>
