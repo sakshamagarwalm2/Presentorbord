@@ -1,5 +1,5 @@
-import { useEditor, useValue, createShapeId, DefaultColorStyle, DefaultSizeStyle, DefaultFillStyle } from '@tldraw/tldraw'
-import { Copy, Layers, Trash2, Check, Scissors, Maximize2, PaintBucket } from 'lucide-react'
+import { useEditor, useValue, createShapeId, DefaultColorStyle, DefaultSizeStyle } from '@tldraw/tldraw'
+import { Copy, Layers, Trash2, Check, Scissors, Maximize2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { currentCustomColorSignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
@@ -13,22 +13,12 @@ const SIZES = [
   { label: 'XL', value: 32, tldrawSize: 'xl' },
 ]
 
-const FILL_MODES = [
-  { id: 'none', label: 'None' },
-  { id: 'semi', label: 'Translucent' },
-  { id: 'solid', label: 'Solid' },
-  { id: 'fill', label: 'Opaque' },
-  { id: 'pattern', label: 'Dotted' },
-]
-
 export function SelectionBoxIcons() {
   const editor = useEditor()
   const [showCopyFeedback, setShowCopyFeedback] = useState(false)
   const [showSizeOptions, setShowSizeOptions] = useState(false)
-  const [showFillOptions, setShowFillOptions] = useState(false)
   const [recentColors, setRecentColors] = useState<Array<{ key: string; hex: string }>>([])
   const sizeMenuRef = useRef<HTMLDivElement>(null)
-  const fillMenuRef = useRef<HTMLDivElement>(null)
   
   // Track selection bounds and rotation
   const selectionBounds = useValue('selection bounds', () => editor.getSelectionRotatedPageBounds(), [editor])
@@ -44,19 +34,11 @@ export function SelectionBoxIcons() {
   const currentToolId = useValue('current tool', () => editor.getCurrentToolId(), [editor])
   const selectedIds = useValue('selected ids', () => editor.getSelectedShapeIds(), [editor])
   
-  // Check if any selected shape supports fill (mostly 'geo' shapes)
-  const supportsFill = useValue('supports fill', () => {
-    return editor.getSelectedShapes().some(s => s.type === 'geo' || s.type === 'arrow')
-  }, [editor])
-
   // Close options on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (sizeMenuRef.current && !sizeMenuRef.current.contains(e.target as Node)) {
         setShowSizeOptions(false)
-      }
-      if (fillMenuRef.current && !fillMenuRef.current.contains(e.target as Node)) {
-        setShowFillOptions(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -83,7 +65,6 @@ export function SelectionBoxIcons() {
     if (isChanging) {
       setShowCopyFeedback(false)
       setShowSizeOptions(false)
-      setShowFillOptions(false)
     }
   }, [isChanging, selectedIds])
 
@@ -237,60 +218,6 @@ export function SelectionBoxIcons() {
     setShowSizeOptions(false)
   }
 
-  const handleFillChange = (fill: string) => {
-    const customHex = currentCustomColorSignal.get()
-    const bestNamedKey = getNearestNamedColor(customHex || '#000000')
-
-    console.log(`[SelectionBoxIcons] Fill Mode Selection:`, {
-      selectedMode: fill,
-      activeCustomHex: customHex,
-      mappedNamedKey: bestNamedKey
-    })
-
-    editor.run(() => {
-      // We use 'solid' for the user's 'semi' to get the same color feel but with shape opacity
-      const tldrawFillStyle = (fill === 'semi' || fill === 'solid') ? 'solid' : fill
-
-      editor.setStyleForSelectedShapes(DefaultFillStyle, tldrawFillStyle as any)
-      editor.setStyleForNextShapes(DefaultFillStyle, tldrawFillStyle as any)
-
-      const selected = editor.getSelectedShapes()
-      const updates = selected.map(s => {
-        if (!['geo', 'arrow'].includes(s.type)) return null
-        
-        const shapeUpdates: any = { 
-          id: s.id, 
-          type: s.type, 
-          props: { ...s.props, fill: tldrawFillStyle } 
-        }
-
-        const isNative = ['geo', 'arrow'].includes(s.type)
-        const finalColor = isNative ? bestNamedKey : (customHex || bestNamedKey)
-        shapeUpdates.props.color = finalColor
-
-        // Apply 80% opacity for semi mode, 100% for others
-        const finalOpacity = fill === 'semi' ? 0.8 : 1.0
-        shapeUpdates.opacity = finalOpacity
-
-        console.log(`[SelectionBoxIcons] Updating Shape Fill:`, {
-          shapeId: s.id,
-          shapeType: s.type,
-          fillMode: fill,
-          tldrawFillStyle,
-          appliedColor: finalColor,
-          appliedOpacity: finalOpacity
-        })
-
-        return shapeUpdates
-      }).filter(Boolean)
-
-      if (updates.length > 0) {
-        editor.updateShapes(updates as any)
-      }
-    })
-    setShowFillOptions(false)
-  }
-
   return (
     <div 
       className="fixed z-[100000] flex flex-col gap-1 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 animate-in fade-in zoom-in-95 duration-150 pointer-events-auto"
@@ -355,42 +282,6 @@ export function SelectionBoxIcons() {
           </div>
         )}
       </div>
-
-      {supportsFill && (
-        <div className="relative" ref={fillMenuRef}>
-          <button 
-            onClick={() => setShowFillOptions(!showFillOptions)} 
-            className={`p-2 rounded-lg transition-all duration-200 w-full flex items-center justify-center ${
-              showFillOptions
-                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400'
-            }`}
-            title="Change Fill"
-          >
-            <PaintBucket size={18} />
-          </button>
-
-          {showFillOptions && (
-            <div className="absolute left-full ml-2 top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-1 rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 flex flex-col gap-1 min-w-[100px] animate-in fade-in slide-in-from-left-2 duration-200">
-              {FILL_MODES.map((fill) => (
-                <button
-                  key={fill.id}
-                  onClick={() => handleFillChange(fill.id)}
-                  className="px-3 py-2 flex items-center gap-2 rounded-lg text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30 dark:hover:text-blue-400 transition-all text-left"
-                >
-                  <div className={`w-3 h-3 rounded-sm border border-gray-300 dark:border-gray-600 ${
-                    fill.id === 'solid' ? 'bg-current opacity-100' :
-                    fill.id === 'fill' ? 'bg-current opacity-100 ring-2 ring-current' :
-                    fill.id === 'semi' ? 'bg-current opacity-50' :
-                    fill.id === 'pattern' ? 'bg-current opacity-20' : 'bg-transparent'
-                  }`} />
-                  {fill.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mx-1 h-px bg-gray-200 dark:bg-gray-800 my-0.5" />
       

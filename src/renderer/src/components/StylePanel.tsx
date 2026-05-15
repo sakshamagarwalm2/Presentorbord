@@ -1,4 +1,4 @@
-import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle, DefaultFillStyle } from '@tldraw/tldraw'
+import { useEditor, useValue, DefaultColorStyle, DefaultDashStyle } from '@tldraw/tldraw'
 import { Check, SlidersHorizontal, Plus } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import {
@@ -36,24 +36,7 @@ const COLOR_THEMES: Record<string, ColorTheme> = {
   white: { bg: 'bg-white text-black border border-gray-300', shadow: 'shadow-gray-200 dark:shadow-gray-700/50', border: 'border-gray-300' },
 }
 
-const FILL_ICONS: Record<string, React.FC<any>> = {
-  none: () => <div className="w-4 h-4 border-2 border-current rounded-sm" />,
-  semi: () => <div className="w-4 h-4 border-2 border-current rounded-sm bg-current/30" />,
-  solid: () => <div className="w-4 h-4 border-2 border-current rounded-sm bg-current" />,
-  pattern: () => (
-    <div className="w-4 h-4 border-2 border-current rounded-sm relative overflow-hidden">
-      <div className="absolute inset-0 bg-current/20 flex flex-wrap gap-0.5 p-0.5">
-        <div className="w-0.5 h-0.5 bg-current rounded-full" />
-        <div className="w-0.5 h-0.5 bg-current rounded-full" />
-        <div className="w-0.5 h-0.5 bg-current rounded-full" />
-        <div className="w-0.5 h-0.5 bg-current rounded-full" />
-      </div>
-    </div>
-  ),
-}
-
 const DASH_ICONS: Record<string, React.FC<any>> = {
-  draw: () => <div className="w-4 h-0.5 bg-current rounded-full" />,
   solid: () => <div className="w-4 h-0.5 bg-current rounded-full" />,
   dashed: () => <div className="w-4 h-0.5 border-t-2 border-dashed border-current" />,
   dotted: () => <div className="w-4 h-0.5 border-t-2 border-dotted border-current" />,
@@ -107,12 +90,6 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       })
     }
   }, [currentColor, isCustomColorActive, customColor, isVisible])
-
-  const currentFill = useValue('fill', () => {
-    const shared = editor.getSharedStyles().get(DefaultFillStyle)
-    if (shared && shared.type === 'shared') return shared.value
-    return editor.getStyleForNextShape(DefaultFillStyle)
-  }, [editor])
 
   const currentDash = useValue('dash', () => {
     const shared = editor.getSharedStyles().get(DefaultDashStyle)
@@ -189,11 +166,6 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
     }, 200)
 
     return () => clearTimeout(timeoutId)
-  }
-
-  const handleFillChange = (fill: string) => {
-    editor.setStyleForSelectedShapes(DefaultFillStyle, fill as any)
-    editor.setStyleForNextShapes(DefaultFillStyle, fill as any)
   }
 
   const handleDashChange = (dash: string) => {
@@ -307,41 +279,15 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       </div>
 
       <div className="flex gap-4">
-        {/* Fill */}
-        <div className="flex-1">
-          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Fill</p>
-          <div className="grid grid-cols-4 gap-1">
-            {DefaultFillStyle.values.map(fill => {
-              const Icon = FILL_ICONS[fill] || FILL_ICONS['none']
-              const isActive = currentFill === fill
-              return (
-                <button
-                  key={fill}
-                  onClick={() => handleFillChange(fill)}
-                  className={`
-                                aspect-square rounded-lg flex items-center justify-center transition-all
-                                ${isActive
-                      ? `${theme.bg} shadow-sm`
-                      : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
-                    }
-                            `}
-                  title={fill}
-                >
-                  <Icon />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
         {/* Dash */}
         <div className="flex-1">
           <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Dash</p>
           <div className="grid grid-cols-4 gap-1">
             {/* We map the normal dash styles plus our custom brush toggle */}
-            {[...DefaultDashStyle.values, 'brush'].map(dash => {
-              const Icon = DASH_ICONS[dash] || DASH_ICONS['draw']
+            {[...DefaultDashStyle.values.filter(d => d !== 'draw'), 'brush'].map(dash => {
+              const Icon = DASH_ICONS[dash]
               const isActive = dash === 'brush' ? currentIsBrush : (currentDash === dash && !currentIsBrush)
+              if (!Icon) return null
               return (
                 <button
                   key={dash}
