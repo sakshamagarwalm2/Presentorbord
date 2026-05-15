@@ -213,14 +213,14 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
     const { points, color, arrowStart, arrowEnd } = shape.props
     const thickness = (shape.meta?.thickness as number) || 4
 
-    if (points.length < 2) return <SVGContainer id={shape.id} />
+    if (points.length < 2) return null
 
     const p1 = points[0]
     const p2 = points[points.length - 1]
     const dx = p2.x - p1.x
     const dy = p2.y - p1.y
     const len = Math.sqrt(dx * dx + dy * dy)
-    if (len === 0) return <SVGContainer id={shape.id} />
+    if (len === 0) return null
 
     const arrowSize = 15
     const arrowAngle = 0.5
@@ -250,7 +250,7 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
     }
 
     return (
-      <SVGContainer id={shape.id}>
+      <g id={shape.id}>
         <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={color} strokeWidth={thickness} strokeLinecap="round" />
         {arrowStart && (
           <path d={createStartArrowPath()} stroke={color} strokeWidth={thickness} strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -258,7 +258,7 @@ export class CustomArrowShapeUtil extends ShapeUtil<TCustomArrowShape> {
         {arrowEnd && (
           <path d={createEndArrowPath()} stroke={color} strokeWidth={thickness} strokeLinecap="round" strokeLinejoin="round" fill="none" />
         )}
-      </SVGContainer>
+      </g>
     )
   }
 }

@@ -121,14 +121,14 @@ export class GraphAxes1ShapeUtil extends ShapeUtil<IGraphAxes1Shape> {
     }
 
     return (
-      <SVGContainer id={shape.id}>
+      <g id={shape.id}>
         <line x1={0} y1={h} x2={w} y2={h} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${w - arrowSize},${h - arrowSize / 2} L ${w},${h} L ${w - arrowSize},${h + arrowSize / 2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
         {xTicks}
         <line x1={0} y1={h} x2={0} y2={0} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${-arrowSize / 2},${arrowSize} L ${0},${0} L ${arrowSize / 2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
         {yTicks}
-      </SVGContainer>
+      </g>
     )
   }
 }

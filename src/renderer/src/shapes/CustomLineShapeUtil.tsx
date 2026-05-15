@@ -137,7 +137,7 @@ export class CustomLineShapeUtil extends ShapeUtil<TCustomLineShape> {
     const guideOpacity = 1
 
     if (points.length < 2) {
-      return <SVGContainer id={shape.id} />
+      return null
     }
 
     const p1 = points[0]

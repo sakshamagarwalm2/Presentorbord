@@ -279,7 +279,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
     const isBrush = !!shape.meta?.isBrush;
     const brushType = (shape.meta?.brushType as string) || "normal";
 
-    if (segments.length === 0) return <SVGContainer id={shape.id} />;
+    if (segments.length === 0) return null;
 
     if (isBrush) {
       if (brushType === "normal") {
@@ -313,8 +313,8 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
 
         const r1 = renderPenRibbon(0, 1.0, 0.95);
         const r2 = renderPenRibbon(Math.PI / 2, 0.8, 0.3);
-        if (!r1 && !r2) return <SVGContainer id={shape.id} />;
-        return <SVGContainer id={shape.id}>{[r1, r2].filter(Boolean)}</SVGContainer>;
+        if (!r1 && !r2) return null;
+        return <g id={shape.id}>{[r1, r2].filter(Boolean)}</g>;
       }
 
       if (brushType === "airbrush") {
@@ -329,7 +329,7 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
              </g>
            );
         });
-        return <SVGContainer id={shape.id}>{paths}</SVGContainer>;
+        return <g id={shape.id}>{paths}</g>;
       }
 
       const angle = Math.PI / 4;
@@ -370,8 +370,8 @@ export class CustomDrawShapeUtil extends ShapeUtil<TLDrawShape> {
         renderCalligraphyRibbon(0.15, 0.4, 0.6),
       ].filter(Boolean);
 
-      if (ribbons.length === 0) return <SVGContainer id={shape.id} />;
-      return <SVGContainer id={shape.id}>{ribbons}</SVGContainer>;
+      if (ribbons.length === 0) return null;
+      return <g id={shape.id}>{ribbons}</g>;
     }
 
     const pathData = ptsToPath(segments[0].points);

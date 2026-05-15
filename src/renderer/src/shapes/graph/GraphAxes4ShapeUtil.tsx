@@ -138,14 +138,14 @@ return (
     }
 
     return (
-      <SVGContainer id={shape.id}>
+      <g id={shape.id}>
         <line x1={0} y1={cy} x2={w} y2={cy} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${w - arrowSize},${cy - arrowSize / 2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize / 2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
         {xTicks}
         <line x1={cx} y1={h} x2={cx} y2={0} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${cx - arrowSize / 2},${arrowSize} L ${cx},${0} L ${cx + arrowSize / 2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
         {yTicks}
-      </SVGContainer>
+      </g>
     )
   }
 }
