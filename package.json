@@ -1,6 +1,6 @@
 {
   "name": "presentorbord",
-  "version": "6.2.9",
+  "version": "6.2.10",
   "main": "out/main/index.js",
   "description": "Educational Whiteboard App",
   "author": "Antigravity",
