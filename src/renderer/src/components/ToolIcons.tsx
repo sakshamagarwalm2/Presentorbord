@@ -103,6 +103,34 @@ export function LaserIcon({ size = 18 }: { size?: number }) {
   )
 }
 
+export function EmojiPenIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M6 20 L16 10"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      <path
+        d="M16 10 L18 8 L16.5 11 Z"
+        fill="currentColor"
+      />
+      <path
+        d="M18 4 L19 6.5 L22 7 L19.5 9 L20.5 12 L18 10.5 L15.5 12 L16.5 9 L14 7 L17 6.5 Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 export function DrawIcon({ size = 18 }: { size?: number }) {
   return (
     <svg

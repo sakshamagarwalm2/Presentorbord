@@ -38,6 +38,7 @@ import { GraphAxes4ShapeUtil } from "./shapes/graph/GraphAxes4ShapeUtil";
 
 import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
+import { EmojiPenShapeUtil } from "./shapes/EmojiPenShapeUtil";
 import { CustomLineShapeUtil } from "./shapes/CustomLineShapeUtil";
 import { CustomArrowShapeUtil } from "./shapes/CustomArrowShapeUtil";
 
@@ -46,6 +47,7 @@ import { GraphAxes1Tool } from "./tools/GraphAxes1Tool";
 import { GraphAxes4Tool } from "./tools/GraphAxes4Tool";
 import { LassoTool } from "./tools/LassoTool";
 import { SuperPenTool } from "./tools/SuperPenTool";
+import { EmojiPenTool } from "./tools/EmojiPenTool";
 import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
 import { AreaEraserTool } from "./tools/AreaEraserTool";
 import { LineTool } from "./tools/LineTool";
@@ -56,6 +58,7 @@ const customShapeUtils = [
   GraphAxes4ShapeUtil,
   CustomDrawShapeUtil,
   SuperPenShapeUtil,
+  EmojiPenShapeUtil,
   CustomLineShapeUtil,
   CustomArrowShapeUtil,
 ];
@@ -65,6 +68,7 @@ const customTools = [
   GraphAxes4Tool,
   LassoTool,
   SuperPenTool,
+  EmojiPenTool,
   PrecisionEraserTool,
   AreaEraserTool,
   LineTool,

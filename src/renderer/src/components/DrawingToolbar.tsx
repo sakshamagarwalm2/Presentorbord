@@ -40,7 +40,7 @@ import {
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
-import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon } from './ToolIcons'
+import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon, EmojiPenIcon } from './ToolIcons'
 import { currentEraserSizeSignal, currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
 import { getNearestNamedColor } from '../utils/colorUtils'
@@ -88,6 +88,7 @@ const PEN_GROUP: ToolDef[] = [
   { id: 'super-marker', label: 'Marker', icon: MarkerIcon, type: 'super-pen', brushType: 'marker' },
   { id: 'super-brush', label: 'Brush', icon: BrushIcon, type: 'super-pen', brushType: 'brush' },
   { id: 'draw', label: 'Pencil', icon: DrawIcon },
+  { id: 'emoji-pen', label: 'E. Pen', icon: EmojiPenIcon },
   { id: 'highlight', label: 'Highlighter', icon: HighlighterIcon, type: 'highlighter' },
   { id: 'custom-laser', label: 'Laser', icon: LaserIcon, type: 'laser' },
 ]
@@ -1099,7 +1100,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
     editor.setStyleForNextShapes(DefaultColorStyle, bestNamedKey)
 
     // If we are not in a drawing tool, switch to the default Pen
-    const drawingTools = ['super-pen', 'draw', 'highlight', 'custom-laser']
+    const drawingTools = ['super-pen', 'draw', 'emoji-pen', 'highlight', 'custom-laser']
     if (!drawingTools.includes(activeTool)) {
       console.log('[DrawingToolbar] Switching to super-pen tool and clearing selection')
       editor.setCurrentTool('super-pen')
