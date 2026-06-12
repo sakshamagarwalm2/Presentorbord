@@ -50,17 +50,6 @@ export class GraphAxes4ShapeUtil extends ShapeUtil<IGraphAxes4Shape> {
     const arrowSize = 10
     const strokeWidth = (shape.meta?.thickness as number) || 2
 
-    // Ticks: from center outwards
-    const xTicksPositive = []
-    for(let x = tickSpacing; x < (w/2) - arrowSize; x += tickSpacing) xTicksPositive.push(x)
-    const xTicksNegative = []
-    for(let x = tickSpacing; x < (w/2); x += tickSpacing) xTicksNegative.push(x)
-
-    const yTicksPositive = [] // Upwards
-    for(let y = tickSpacing; y < (h/2) - arrowSize; y += tickSpacing) yTicksPositive.push(y)
-    const yTicksNegative = [] // Downwards
-    for(let y = tickSpacing; y < (h/2); y += tickSpacing) yTicksNegative.push(y)
-
 return (
       <HTMLContainer
         id={shape.id}
@@ -76,33 +65,11 @@ return (
             <line x1="0" y1={cy} x2={w} y2={cy} stroke={color} strokeWidth={strokeWidth} />
             {/* Arrow X Positive */}
             <path d={`M ${w - arrowSize},${cy - arrowSize/2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize/2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
-            
-            {/* X Ticks Positive */}
-            {xTicksPositive.map(dist => {
-                const x = cx + dist;
-                return <line key={`xp-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke={color} strokeWidth={strokeWidth} />
-            })}
-             {/* X Ticks Negative */}
-            {xTicksNegative.map(dist => {
-                const x = cx - dist;
-                return <line key={`xn-${x}`} x1={x} y1={cy - tickLength/2} x2={x} y2={cy + tickLength/2} stroke={color} strokeWidth={strokeWidth} />
-            })}
 
             {/* Y Axis: center vertical */}
             <line x1={cx} y1={h} x2={cx} y2={0} stroke={color} strokeWidth={strokeWidth} />
             {/* Arrow Y Positive (Up) */}
             <path d={`M ${cx - arrowSize/2},${arrowSize} L ${cx},${0} L ${cx + arrowSize/2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
-
-            {/* Y Ticks Positive (Up) */}
-             {yTicksPositive.map(dist => {
-                const y = cy - dist;
-                return <line key={`yp-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke={color} strokeWidth={strokeWidth} />
-            })}
-             {/* Y Ticks Negative (Down) */}
-             {yTicksNegative.map(dist => {
-                const y = cy + dist;
-                return <line key={`yn-${y}`} x1={cx - tickLength/2} y1={y} x2={cx + tickLength/2} y2={y} stroke={color} strokeWidth={strokeWidth} />
-            })}
         </svg>
       </HTMLContainer>
     )
@@ -121,30 +88,12 @@ return (
     const arrowSize = 10
     const strokeWidth = (shape.meta?.thickness as number) || 2
 
-    const xTicks: any[] = []
-    for (let dist = tickSpacing; dist < (w / 2) - arrowSize; dist += tickSpacing) {
-      xTicks.push(
-        <line key={`xp-${cx + dist}`} x1={cx + dist} y1={cy - tickLength / 2} x2={cx + dist} y2={cy + tickLength / 2} stroke={color} strokeWidth={strokeWidth} />,
-        <line key={`xn-${cx - dist}`} x1={cx - dist} y1={cy - tickLength / 2} x2={cx - dist} y2={cy + tickLength / 2} stroke={color} strokeWidth={strokeWidth} />
-      )
-    }
-
-    const yTicks: any[] = []
-    for (let dist = tickSpacing; dist < (h / 2) - arrowSize; dist += tickSpacing) {
-      yTicks.push(
-        <line key={`yp-${cy - dist}`} x1={cx - tickLength / 2} y1={cy - dist} x2={cx + tickLength / 2} y2={cy - dist} stroke={color} strokeWidth={strokeWidth} />,
-        <line key={`yn-${cy + dist}`} x1={cx - tickLength / 2} y1={cy + dist} x2={cx + tickLength / 2} y2={cy + dist} stroke={color} strokeWidth={strokeWidth} />
-      )
-    }
-
     return (
       <g id={shape.id}>
         <line x1={0} y1={cy} x2={w} y2={cy} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${w - arrowSize},${cy - arrowSize / 2} L ${w},${cy} L ${w - arrowSize},${cy + arrowSize / 2}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
-        {xTicks}
         <line x1={cx} y1={h} x2={cx} y2={0} stroke={color} strokeWidth={strokeWidth} />
         <path d={`M ${cx - arrowSize / 2},${arrowSize} L ${cx},${0} L ${cx + arrowSize / 2},${arrowSize}`} fill="none" stroke={color} strokeWidth={strokeWidth} />
-        {yTicks}
       </g>
     )
   }

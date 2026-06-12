@@ -31,6 +31,7 @@ function LassoSelectionForegroundInner({
 	const topLeftEvents = useSelectionEvents('top_left')
 	const bottomLeftEvents = useSelectionEvents('bottom_left')
 	const bottomRightEvents = useSelectionEvents('bottom_right')
+	const rotateEvents = useSelectionEvents('mobile_rotate')
 
 	useTransform(rSvg, bounds?.x, bounds?.y, 1, editor.getSelectionRotation())
 
@@ -46,6 +47,13 @@ function LassoSelectionForegroundInner({
 				!editor.getShapeUtil(onlyShape).hideResizeHandles(onlyShape)
 			: editor.getSelectedShapeIds().length > 1)
 
+	const canRotate =
+		!isLockedShape &&
+		onlyShape &&
+		!editor.getShapeUtil(onlyShape).hideRotateHandle(onlyShape) &&
+		!isChangingStyle &&
+		!editor.getInstanceState().isReadonly
+
 	const shouldDisplayControls =
 		canResize &&
 		!isChangingStyle &&
@@ -54,7 +62,12 @@ function LassoSelectionForegroundInner({
 			'lasso.idle',
 			'lasso.pointing_selection',
 			'lasso.pointing_shape',
-			'lasso.pointing_resize_handle'
+			'lasso.pointing_resize_handle',
+			'lasso.resizing',
+			'lasso.pointing_rotate_handle',
+			'lasso.rotating',
+			'lasso.translating',
+			'lasso.pointing_handle'
 		)
 
 	if (!shouldDisplayControls) return null
@@ -142,6 +155,35 @@ function LassoSelectionForegroundInner({
 					width={toDomPrecision(visualSize)}
 					height={toDomPrecision(visualSize)}
 				/>
+				{canRotate && (
+					<g>
+						<line
+							x1={toDomPrecision(width / 2)}
+							y1={toDomPrecision(0)}
+							x2={toDomPrecision(width / 2)}
+							y2={toDomPrecision(-28 / zoom)}
+							stroke="var(--color-selection-stroke)"
+							strokeWidth={toDomPrecision(1.5 / zoom)}
+						/>
+						<circle
+							pointerEvents="all"
+							className="tl-transparent"
+							cx={toDomPrecision(width / 2)}
+							cy={toDomPrecision(-28 / zoom)}
+							r={toDomPrecision(18 / zoom)}
+							style={{ cursor: getCursor('nwse-rotate', rotation) }}
+							{...rotateEvents}
+						/>
+						<g
+							transform={`translate(${toDomPrecision(width / 2 - 6 / zoom)}, ${toDomPrecision(-28 / zoom - 6 / zoom)}) scale(${toDomPrecision(0.5 / zoom)})`}
+						>
+							<path
+								d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+								fill="var(--color-selection-stroke)"
+							/>
+						</g>
+					</g>
+				)}
 			</g>
 		</svg>
 	)
