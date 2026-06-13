@@ -455,7 +455,6 @@ function AppContent() {
 
         setTimeout(() => {
           if (editor.getShape(shapeId)) {
-            editor.setSelectedShapes([shapeId]);
             editor.setCurrentTool('lasso');
             editor.updateInstanceState({ isToolLocked: true });
           }
