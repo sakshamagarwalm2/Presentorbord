@@ -40,6 +40,10 @@ import { CustomDrawShapeUtil } from "./shapes/CustomDrawShapeUtil";
 import { SuperPenShapeUtil } from "./shapes/SuperPenShapeUtil";
 import { EmojiPenShapeUtil } from "./shapes/EmojiPenShapeUtil";
 import { CustomLineShapeUtil } from "./shapes/CustomLineShapeUtil";
+import { CustomDottedLineShapeUtil } from "./shapes/CustomDottedLineShapeUtil";
+import { RightAngledTriangleShapeUtil } from "./shapes/RightAngledTriangleShapeUtil";
+import { CircleShapeUtil } from "./shapes/CircleShapeUtil";
+import { ParallelogramShapeUtil } from "./shapes/ParallelogramShapeUtil";
 import { CustomArrowShapeUtil } from "./shapes/CustomArrowShapeUtil";
 
 import { CustomLaserTool } from "./tools/CustomLaserTool";
@@ -51,6 +55,10 @@ import { EmojiPenTool } from "./tools/EmojiPenTool";
 import { PrecisionEraserTool } from "./tools/PrecisionEraserTool";
 import { AreaEraserTool } from "./tools/AreaEraserTool";
 import { LineTool } from "./tools/LineTool";
+import { DottedLineTool } from "./tools/DottedLineTool";
+import { RightAngledTriangleTool } from "./tools/RightAngledTriangleTool";
+import { CircleTool } from "./tools/CircleTool";
+import { ParallelogramTool } from "./tools/ParallelogramTool";
 import { CustomArrowTool } from "./tools/CustomArrowTool";
 
 const customShapeUtils = [
@@ -60,6 +68,10 @@ const customShapeUtils = [
   SuperPenShapeUtil,
   EmojiPenShapeUtil,
   CustomLineShapeUtil,
+  CustomDottedLineShapeUtil,
+  RightAngledTriangleShapeUtil,
+  CircleShapeUtil,
+  ParallelogramShapeUtil,
   CustomArrowShapeUtil,
 ];
 const customTools = [
@@ -72,6 +84,10 @@ const customTools = [
   PrecisionEraserTool,
   AreaEraserTool,
   LineTool,
+  DottedLineTool,
+  RightAngledTriangleTool,
+  CircleTool,
+  ParallelogramTool,
   CustomArrowTool,
 ];
 import {
@@ -88,6 +104,10 @@ const SHAPE_TYPES_TO_AUTO_SELECT = new Set([
   "arrow",
   "line",
   "custom-line",
+  "custom-dotted-line",
+  "custom-right-triangle",
+  "custom-circle",
+  "custom-parallelogram",
   "custom-arrow",
   "graph-axes-1",
   "graph-axes-4",

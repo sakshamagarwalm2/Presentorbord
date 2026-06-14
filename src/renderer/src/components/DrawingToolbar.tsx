@@ -40,7 +40,7 @@ import {
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
-import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon, EmojiPenIcon } from './ToolIcons'
+import { PenIcon, MarkerIcon, BrushIcon, HighlighterIcon, LaserIcon, DrawIcon, EmojiPenIcon, DottedLineIcon, RightTriangleIcon, CircleIcon, ParallelogramIcon } from './ToolIcons'
 import { currentEraserSizeSignal, currentThicknessSignal, currentCustomColorSignal } from '../store/styleSignals'
 import { COLOR_MAP } from '../constants/colorConstants'
 import { getNearestNamedColor } from '../utils/colorUtils'
@@ -132,11 +132,14 @@ interface ShapeDef {
 const SHAPE_GROUP: ShapeDef[] = [
   { id: 'custom-arrow', label: 'Arrow', icon: ArrowUpRight },
   { id: 'custom-line', label: 'Line', icon: Minus },
+  { id: 'custom-dotted-line', label: 'Dotted', icon: DottedLineIcon },
+  { id: 'custom-circle', label: 'Circle', icon: CircleIcon },
   { id: 'graph-axes-1', label: '1st Quad', icon: BarChart2 },
   { id: 'graph-axes-4', label: '4 Quad', icon: Crosshair },
   { id: 'geo', geoType: 'rectangle', label: 'Rectangle', icon: Square },
   { id: 'geo', geoType: 'ellipse', label: 'Ellipse', icon: Circle },
   { id: 'geo', geoType: 'triangle', label: 'Triangle', icon: Triangle },
+  { id: 'custom-right-triangle', label: 'R Triangle', icon: RightTriangleIcon },
   { id: 'geo', geoType: 'diamond', label: 'Diamond', icon: Diamond },
   { id: 'geo', geoType: 'star', label: 'Star', icon: Star },
   { id: 'geo', geoType: 'cloud', label: 'Cloud', icon: Cloud },
@@ -144,6 +147,7 @@ const SHAPE_GROUP: ShapeDef[] = [
   { id: 'geo', geoType: 'hexagon', label: 'Hexagon', icon: Hexagon },
   { id: 'geo', geoType: 'pentagon', label: 'Pentagon', icon: Pentagon },
   { id: 'geo', geoType: 'octagon', label: 'Octagon', icon: Octagon },
+  { id: 'custom-parallelogram', label: 'Parallelogram', icon: ParallelogramIcon },
 ]
 
 

@@ -166,7 +166,7 @@ export function SelectionBoxIcons() {
         let hasPropsUpdate = false
 
         const supportsHex = [
-          'super-pen', 'custom-draw', 'custom-line', 'custom-arrow', 'graph-axes-1', 'graph-axes-4'
+          'super-pen', 'custom-draw', 'custom-line', 'custom-dotted-line', 'custom-right-triangle', 'custom-circle', 'custom-parallelogram', 'custom-arrow', 'graph-axes-1', 'graph-axes-4'
         ].includes(s.type)
 
         if (supportsHex) {
@@ -209,7 +209,7 @@ export function SelectionBoxIcons() {
         ].includes(s.type)
         
         const isSuperPen = s.type === 'super-pen'
-        const shouldNotHaveSize = ['custom-arrow', 'custom-line', 'graph-axes-1', 'graph-axes-4', 'protractor', 'ruler'].includes(s.type)
+        const shouldNotHaveSize = ['custom-arrow', 'custom-line', 'custom-dotted-line', 'custom-right-triangle', 'custom-circle', 'custom-parallelogram', 'graph-axes-1', 'graph-axes-4', 'protractor', 'ruler'].includes(s.type)
 
         if (supportsTldrawSize && 'size' in s.props) {
           shapeUpdates.props = { ...s.props, size: size.tldrawSize }

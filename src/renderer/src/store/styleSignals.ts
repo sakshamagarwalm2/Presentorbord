@@ -6,7 +6,7 @@ const getSavedColor = () => {
   return '#3b82f6' // Default to a nice blue instead of black
 }
 
-export const currentThicknessSignal = atom('currentThickness', 7)
+export const currentThicknessSignal = atom('currentThickness', 5)
 export const currentOpacitySignal = atom('currentOpacity', 1)
 export const currentIsBrushSignal = atom('currentIsBrush', false)
 export const currentBrushTypeSignal = atom('brushType', 'normal')
