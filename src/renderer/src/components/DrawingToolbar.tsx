@@ -37,6 +37,7 @@ import {
   Minus,
   Scissors,
   Target,
+  ListChecks,
 } from 'lucide-react'
 import { useStrokeEraser } from '../tools/useStrokeEraser'
 import { StylePanel } from './StylePanel'
@@ -147,7 +148,7 @@ const SHAPE_GROUP: ShapeDef[] = [
   { id: 'geo', geoType: 'hexagon', label: 'Hexagon', icon: Hexagon },
   { id: 'geo', geoType: 'pentagon', label: 'Pentagon', icon: Pentagon },
   { id: 'geo', geoType: 'octagon', label: 'Octagon', icon: Octagon },
-  { id: 'custom-parallelogram', label: 'Parallelogram', icon: ParallelogramIcon },
+  { id: 'custom-parallelogram', label: 'Parallel', icon: ParallelogramIcon },
 ]
 
 
@@ -841,6 +842,7 @@ function SelectGroupButton({
   activeTheme,
   isCameraLocked,
   onToggleLock,
+  onSelectAll,
   toolbarSettings,
   isCompact,
   customColorHex,
@@ -850,6 +852,7 @@ function SelectGroupButton({
   activeTheme?: ColorTheme
   isCameraLocked: boolean
   onToggleLock: () => void
+  onSelectAll: () => void
   toolbarSettings?: ToolbarSettings
   isCompact?: boolean
   customColorHex?: string
@@ -977,6 +980,15 @@ function SelectGroupButton({
               {isCameraLocked ? "Unlock" : "Lock"}
             </button>
           )}
+
+          {/* Select All */}
+          <button
+            onClick={() => { onSelectAll(); setIsOpen(false) }}
+            className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            <ListChecks size={14} />
+            Select All
+          </button>
         </div>
       )}
     </div>
@@ -1095,6 +1107,17 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
       })))
     }
 
+    // Update custom shapes that store color in props directly
+    const customShapeTypes = ['custom-line', 'custom-dotted-line', 'custom-arrow', 'custom-circle', 'graph-axes-1', 'graph-axes-4', 'custom-right-triangle', 'custom-parallelogram']
+    const customShapes = selectedShapes.filter(s => customShapeTypes.includes(s.type))
+    if (customShapes.length > 0) {
+      editor.updateShapes(customShapes.map(s => ({
+        id: s.id,
+        type: s.type,
+        props: { ...s.props, color: convertedColor }
+      })))
+    }
+
     if (selectedShapes.length > 0) {
       // @ts-ignore
       editor.setStyleForSelectedShapes(DefaultColorStyle, bestNamedKey)
@@ -1174,6 +1197,10 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
   const selectTool = (toolId: string) => {
     editor.setCurrentTool(toolId)
     editor.updateInstanceState({ isToolLocked: true })
+  }
+
+  const handleSelectAll = () => {
+    editor.selectAll()
   }
 
   const handleAction = (action: string) => {
@@ -1546,6 +1573,7 @@ export function DrawingToolbar({ showRecentColors = true, onImageClick, onAddPag
             activeTheme={activeColorTheme}
             isCameraLocked={isCameraLocked}
             onToggleLock={() => window.dispatchEvent(new CustomEvent('request-toggle-page-lock'))}
+            onSelectAll={handleSelectAll}
             toolbarSettings={toolbarSettings}
             isCompact={isCompact}
             customColorHex={isCurrentColorCustom ? activeColorHex : undefined}

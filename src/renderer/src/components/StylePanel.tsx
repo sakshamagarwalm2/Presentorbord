@@ -144,6 +144,17 @@ export function StylePanel({ isVisible }: { isVisible: boolean }) {
       })))
     }
 
+    // Update custom shapes that store color in props directly
+    const customShapeTypes = ['custom-line', 'custom-dotted-line', 'custom-arrow', 'custom-circle', 'graph-axes-1', 'graph-axes-4', 'custom-right-triangle', 'custom-parallelogram']
+    const customShapes = selected.filter(s => customShapeTypes.includes(s.type))
+    if (customShapes.length > 0) {
+      editor.updateShapes(customShapes.map(s => ({
+        id: s.id,
+        type: s.type,
+        props: { ...s.props, color: convertedColor }
+      })))
+    }
+
     if (selected.length > 0) {
       // @ts-ignore
       editor.setStyleForSelectedShapes(DefaultColorStyle, bestNamedKey)
