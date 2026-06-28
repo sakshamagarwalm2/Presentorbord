@@ -82,7 +82,6 @@ jobs:
         # Build the app once here
         run: |
           npm run build
-          npx electron-builder --win --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -90,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Presentorbord-Installer
-          path: OutputInstaller/*.exe
+          path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 7
 
@@ -101,7 +100,7 @@ jobs:
           tag_name: ${{ steps.bump_version.outputs.NEW_VERSION }}
           name: Release ${{ steps.bump_version.outputs.NEW_VERSION }}
           body: "Automatic build for version ${{ steps.bump_version.outputs.NEW_VERSION }}"
-          files: OutputInstaller/*.exe
+          files: src-tauri/target/release/bundle/nsis/*.exe
           draft: false
           prerelease: false
         env:
