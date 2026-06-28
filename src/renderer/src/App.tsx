@@ -12,6 +12,7 @@ import {
 } from "@tldraw/tldraw";
 console.log("!!! APP.TSX FILE LOADED !!!");
 import "@tldraw/tldraw/tldraw.css";
+import { tauriApi } from "./tauri-api"
 import { fitSlideToViewport, animateSlideToViewport } from "./utils/slideCamera";
 
 import { useSubjectMode } from "./store/useSubjectMode";
@@ -28,7 +29,6 @@ import { PageSelectionDialog } from "./components/PageSelectionDialog";
 import { AllSlidesGrid } from "./components/AllSlidesGrid";
 import { TimerWidget } from "./components/TimerWidget";
 import { SelectionBoxIcons } from "./components/SelectionBoxIcons";
-import { StandaloneCalculator } from "./components/StandaloneCalculator";
 import { LassoSelectionForeground } from "./components/LassoSelectionForeground";
 import { jsPDF } from "jspdf";
 import { ZoomIn, ZoomOut, Maximize, ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -224,7 +224,7 @@ function AppContent() {
   }, [editor]);
 
   const setImportProgress = (msg: string) => {
-    window.api.log(`[Import Progress] ${msg}`);
+    tauriApi.log(`[Import Progress] ${msg}`);
     _setImportProgress(msg);
   };
 
@@ -381,7 +381,7 @@ function AppContent() {
           const brushType = currentBrushTypeSignal.get();
 
           const toolName = isBrush ? `Brush (${brushType})` : "Standard Pen/Pencil";
-          window.api.log(`[Drawing] New Stroke Created: ${toolName} | Thickness: ${thickness} | Opacity: ${opacity}`);
+          tauriApi.log(`[Drawing] New Stroke Created: ${toolName} | Thickness: ${thickness} | Opacity: ${opacity}`);
 
           return {
             ...shape,
@@ -398,11 +398,11 @@ function AppContent() {
 
         if (shape.type === "super-pen") {
             const props = (shape as any).props;
-            window.api.log(`[Drawing] New Super Pen Created: ${props.mode} | Size: ${props.size} | Opacity: ${props.opacity}`);
+            tauriApi.log(`[Drawing] New Super Pen Created: ${props.mode} | Size: ${props.size} | Opacity: ${props.opacity}`);
         }
 
         if (shape.type === "custom-laser") {
-            window.api.log(`[Drawing] New Laser Pointer active`);
+            tauriApi.log(`[Drawing] New Laser Pointer active`);
         }
 
         if (shape.type === "graph-axes-1" || shape.type === "graph-axes-4") {
@@ -495,7 +495,7 @@ function AppContent() {
         // We don't log every single tiny move to avoid flooding,
         // but we log when multiple things happen or major additions
         if (added > 5 || updated > 20 || removed > 5) {
-          window.api.log(`Store Change: Added ${added}, Updated ${updated}, Removed ${removed}`);
+          tauriApi.log(`Store Change: Added ${added}, Updated ${updated}, Removed ${removed}`);
         }
       }
     });
@@ -715,9 +715,9 @@ function AppContent() {
         });
       }, { history: 'ignore' });
 
-      window.api.log(`[Image Import] Imported ${file.name} (${naturalW}x${naturalH}) at ${displayW}x${displayH}`);
+      tauriApi.log(`[Image Import] Imported ${file.name} (${naturalW}x${naturalH}) at ${displayW}x${displayH}`);
     } catch (error: any) {
-      window.api.log(`[Image Import] Failed: ${error?.message || error}`);
+      tauriApi.log(`[Image Import] Failed: ${error?.message || error}`);
       alert("Image import failed: " + (error?.message || error));
     } finally {
       setIsImporting(false);
@@ -766,19 +766,17 @@ function AppContent() {
       if (isPdf) {
         const arrayBuffer = await file.arrayBuffer();
         const pdfData = new Uint8Array(arrayBuffer);
-        window.api.log(`PDF file read: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
+        tauriApi.log(`PDF file read: ${(file.size / 1024 / 1024).toFixed(1)}MB`);
 
-        if (window.electron?.ipcRenderer) {
-          try {
-            await window.electron.ipcRenderer.invoke("save-imported-file", pdfData, file.name);
-          } catch (_) { /* non-critical */ }
-        }
+        try {
+          tauriApi.saveImportedFile(Array.from(pdfData), file.name).catch(() => {});
+        } catch (_) { /* non-critical */ }
 
         setImportProgress("Loading PDF engine...");
         const { loadPdf, renderPageToSlideDataUrl } = await import("./utils/pdfUtils");
         const pdf = await loadPdf(pdfData, { verbose: true, timeout: 120000 });
         pageCount = pdf.numPages;
-        window.api.log(`[Import] Parsed ${pageCount} PDF pages`);
+        tauriApi.log(`[Import] Parsed ${pageCount} PDF pages`);
 
         for (let i = 1; i <= pageCount; i++) {
           setImportProgress(`Rendering slide ${i} of ${pageCount}...`);
@@ -791,7 +789,7 @@ function AppContent() {
         const arrayBuffer = await file.arrayBuffer();
         slideImages = await extractPptxSlides(arrayBuffer);
         pageCount = slideImages.length;
-        window.api.log(`[Import] Extracted ${pageCount} PPTX slides`);
+        tauriApi.log(`[Import] Extracted ${pageCount} PPTX slides`);
       }
 
       if (pageCount === 0) {
@@ -888,7 +886,7 @@ function AppContent() {
           const pageId = newPageIds[i];
 
           if (!url) {
-            window.api.log(`[Import] Skipping empty slide ${i + 1}`);
+            tauriApi.log(`[Import] Skipping empty slide ${i + 1}`);
             continue;
           }
 
@@ -927,7 +925,7 @@ function AppContent() {
           });
             });
           } catch (renderError) {
-            window.api.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
+            tauriApi.log(`[Import] ERROR on slide ${i + 1}: ${renderError}`);
           }
 
           if (i % 5 === 0) {
@@ -962,9 +960,9 @@ function AppContent() {
         fitSlideToViewport(editor);
       }
 
-      window.api.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
+      tauriApi.log(`[Import] Completed in ${((performance.now() - importStartTime) / 1000).toFixed(2)}s`);
     } catch (error: any) {
-      window.api.log(`[Import] Failed: ${error?.message || error}`);
+      tauriApi.log(`[Import] Failed: ${error?.message || error}`);
       alert("Import failed: " + (error?.message || error));
     } finally {
       setIsImporting(false);
@@ -1266,8 +1264,7 @@ function AppContent() {
   }, []);
 
   const handleCloseExitWithoutSaving = () => {
-    if ((window as any).electron?.ipcRenderer)
-      (window as any).electron.ipcRenderer.invoke("close-app");
+    tauriApi.closeApp();
   };
 
   const handleCloseCancel = () => {
@@ -1277,7 +1274,7 @@ function AppContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === "L") {
-        window.api.openLogDir();
+        tauriApi.openLogDir();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -1324,7 +1321,7 @@ function AppContent() {
         e.preventDefault();
         editor.setCurrentTool("super-pen");
         editor.updateInstanceState({ isToolLocked: true });
-        window.api.log("[Remote] Top Button pressed: Selecting Super Pen");
+        tauriApi.log("[Remote] Top Button pressed: Selecting Super Pen");
         return;
       }
 
@@ -1333,7 +1330,7 @@ function AppContent() {
         e.preventDefault();
         editor.setCurrentTool("precision-eraser");
         editor.updateInstanceState({ isToolLocked: true });
-        window.api.log("[Remote] Bottom Button pressed: Selecting Precision Eraser");
+        tauriApi.log("[Remote] Bottom Button pressed: Selecting Precision Eraser");
         return;
       }
 

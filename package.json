@@ -1,44 +1,25 @@
 {
   "name": "presentorbord",
   "version": "6.2.17",
-  "main": "out/main/index.js",
   "description": "Educational Whiteboard App",
   "author": "Antigravity",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "tsc && electron-vite build",
-    "preview": "electron-vite preview",
-    "dist": "node scripts/bump-version.js && npm run build && electron-builder",
-    "dist:patch": "node scripts/bump-version.js && npm run build && electron-builder",
-    "dist:minor": "node scripts/bump-version.js --minor && npm run build && electron-builder",
-    "dist:major": "node scripts/bump-version.js --major && npm run build && electron-builder"
-  },
-  "build": {
-    "appId": "com.presentorbord.app",
-    "productName": "Presentorbord",
-    "directories": {
-      "output": "OutputInstaller"
-    },
-    "files": [
-      "out/**/*",
-      "src/assets/presentor.ico"
-    ],
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "src/assets/icon.png"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+    "dev:renderer": "vite",
+    "build:renderer": "vite build",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@electron-toolkit/preload": "^3.0.2",
     "@stroke-stabilizer/core": "^0.3.1",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-fs": "^2.5.1",
+    "@tauri-apps/plugin-log": "^2.8.0",
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "@tldraw/tldraw": "^2.1.0",
     "clsx": "^2.1.1",
     "jspdf": "^4.1.0",
@@ -53,16 +34,13 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.11.3",
     "@types/jszip": "^3.4.0",
     "@types/pdfjs-dist": "^2.10.377",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
-    "electron": "^31.0.2",
-    "electron-builder": "^26.8.1",
-    "electron-vite": "^2.3.0",
-    "png-to-ico": "^3.0.1",
     "postcss": "^8.4.38",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.4",

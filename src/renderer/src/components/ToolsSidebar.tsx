@@ -31,7 +31,9 @@ import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
 import packageJson from "../../../../package.json";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
+import { listen } from "@tauri-apps/api/event";
 import { getEmbedDef } from "../utils/embedUtils";
+import { tauriApi } from "../tauri-api"
 
 export type ToolbarLocation = "main" | "nav" | "hidden";
 
@@ -145,20 +147,15 @@ export function ToolsSidebar({
   };
 
   useEffect(() => {
-    // Initial status check
-    // @ts-ignore
-    if (window.electron && window.electron.ipcRenderer) {
-      // @ts-ignore
-      window.electron.ipcRenderer.invoke("get-browser-status").then(setIsBrowserOpen);
+    tauriApi.getBrowserStatus().then(setIsBrowserOpen).catch(() => {});
 
-      // Listen for updates
-      // @ts-ignore
-      const removeListener = window.electron.ipcRenderer.on("browser-status-changed", (_, status) => {
-        setIsBrowserOpen(status);
-      });
-      return () => removeListener();
-    }
-    return undefined;
+    const unlisten = listen<boolean>("browser-status-changed", (event) => {
+      setIsBrowserOpen(event.payload);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []);
 
   useEffect(() => {
@@ -214,15 +211,7 @@ export function ToolsSidebar({
   };
 
   const openBookmark = (url: string) => {
-    // Force use of internal browser logic for bookmarks
-    window.open(url, "_blank");
-    
-    // After requesting the open, ensure the window is focused
-    // (createInternalBrowser in main handles the heavy lifting, but we call focus just in case)
-    if (isBrowserOpen) {
-      // @ts-ignore
-      window.electron?.ipcRenderer.invoke("focus-internal-browser");
-    }
+    tauriApi.openInBrowser(url);
   };
 
   const toggleGrid = () => {
@@ -263,22 +252,14 @@ export function ToolsSidebar({
   };
 
   const openSystemCalculator = async () => {
-    // @ts-ignore
-    if (window.electron && window.electron.ipcRenderer) {
-      // @ts-ignore
-      await window.electron.ipcRenderer.invoke("open-system-calculator");
-    } else {
-      alert("System Calculator only available in Electron mode");
-    }
+    await tauriApi.openSystemCalculator();
   };
 
   const openBrowser = () => {
-    // If browser is already open, just focus it
     if (isBrowserOpen) {
-       // @ts-ignore
-       window.electron.ipcRenderer.invoke("focus-internal-browser");
+      tauriApi.focusInternalBrowser();
     } else {
-       window.open("https://google.com", "_blank");
+      tauriApi.openInBrowser("https://google.com");
     }
   };
 
@@ -514,7 +495,7 @@ return (
               </p>
             </div>
             <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
-              Built with Electron, React, and tldraw.
+              Built with Tauri, React, and tldraw.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               <a

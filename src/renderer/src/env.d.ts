@@ -1,12 +1,5 @@
-
 declare module 'pdfjs-dist/build/pdf.min.mjs';
 declare module 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-interface Window {
-  electron: any;
-  api: {
-    log: (message: string, ...args: any[]) => void;
-    getLogPath: () => Promise<string>;
-    openLogDir: () => Promise<void>;
-  };
-}
+// Tauri API is accessed via imports, not window globals
+// See tauri-api.ts for the full API

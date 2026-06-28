@@ -3,6 +3,7 @@ import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight, ChevronUp, Maximize, Plus, 
 import { useEffect, useState, useRef } from "react";
 import { animateSlideToViewport } from "../utils/slideCamera";
 import { ToolbarSettings } from "./ToolsSidebar";
+import { tauriApi } from "../tauri-api"
 
 export function NavigationPanel({
   isVisible,
@@ -204,11 +205,7 @@ export function NavigationPanel({
                 <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
                 <button
                   onClick={() => {
-                    // @ts-ignore
-                    if (window.electron && window.electron.ipcRenderer) {
-                      // @ts-ignore
-                      window.electron.ipcRenderer.invoke("minimize-app");
-                    }
+                    tauriApi.minimizeApp();
                     setMoreMenuOpen(false);
                   }}
                   className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -464,11 +461,7 @@ export function NavigationPanel({
                 <div className="h-px bg-gray-200 dark:bg-gray-600 my-0.5" />
                 <button
                   onClick={() => {
-                    // @ts-ignore
-                    if (window.electron && window.electron.ipcRenderer) {
-                      // @ts-ignore
-                      window.electron.ipcRenderer.invoke("minimize-app");
-                    }
+                    tauriApi.minimizeApp();
                     setMoreMenuOpen(false);
                   }}
                   className="flex items-center gap-3 px-3 py-1 rounded-lg transition-all text-[10px] text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"

@@ -5,6 +5,7 @@ import * as pdfjsLib from "pdfjs-dist/build/pdf.min.mjs";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 // @ts-ignore - Vite-specific worker import
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { tauriApi } from "../tauri-api"
 import { SLIDE_WIDTH, SLIDE_HEIGHT, SLIDE_RENDER_QUALITY } from '../constants/slideConstants';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -15,9 +16,9 @@ interface LoadPdfOptions {
 }
 
 function logToTerminal(msg: string) {
-  if (window.api && window.api.log) {
-    window.api.log(msg);
-  } else {
+  try {
+    tauriApi.log(msg);
+  } catch {
     console.log(msg);
   }
 }

@@ -1,5 +1,5 @@
+import { tauriApi } from "../tauri-api"
 
 export async function convertPptToPdf(pptPath: string): Promise<string> {
-  // @ts-ignore (electronAPI is exposed in preload)
-  return await window.electron.ipcRenderer.invoke('convert-ppt-to-pdf', pptPath);
+  return await tauriApi.convertPptToPdf(pptPath);
 }
