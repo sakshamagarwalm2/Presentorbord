@@ -13,6 +13,7 @@ import {
 console.log("!!! APP.TSX FILE LOADED !!!");
 import "@tldraw/tldraw/tldraw.css";
 import { tauriApi } from "./tauri-api"
+
 import { fitSlideToViewport, animateSlideToViewport } from "./utils/slideCamera";
 
 import { useSubjectMode } from "./store/useSubjectMode";
@@ -564,9 +565,29 @@ function AppContent() {
 
   const handleSaveProject = async () => {
     const snapshot = editor.store.getSnapshot();
-    const blob = new Blob([JSON.stringify(snapshot)], {
-      type: "application/json",
-    });
+    const jsonString = JSON.stringify(snapshot);
+
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: "project.tldr",
+        types: [
+          {
+            description: "Presentorbord Project",
+            accept: { "application/json": [".tldr"] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(jsonString);
+      await writable.close();
+      tauriApi.log(`[Export] Project saved via file picker`);
+      return;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // Fallback to browser download
+    }
+
+    const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -1144,7 +1165,7 @@ function AppContent() {
       const svg = await editor.getSvg(shapeIds);
       if (!svg) throw new Error("Could not generate SVG");
 
-      const imageString = await new Promise<string>((resolve, reject) => {
+      const blob = await new Promise<Blob>((resolve, reject) => {
         const svgString = new XMLSerializer().serializeToString(svg);
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -1153,16 +1174,38 @@ function AppContent() {
           canvas.width = img.width;
           canvas.height = img.height;
           ctx?.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL("image/png"));
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error("Canvas toBlob failed"));
+          }, "image/png");
         };
         img.onerror = reject;
         img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgString)));
       });
 
-      const downloadLink = document.createElement("a");
-      downloadLink.href = imageString;
-      downloadLink.download = `page-${pageId}.png`;
-      downloadLink.click();
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: `page-${pageId}.png`,
+          types: [
+            {
+              description: "PNG Image",
+              accept: { "image/png": [".png"] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        tauriApi.log(`[Export] Image saved via file picker`);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = url;
+        downloadLink.download = `page-${pageId}.png`;
+        downloadLink.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (e) {
       console.error(e);
       alert("Export failed");
@@ -1243,7 +1286,29 @@ function AppContent() {
           doc.addImage(dataUrl, "JPEG", 0, 0, 1920, 1080);
         }
       }
-      doc.save(importedFileBaseName ? `${importedFileBaseName}_presenter.pdf` : "presentation.pdf");
+      const defaultName = importedFileBaseName
+        ? `${importedFileBaseName}_presenter.pdf`
+        : "presentation.pdf";
+
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          types: [
+            {
+              description: "PDF Document",
+              accept: { "application/pdf": [".pdf"] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        const pdfBlob = doc.output("blob");
+        await writable.write(pdfBlob);
+        await writable.close();
+        tauriApi.log(`[Export] PDF saved via file picker`);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        doc.save(defaultName);
+      }
     } catch (e) {
       console.error("PDF Export Error", e);
       alert("PDF Export failed: " + e);

@@ -35,4 +35,5 @@ export const tauriApi = {
   focusInternalBrowser: (): Promise<boolean> => invoke("focus_internal_browser"),
 
   getBrowserStatus: (): Promise<boolean> => invoke("get_browser_status"),
+
 };
