@@ -1,6 +1,7 @@
 import {
   Tldraw,
   useEditor,
+  useValue,
   AssetRecordType,
   createShapeId,
   PageRecordType,
@@ -61,6 +62,7 @@ import { RightAngledTriangleTool } from "./tools/RightAngledTriangleTool";
 import { CircleTool } from "./tools/CircleTool";
 import { ParallelogramTool } from "./tools/ParallelogramTool";
 import { CustomArrowTool } from "./tools/CustomArrowTool";
+import { TouchTool } from "./tools/TouchTool";
 
 const customShapeUtils = [
   GraphAxes1ShapeUtil,
@@ -90,6 +92,7 @@ const customTools = [
   CircleTool,
   ParallelogramTool,
   CustomArrowTool,
+  TouchTool,
 ];
 import {
   currentThicknessSignal,
@@ -97,6 +100,7 @@ import {
   currentIsBrushSignal,
   currentBrushTypeSignal,
   currentCustomColorSignal,
+  isTouchModeSignal,
 } from "./store/styleSignals";
 import { getNearestNamedColor } from "./utils/colorUtils";
 
@@ -220,9 +224,16 @@ function AppContent() {
   useEffect(() => {
     editor.user.updateUserPreferences({ colorScheme: "dark" });
     editor.setStyleForNextShapes(DefaultColorStyle, getNearestNamedColor(currentCustomColorSignal.get()));
-    editor.setCurrentTool('lasso');
+    const touchMode = isTouchModeSignal.get();
+    editor.setCurrentTool(touchMode ? 'touch' : 'lasso');
     editor.updateInstanceState({ isToolLocked: true });
   }, [editor]);
+
+  // Watch touch mode signal and switch tool accordingly
+  const isTouchMode = useValue('isTouchMode', () => isTouchModeSignal.get(), [])
+  useEffect(() => {
+    editor.setCurrentTool(isTouchMode ? 'touch' : 'lasso');
+  }, [isTouchMode, editor]);
 
   const setImportProgress = (msg: string) => {
     tauriApi.log(`[Import Progress] ${msg}`);

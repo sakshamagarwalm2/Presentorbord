@@ -12,3 +12,11 @@ export const currentIsBrushSignal = atom('currentIsBrush', false)
 export const currentBrushTypeSignal = atom('brushType', 'normal')
 export const currentEraserSizeSignal = atom('currentEraserSize', 12)
 export const currentCustomColorSignal = atom('currentCustomColor', getSavedColor())
+
+const getSavedTouchMode = () => {
+  const saved = localStorage.getItem('touch-mode-enabled')
+  if (saved) return saved === 'true'
+  return false
+}
+
+export const isTouchModeSignal = atom('isTouchMode', getSavedTouchMode())

@@ -26,14 +26,15 @@ import {
   PanelBottom,
   Timer,
   Wrench,
+  Smartphone,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
 import packageJson from "../../../../package.json";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
-import { listen } from "@tauri-apps/api/event";
 import { getEmbedDef } from "../utils/embedUtils";
 import { tauriApi } from "../tauri-api"
+import { isTouchModeSignal } from "../store/styleSignals"
 
 export type ToolbarLocation = "main" | "nav" | "hidden";
 
@@ -106,7 +107,6 @@ export function ToolsSidebar({
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [customBookmarks, setCustomBookmarks] = useState<Bookmark[]>([]);
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
-  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
 
   // Close all dropdowns
   const closeAllDropdowns = () => {
@@ -145,18 +145,6 @@ export function ToolsSidebar({
       onToolbarSettingsChange({ ...settings, [key]: value });
     }
   };
-
-  useEffect(() => {
-    tauriApi.getBrowserStatus().then(setIsBrowserOpen).catch(() => {});
-
-    const unlisten = listen<boolean>("browser-status-changed", (event) => {
-      setIsBrowserOpen(event.payload);
-    });
-
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("tools-sidebar-custom-bookmarks");
@@ -256,11 +244,7 @@ export function ToolsSidebar({
   };
 
   const openBrowser = () => {
-    if (isBrowserOpen) {
-      tauriApi.focusInternalBrowser();
-    } else {
-      tauriApi.openInBrowser("https://google.com");
-    }
+    tauriApi.openInBrowser("https://google.com");
   };
 
 return (
@@ -321,11 +305,10 @@ return (
               label="Browser" 
               onClick={openBrowser} 
               side={side} 
-              isExternalActive={isBrowserOpen}
             />
 
             <div className="relative">
-              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} side={side} isExternalActive={isBrowserOpen} />
+              <ToolButton icon={Bookmark} label="Bookmarks" onClick={() => showBookmarks ? setShowBookmarks(false) : setShowBookmarks(true)} side={side} />
 
               {/* Bookmarks dropdown */}
               {showBookmarks && (
@@ -665,6 +648,7 @@ return (
                 <NavOption name="Add Page" settingKey="addPage" settings={settings} onChange={updateSetting} color="#34d399" />
                 <NavOption name="Zoom" settingKey="zoomInOut" settings={settings} onChange={updateSetting} color="#38bdf8" />
                 <NavOption name="Fit Screen" settingKey="fitToScreen" settings={settings} onChange={updateSetting} color="#fbbf24" />
+                <TouchModeToggle />
               </div>
             )}
           </div>
@@ -960,5 +944,56 @@ function ToolbarOption({
         </button>
       </div>
     </div>
+  );
+}
+
+function TouchModeToggle() {
+  const [enabled, setEnabled] = useState(isTouchModeSignal.get())
+
+  const toggle = () => {
+    const next = !enabled
+    setEnabled(next)
+    isTouchModeSignal.set(next)
+    localStorage.setItem('touch-mode-enabled', String(next))
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 14px",
+        background: enabled
+          ? "linear-gradient(135deg, rgba(34,197,94,0.25) 0%, rgba(22,163,74,0.2) 100%)"
+          : "linear-gradient(135deg, rgba(248,113,113,0.2) 0%, rgba(239,68,68,0.15) 100%)",
+        borderRadius: 12,
+        border: enabled
+          ? "1px solid rgba(34,197,94,0.5)"
+          : "1px solid rgba(248,113,113,0.5)",
+        cursor: "pointer",
+        boxShadow: enabled
+          ? "0 0 15px rgba(34,197,94,0.2)"
+          : "0 0 15px rgba(248,113,113,0.2)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Smartphone size={14} style={{ color: enabled ? "#4ade80" : "#fca5a5" }} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: enabled ? "#4ade80" : "#fca5a5" }}>
+          Touch Board
+        </span>
+      </div>
+      <span style={{
+        fontSize: 11,
+        fontWeight: 700,
+        color: enabled ? "#22c55e" : "#f87171",
+        background: enabled ? "rgba(34,197,94,0.2)" : "rgba(248,113,113,0.2)",
+        padding: "4px 10px",
+        borderRadius: 8,
+      }}>
+        {enabled ? 'ON' : 'OFF'}
+      </span>
+    </button>
   );
 }

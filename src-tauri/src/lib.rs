@@ -1,12 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-
-struct BrowserState {
-    label: Option<String>,
-}
+use tauri::{AppHandle, Manager};
+use tauri_plugin_opener::OpenerExt;
 
 fn get_app_data_dir(app: &AppHandle) -> PathBuf {
     app.path()
@@ -342,86 +338,20 @@ try {{
 }
 
 #[tauri::command]
-fn open_in_browser(
-    app: AppHandle,
-    state: tauri::State<'_, Mutex<BrowserState>>,
-    url: String,
-) -> Result<(), String> {
-    let parsed_url = url.parse().map_err(|e| format!("Invalid URL: {}", e))?;
-    let mut browser = state.lock().map_err(|e| e.to_string())?;
-
-    // Close existing browser window if any
-    if let Some(ref label) = browser.label {
-        if let Some(window) = app.get_webview_window(label) {
-            let _ = window.close();
-        }
-    }
-
-    let label = format!("browser-{}", chrono_now());
-
-    let window = WebviewWindowBuilder::new(&app, &label, WebviewUrl::External(parsed_url))
-        .title("Presentorbord Browser")
-        .inner_size(1200.0, 800.0)
-        .center()
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    window.show().map_err(|e| e.to_string())?;
-    window.set_focus().map_err(|e| e.to_string())?;
-
-    let app_clone = app.clone();
-    browser.label = Some(label);
-
-    window.on_window_event(move |event| {
-        if let tauri::WindowEvent::Destroyed = event {
-            let _ = app_clone.emit("browser-status-changed", false);
-        }
-    });
-
-    let _ = app.emit("browser-status-changed", true);
-
+fn open_in_browser(app: AppHandle, url: String) -> Result<(), String> {
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())?;
     Ok(())
-}
-
-#[tauri::command]
-fn focus_internal_browser(
-    app: AppHandle,
-    state: tauri::State<'_, Mutex<BrowserState>>,
-) -> Result<bool, String> {
-    let browser = state.lock().map_err(|e| e.to_string())?;
-    if let Some(ref label) = browser.label {
-        if let Some(window) = app.get_webview_window(label) {
-            window.show().map_err(|e| e.to_string())?;
-            window.set_focus().map_err(|e| e.to_string())?;
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-#[tauri::command]
-fn get_browser_status(
-    app: AppHandle,
-    state: tauri::State<'_, Mutex<BrowserState>>,
-) -> Result<bool, String> {
-    let browser = state.lock().map_err(|e| e.to_string())?;
-    if let Some(ref label) = browser.label {
-        if app.get_webview_window(label).is_some() {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_log::Builder::new().build())
-        .manage(Mutex::new(BrowserState { label: None }))
         .invoke_handler(tauri::generate_handler![
             log_message,
             get_log_path,
@@ -437,8 +367,6 @@ pub fn run() {
             convert_with_libreoffice,
             convert_ppt_to_pdf,
             open_in_browser,
-            focus_internal_browser,
-            get_browser_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -32,8 +32,4 @@ export const tauriApi = {
   openInBrowser: (url: string): Promise<void> =>
     invoke("open_in_browser", { url }),
 
-  focusInternalBrowser: (): Promise<boolean> => invoke("focus_internal_browser"),
-
-  getBrowserStatus: (): Promise<boolean> => invoke("get_browser_status"),
-
 };
