@@ -1,8 +1,14 @@
+use std::ffi::OsStr;
 use std::fs;
+use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 use std::process::Command;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
+use windows_sys::Win32::Foundation::HWND;
+use windows_sys::Win32::UI::WindowsAndMessaging::{
+    FindWindowW, SetForegroundWindow, ShowWindow, SW_RESTORE,
+};
 
 fn get_app_data_dir(app: &AppHandle) -> PathBuf {
     app.path()
@@ -125,26 +131,59 @@ fn close_app(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn to_wide(s: &str) -> Vec<u16> {
+    OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
+}
+
+fn focus_window(title: &str, class: Option<&str>) -> bool {
+    let class_wide = class.map(to_wide);
+    let class_ptr = class_wide
+        .as_ref()
+        .map(|v| v.as_ptr())
+        .unwrap_or(std::ptr::null());
+    let title_wide = to_wide(title);
+    let hwnd: HWND = unsafe { FindWindowW(class_ptr, title_wide.as_ptr()) };
+    if hwnd != 0 {
+        unsafe {
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+        true
+    } else {
+        false
+    }
+}
+
 #[tauri::command]
 fn open_system_calculator() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        Command::new("calc")
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        // Try classic Calculator (CalcFrame class) or modern UWP (title "Calculator")
+        if !focus_window("Calculator", Some("CalcFrame"))
+            && !focus_window("Calculator", None)
+        {
+            Command::new("calc")
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
     }
     #[cfg(target_os = "macos")]
     {
-        Command::new("open")
-            .args(["-a", "Calculator"])
+        Command::new("osascript")
+            .args(["-e", r#"tell application "Calculator" to activate"#])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "linux")]
     {
-        Command::new("gnome-calculator")
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let found = Command::new("xdotool")
+            .args(["search", "--name", "Calculator", "windowactivate"])
+            .output();
+        if found.is_err() || !found.unwrap().status.success() {
+            Command::new("gnome-calculator")
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }
