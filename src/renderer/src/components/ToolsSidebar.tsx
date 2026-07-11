@@ -26,7 +26,7 @@ import {
   PanelBottom,
   Timer,
   Wrench,
-  Smartphone,
+  EyeOff,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import bannerImg from "../../../assets/presentorbanaer.jpg";
@@ -34,7 +34,7 @@ import packageJson from "../../../../package.json";
 import { useEditor, createShapeId } from "@tldraw/tldraw";
 import { getEmbedDef } from "../utils/embedUtils";
 import { tauriApi } from "../tauri-api"
-import { isTouchModeSignal } from "../store/styleSignals"
+import { handModeEnabledSignal } from "../store/styleSignals"
 
 export type ToolbarLocation = "main" | "nav" | "hidden";
 
@@ -648,7 +648,7 @@ return (
                 <NavOption name="Add Page" settingKey="addPage" settings={settings} onChange={updateSetting} color="#34d399" />
                 <NavOption name="Zoom" settingKey="zoomInOut" settings={settings} onChange={updateSetting} color="#38bdf8" />
                 <NavOption name="Fit Screen" settingKey="fitToScreen" settings={settings} onChange={updateSetting} color="#fbbf24" />
-                <TouchModeToggle />
+                <InvisibleCursorToggle />
               </div>
             )}
           </div>
@@ -947,14 +947,14 @@ function ToolbarOption({
   );
 }
 
-function TouchModeToggle() {
-  const [enabled, setEnabled] = useState(isTouchModeSignal.get())
+function InvisibleCursorToggle() {
+  const [enabled, setEnabled] = useState(handModeEnabledSignal.get())
 
   const toggle = () => {
     const next = !enabled
     setEnabled(next)
-    isTouchModeSignal.set(next)
-    localStorage.setItem('touch-mode-enabled', String(next))
+    handModeEnabledSignal.set(next)
+    localStorage.setItem('hand-mode-enabled', String(next))
   }
 
   return (
@@ -979,9 +979,9 @@ function TouchModeToggle() {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Smartphone size={14} style={{ color: enabled ? "#4ade80" : "#fca5a5" }} />
+        <EyeOff size={14} style={{ color: enabled ? "#4ade80" : "#fca5a5" }} />
         <span style={{ fontSize: 12, fontWeight: 600, color: enabled ? "#4ade80" : "#fca5a5" }}>
-          Touch Board
+          Invisible Cursor
         </span>
       </div>
       <span style={{

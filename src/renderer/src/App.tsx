@@ -62,7 +62,7 @@ import { RightAngledTriangleTool } from "./tools/RightAngledTriangleTool";
 import { CircleTool } from "./tools/CircleTool";
 import { ParallelogramTool } from "./tools/ParallelogramTool";
 import { CustomArrowTool } from "./tools/CustomArrowTool";
-import { TouchTool } from "./tools/TouchTool";
+
 
 const customShapeUtils = [
   GraphAxes1ShapeUtil,
@@ -92,7 +92,6 @@ const customTools = [
   CircleTool,
   ParallelogramTool,
   CustomArrowTool,
-  TouchTool,
 ];
 import {
   currentThicknessSignal,
@@ -100,7 +99,7 @@ import {
   currentIsBrushSignal,
   currentBrushTypeSignal,
   currentCustomColorSignal,
-  isTouchModeSignal,
+  handModeEnabledSignal,
 } from "./store/styleSignals";
 import { getNearestNamedColor } from "./utils/colorUtils";
 
@@ -224,16 +223,15 @@ function AppContent() {
   useEffect(() => {
     editor.user.updateUserPreferences({ colorScheme: "dark" });
     editor.setStyleForNextShapes(DefaultColorStyle, getNearestNamedColor(currentCustomColorSignal.get()));
-    const touchMode = isTouchModeSignal.get();
-    editor.setCurrentTool(touchMode ? 'touch' : 'lasso');
+    editor.setCurrentTool('lasso');
     editor.updateInstanceState({ isToolLocked: true });
   }, [editor]);
 
-  // Watch touch mode signal and switch tool accordingly
-  const isTouchMode = useValue('isTouchMode', () => isTouchModeSignal.get(), [])
+  // Invisible Cursor toggle — hide cursor when hand mode is ON
+  const handMode = useValue('handMode', () => handModeEnabledSignal.get(), [])
   useEffect(() => {
-    editor.setCurrentTool(isTouchMode ? 'touch' : 'lasso');
-  }, [isTouchMode, editor]);
+    document.body.classList.toggle('hide-drawing-cursor', handMode)
+  }, [handMode])
 
   const setImportProgress = (msg: string) => {
     tauriApi.log(`[Import Progress] ${msg}`);

@@ -108,3 +108,9 @@ body {
 .sidebar-pages::-webkit-scrollbar-thumb:hover {
     background: rgba(34, 197, 94, 0.7) !important;
 }
+
+/* Invisible Cursor mode - hides all cursors when enabled */
+.hide-drawing-cursor,
+.hide-drawing-cursor * {
+    cursor: none !important;
+}
