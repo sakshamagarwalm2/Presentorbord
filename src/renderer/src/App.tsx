@@ -1071,7 +1071,9 @@ function AppContent() {
       });
       editor.setCurrentPage(newPageId);
     }, { history: 'ignore' });
-    requestAnimationFrame(() => editor.zoomToFit());
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => fitSlideToViewport(editor));
+    });
   }, [editor]);
 
   // Listen for custom add page event from context menu
@@ -1436,18 +1438,30 @@ function AppContent() {
 
     let debounce: ReturnType<typeof setTimeout>;
 
+    const refit = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => fitSlideToViewport(editor));
+      });
+    };
+
     const observer = new ResizeObserver(() => {
       clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        requestAnimationFrame(() => fitSlideToViewport(editor));
-      }, 150);
+      debounce = setTimeout(refit, 100);
     });
 
     observer.observe(container);
 
+    // Backup: direct window resize listener in case ResizeObserver misses it
+    const handleWindowResize = () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(refit, 100);
+    };
+    window.addEventListener('resize', handleWindowResize);
+
     return () => {
       clearTimeout(debounce);
       observer.disconnect();
+      window.removeEventListener('resize', handleWindowResize);
     };
   }, [editor]);
 

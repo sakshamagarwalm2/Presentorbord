@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Presentorbord Banner](src/assets/presentorbanaer.jpg)
 
-An educational whiteboard application built with Electron, React, Vite, and [tldraw](https://tldraw.dev/). Designed for teaching and presentations, it features an infinite canvas, custom educational tools, and native support for importing presentation files.
+An educational whiteboard application built with Tauri 2, React, Vite, TypeScript, Rust, and [tldraw](https://tldraw.dev/). Designed for teaching and presentations, it features an infinite canvas, custom educational tools, and native support for importing presentation files.
 
 ## ✨ Features
 
@@ -13,22 +13,27 @@ An educational whiteboard application built with Electron, React, Vite, and [tld
 - **Custom Educational Tools**: Includes specialized tools like a Protractor, Graph Axes, and a Custom Laser pointer for interactive teaching.
 - **Subject Modes**: Specialized modes (e.g., "Math" mode) that automatically provide relevant tools to the user.
 - **Advanced Locking Mechanism**: Lock the camera/viewport to prevent accidental panning, set specific elements as background, and easily manage locked shapes.
-- **Cross-Platform**: Built on Electron for compatibility across platforms (Note: PPTX conversion depends on Windows PowerPoint APIs).
+- **Cross-Platform**: Built on Tauri 2 (Rust) for a lightweight, native desktop experience. PPT-to-PDF conversion works natively on Windows via PowerPoint COM automation, with a LibreOffice fallback available for other platforms.
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [React 18](https://reactjs.org/)
-- **Desktop Environment**: [Electron](https://www.electronjs.org/) using [electron-vite](https://electron-vite.org/)
+- **Desktop Shell**: [Tauri 2](https://tauri.app/) (Rust backend)
+- **Language**: [TypeScript](https://www.typescriptlang.org/) + [Rust](https://www.rust-lang.org/)
+- **UI Framework**: [React 18](https://reactjs.org/)
+- **Build Tool**: [Vite 5](https://vitejs.dev/)
 - **Whiteboard Engine**: [tldraw 2.1](https://tldraw.dev/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
+- **PDF Parsing**: [pdfjs-dist](https://mozilla.github.io/pdf.js/)
+- **PPT/ZIP Handling**: [JSZip](https://stuk.github.io/jszip/) + [jsPDF](https://parall.ax/products/jspdf)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- To use the **PowerPoint to PDF** import feature, you must run the application on **Windows** with **Microsoft PowerPoint** installed (the app uses PowerShell COM automation to silently convert slides).
+- [Rust](https://www.rust-lang.org/tools/install) toolchain (for the Tauri backend)
+- To use the **PowerPoint to PDF** import feature, you must run the application on **Windows** with **Microsoft PowerPoint** installed (the app uses PowerShell COM automation to silently convert slides). Alternatively, [LibreOffice](https://www.libreoffice.org/) can be used as a cross-platform fallback.
 
 ### Installation
 
@@ -57,18 +62,20 @@ To build the application for production:
 ```bash
 npm run build
 ```
-This will compile the TypeScript code and package the Electron app into the `dist` or respective output directory.
+This will compile the frontend via Vite and bundle the Tauri app into an NSIS installer (or other platform-specific format) in the `src-tauri/target/release/bundle/` directory.
 
 ## 📂 Project Structure
 
-- `src/main/` - The main Electron process. Handles system-level bindings, dialogs, and file manipulation (e.g., PowerShell scripts for PPT conversion).
-- `src/renderer/` - The React frontend application.
-  - `components/` - UI components like sidebars, toolbars, and dialogs.
-  - `shapes/` - Custom tldraw shape definitions (Graph Axes, Protractor, etc.).
-  - `tools/` - Custom tldraw tools interacting with the shapes.
-  - `store/` - Zustand stores for global UI state (Subject modes, etc.).
-  - `utils/` - Utility functions, including PDF.js integration for parsing imported files.
-- `src/preload/` - Electron preload scripts securely exposing IPC methods to the renderer.
+- `src-tauri/` - Tauri (Rust) backend.
+  - `src/lib.rs` - Core backend logic: IPC commands, PPT-to-PDF conversion, file I/O, window management.
+  - `tauri.conf.json` - Tauri app configuration (window settings, security, bundling).
+  - `capabilities/` - Tauri v2 permission grants.
+- `src/renderer/src/` - The React frontend application.
+  - `components/` - UI components: sidebars, toolbars, navigation panel, dialogs, timer widget, style panels.
+  - `shapes/` - 11 custom tldraw shape definitions: Protractor, Compass, Ruler, Graph Axes, Circle, Parallelogram, Right-Angled Triangle, Arrow, Dotted Line, Emoji Pen, Super Pen.
+  - `tools/` - 14+ custom tldraw tools: Area Eraser, Precision Eraser, Lasso, Circle, Parallelogram, Triangle, Arrow, Line, Dotted Line, Emoji Pen, Super Pen, Graph Axes (1-axis & 4-axis), Custom Laser.
+  - `store/` - Zustand stores and reactive signals for global UI state (subject modes, style settings).
+  - `utils/` - Utility functions for PDF parsing, PPTX extraction, slide camera management, color utilities, and geometry snapping.
 
 ## 📄 License
 
